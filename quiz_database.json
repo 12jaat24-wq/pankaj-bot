@@ -1,126 +1,4 @@
 {
-  "LDC_English_Class_2": [
-    {
-      "variations": [
-        "संज्ञा (Noun) को एक शब्द में क्या कहा जा सकता है?",
-        "What is the simplest definition of a Noun in one word?"
-      ],
-      "options": ["Action", "Naming Word", "Describing Word", "Joining Word"],
-      "answer": 1
-    },
-    {
-      "variations": [
-        "किसी विशेष व्यक्ति, वस्तु या स्थान के नाम को क्या कहते हैं?",
-        "A name given to a specific person, place, or thing is called:"
-      ],
-      "options": ["Common Noun", "Proper Noun", "Abstract Noun", "Collective Noun"],
-      "answer": 1
-    },
-    {
-      "variations": [
-        "Proper Noun का पहला अक्षर हमेशा कैसा होना चाहिए?",
-        "The first letter of a Proper Noun must always be written in:"
-      ],
-      "options": ["Small Case", "Cursive only", "Capital Letter", "Italics"],
-      "answer": 2
-    },
-    {
-      "variations": [
-        "पूरी जाति या श्रेणी का बोध कराने वाली संज्ञा क्या कहलाती है?",
-        "A noun that represents a whole class or category is known as:"
-      ],
-      "options": ["Proper Noun", "Common Noun", "Material Noun", "Abstract Noun"],
-      "answer": 1
-    },
-    {
-      "variations": [
-        "व्यक्तियों या वस्तुओं के समूह (Group) को दर्शाने वाली संज्ञा को क्या कहते हैं?",
-        "A name given to a group of people or collection of things is:"
-      ],
-      "options": ["Proper Noun", "Collective Noun", "Common Noun", "Abstract Noun"],
-      "answer": 1
-    },
-    {
-      "variations": [
-        "ऐसी संज्ञा जिसे हम छू नहीं सकते, केवल महसूस कर सकते हैं (जैसे- Love, Bravery), क्या कहलाती है?",
-        "A noun that refers to ideas, qualities, or conditions and cannot be touched is:"
-      ],
-      "options": ["Material Noun", "Common Noun", "Abstract Noun", "Proper Noun"],
-      "answer": 2
-    },
-    {
-      "variations": [
-        "किसी पदार्थ या द्रव्य (Substance) का बोध कराने वाली संज्ञा क्या कहलाती है जिससे अन्य वस्तुएं बनती हैं?",
-        "A name used for a substance or matter of which things are made is:"
-      ],
-      "options": ["Common Noun", "Material Noun", "Proper Noun", "Collective Noun"],
-      "answer": 1
-    },
-    {
-      "variations": [
-        "इनमें से कौन सा शब्द 'Collective Noun' का उदाहरण है?",
-        "Which of the following is an example of a Collective Noun?"
-      ],
-      "options": ["Ram", "City", "Team", "Gold"],
-      "answer": 2
-    },
-    {
-      "variations": [
-        "इनमें से कौन सा शब्द 'Proper Noun' है?",
-        "Identify the Proper Noun from the given options:"
-      ],
-      "options": ["Boy", "Jaipur", "River", "Dog"],
-      "answer": 1
-    },
-    {
-      "variations": [
-        "Material Noun और Abstract Noun आमतौर पर किस श्रेणी में आते हैं?",
-        "Material Noun and Abstract Noun generally fall into which category?"
-      ],
-      "options": ["Countable", "Uncountable", "Proper", "Collective"],
-      "answer": 1
-    },
-    {
-      "variations": [
-        "वह संज्ञा जिसे गिना जा सकता है, उसे क्या कहते हैं?",
-        "A noun that can be counted is called:"
-      ],
-      "options": ["Uncountable Noun", "Material Noun", "Countable Noun", "Abstract Noun"],
-      "answer": 2
-    },
-    {
-      "variations": [
-        "Proper Noun के साथ सामान्यतः किन आर्टिकल्स (Articles) का प्रयोग नहीं किया जाता?",
-        "Generally, which articles are NOT used before a Proper Noun?"
-      ],
-      "options": ["A/An", "The", "Both 0 and 1", "No restriction"],
-      "answer": 2
-    },
-    {
-      "variations": [
-        "इनमें से 'Abstract Noun' (भाववाचक संज्ञा) की पहचान करें:",
-        "Identify the Abstract Noun among these:"
-      ],
-      "options": ["Honesty", "Water", "Class", "Pen"],
-      "answer": 0
-    },
-    {
-      "variations": [
-        "क्या Common Noun का बहुवचन (Plural) बनाया जा सकता है?",
-        "Can a Common Noun be changed into a Plural form?"
-      ],
-      "options": ["Yes (हाँ)", "No (नहीं)", "Only for Proper Nouns", "Never"],
-      "answer": 0
-    },
-    {
-      "variations": [
-        "इनमें से कौन सी संज्ञा 'Material Noun' है?",
-        "Which of these nouns is a Material Noun?"
-      ],
-      "options": ["Army", "Milk", "Kindness", "Delhi"],
-      "answer": 1
-    }
-  ],
   "LDC_English_Class_1": [
     {
       "variations": [
@@ -263,6 +141,128 @@
       "answer": 0
     }
   ],
+  "LDC_English_Class_2": [
+    {
+      "variations": [
+        "संज्ञा (Noun) को एक शब्द में क्या कहा जा सकता है?",
+        "What is the simplest definition of a Noun in one word?"
+      ],
+      "options": ["Action", "Naming Word", "Describing Word", "Joining Word"],
+      "answer": 1
+    },
+    {
+      "variations": [
+        "किसी विशेष व्यक्ति, वस्तु या स्थान के नाम को क्या कहते हैं?",
+        "A name given to a specific person, place, or thing is called:"
+      ],
+      "options": ["Common Noun", "Proper Noun", "Abstract Noun", "Collective Noun"],
+      "answer": 1
+    },
+    {
+      "variations": [
+        "Proper Noun का पहला अक्षर हमेशा कैसा होना चाहिए?",
+        "The first letter of a Proper Noun must always be written in:"
+      ],
+      "options": ["Small Case", "Cursive only", "Capital Letter", "Italics"],
+      "answer": 2
+    },
+    {
+      "variations": [
+        "पूरी जाति या श्रेणी का बोध कराने वाली संज्ञा क्या कहलाती है?",
+        "A noun that represents a whole class or category is known as:"
+      ],
+      "options": ["Proper Noun", "Common Noun", "Material Noun", "Abstract Noun"],
+      "answer": 1
+    },
+    {
+      "variations": [
+        "व्यक्तियों या वस्तुओं के समूह (Group) को दर्शाने वाली संज्ञा को क्या कहते हैं?",
+        "A name given to a group of people or collection of things is:"
+      ],
+      "options": ["Proper Noun", "Collective Noun", "Common Noun", "Abstract Noun"],
+      "answer": 1
+    },
+    {
+      "variations": [
+        "ऐसी संज्ञा जिसे हम छू नहीं सकते, केवल महसूस कर सकते हैं (जैसे- Love, Bravery), क्या कहलाती है?",
+        "A noun that refers to ideas, qualities, or conditions and cannot be touched is:"
+      ],
+      "options": ["Material Noun", "Common Noun", "Abstract Noun", "Proper Noun"],
+      "answer": 2
+    },
+    {
+      "variations": [
+        "किसी पदार्थ या द्रव्य (Substance) का बोध कराने वाली संज्ञा क्या कहलाती है जिससे अन्य वस्तुएं बनती हैं?",
+        "A name used for a substance or matter of which things are made is:"
+      ],
+      "options": ["Common Noun", "Material Noun", "Proper Noun", "Collective Noun"],
+      "answer": 1
+    },
+    {
+      "variations": [
+        "इनमें से कौन सा शब्द 'Collective Noun' का उदाहरण है?",
+        "Which of the following is an example of a Collective Noun?"
+      ],
+      "options": ["Ram", "City", "Team", "Gold"],
+      "answer": 2
+    },
+    {
+      "variations": [
+        "इनमें से कौन सा शब्द 'Proper Noun' है?",
+        "Identify the Proper Noun from the given options:"
+      ],
+      "options": ["Boy", "Jaipur", "River", "Dog"],
+      "answer": 1
+    },
+    {
+      "variations": [
+        "Material Noun और Abstract Noun आमतौर पर किस श्रेणी में आते हैं?",
+        "Material Noun and Abstract Noun generally fall into which category?"
+      ],
+      "options": ["Countable", "Uncountable", "Proper", "Collective"],
+      "answer": 1
+    },
+    {
+      "variations": [
+        "वह संज्ञा जिसे गिना जा सकता है, उसे क्या कहते हैं?",
+        "A noun that can be counted is called:"
+      ],
+      "options": ["Uncountable Noun", "Material Noun", "Countable Noun", "Abstract Noun"],
+      "answer": 2
+    },
+    {
+      "variations": [
+        "Proper Noun के साथ सामान्यतः किन आर्टिकल्स (Articles) का प्रयोग नहीं किया जाता?",
+        "Generally, which articles are NOT used before a Proper Noun?"
+      ],
+      "options": ["A/An", "The", "Both A/An and The", "No restriction"],
+      "answer": 2
+    },
+    {
+      "variations": [
+        "इनमें से 'Abstract Noun' (भाववाचक संज्ञा) की पहचान करें:",
+        "Identify the Abstract Noun among these:"
+      ],
+      "options": ["Honesty", "Water", "Class", "Pen"],
+      "answer": 0
+    },
+    {
+      "variations": [
+        "क्या Common Noun का बहुवचन (Plural) बनाया जा सकता है?",
+        "Can a Common Noun be changed into a Plural form?"
+      ],
+      "options": ["Yes (हाँ)", "No (नहीं)", "Only for Proper Nouns", "Never"],
+      "answer": 0
+    },
+    {
+      "variations": [
+        "इनमें से कौन सी संज्ञा 'Material Noun' है?",
+        "Which of these nouns is a Material Noun?"
+      ],
+      "options": ["Army", "Milk", "Kindness", "Delhi"],
+      "answer": 1
+    }
+  ],
   "LDC_English_Class_3": [
     {
       "variations": [
@@ -360,7 +360,7 @@
     {
       "variations": [
         "Apostrophe वाले शब्द 'It's' का क्या अर्थ होता है?",
-        "What does 'It\'s' (with an apostrophe) stand for?"
+        "What does 'It's' (with an apostrophe) stand for?"
       ],
       "options": [
         "It is / It has / It was",
