@@ -926,5 +926,72 @@
 ],
 "answer": 0
 }
-]
+],
+  "LDC_English_Class_10": [
+    {
+      "variations": [
+        "Which tense is used to denote permanent states or facts?",
+        "स्थायी स्थिति या सर्वकालिक सत्य व्यक्त करने के लिए किस टेंस का प्रयोग किया जाता है?"
+      ],
+      "options": [
+        "Present Continuous Tense",
+        "Simple Present Tense",
+        "Present Perfect Tense",
+        "Past Simple Tense"
+      ],
+      "answer": 1
+    },
+    {
+      "variations": [
+        "What type of action is expressed by the Present Continuous Tense?",
+        "Present Continuous Tense मुख्य रूप से किस प्रकार के कार्य (Action) को दर्शाता है?"
+      ],
+      "options": [
+        "Permanent Action",
+        "Completed Action",
+        "Temporary / Ongoing Action",
+        "Past Habitual Action"
+      ],
+      "answer": 2
+    },
+    {
+      "variations": [
+        "Which of the following verbs is generally considered a Stative Verb and does not take continuous form in its state sense?",
+        "निम्नलिखित में से कौन सी क्रिया Stative Verb है जिसका उपयोग सामान्यतः continuous tense में नहीं होता?"
+      ],
+      "options": [
+        "Run",
+        "Know",
+        "Play",
+        "Write"
+      ],
+      "answer": 1
+    },
+    {
+      "variations": [
+        "Which of the following options correctly replaces 'I am knowing him'?",
+        "वाक्य 'I am knowing him' का सही रूप क्या होगा?"
+      ],
+      "options": [
+        "I know him",
+        "I was knowing him",
+        "I have knowing him",
+        "I will be knowing him"
+      ],
+      "answer": 0
+    },
+    {
+      "variations": [
+        "How should 'I am knowing him for 10 years' be correctly changed into Present Perfect Tense?",
+        "'I am knowing him for 10 years' को सही टेंस में बदलने पर कौन सा वाक्य सही होगा?"
+      ],
+      "options": [
+        "I am known him for 10 years",
+        "I have known him for 10 years",
+        "I knew him for 10 years",
+        "I had knowing him for 10 years"
+      ],
+      "answer": 1
+    }
+  ]
 }
