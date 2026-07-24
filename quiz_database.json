@@ -833,5 +833,98 @@
       ],
       "answer": 0
     }
-  ]
+  ],
+"LDC_English_Class_9": [
+{
+"variations": [
+"Universal Truths (सार्वभौमिक सत्य) और Scientific Facts (वैज्ञानिक तथ्य) को दर्शाने के लिए मुख्य रूप से किस Tense का प्रयोग किया जाता है?",
+"वैज्ञानिक तथ्यों और सार्वभौमिक सत्य बताने वाले वाक्यों में किस काल (Tense) का प्रयोग होना चाहिए?"
+],
+"options": [
+"Present Simple Tense",
+"Present Continuous Tense",
+"Present Perfect Tense",
+"Past Simple Tense"
+],
+"answer": 0
+},
+{
+"variations": [
+"भविष्य की निर्धारित आधिकारिक योजनाओं (Future Scheduled Actions) जैसे 'The President _____ the UK tomorrow' के लिए सही क्रिया रूप चुनिए:",
+"वाक्य 'The President _____ the UK tomorrow' में सही Verb क्या होगी?"
+],
+"options": [
+"visiting",
+"visits",
+"visited",
+"will visiting"
+],
+"answer": 1
+},
+{
+"variations": [
+"हाल ही में पूरे हुए कार्यों (Recently Completed Actions) तथा जीवन के अनुभवों (Experiences) को दर्शाने के लिए किस Tense का प्रयोग किया जाता है?",
+"जब कोई कार्य हाल ही में संपन्न हुआ हो और वाक्य में भूतकाल का कोई समय (Past Time) न दिया गया हो, तो किस Tense का प्रयोग होता है?"
+],
+"options": [
+"Present Simple Tense",
+"Present Perfect Tense",
+"Present Continuous Tense",
+"Past Continuous Tense"
+],
+"answer": 1
+},
+{
+"variations": [
+"कोई कार्य जो अतीत में शुरू हुआ हो और वर्तमान में भी लगातार जारी हो, उसे दर्शाने के लिए किस Tense का उपयोग किया जाता है?",
+"वाक्य 'I _____ teaching since morning.' में रिक्त स्थान के लिए सही रूप चुनें:"
+],
+"options": [
+"am teaching",
+"have been teaching",
+"was teaching",
+"taught"
+],
+"answer": 1
+},
+{
+"variations": [
+"यदि किसी Stative Verb का प्रयोग Present Continuous Tense में वर्जित हो, तो उसे किस Tense में बदला जाता है?",
+"Stative Verbs के नियम के अनुसार, Continuous Form से बचने के लिए इसे किस Tense में शिफ्ट किया जाता है?"
+],
+"options": [
+"Present Simple Tense",
+"Present Perfect Tense",
+"Past Simple Tense",
+"Future Simple Tense"
+],
+"answer": 0
+},
+{
+"variations": [
+"निश्चित समय बिंदु (Point of Time) जैसे 'Morning' या निश्चित महीने (जैसे 'July') के साथ किसका प्रयोग किया जाता है?",
+"Present Perfect Continuous Tense में 'Morning' के साथ किस Preposition का प्रयोग होता है?"
+],
+"options": [
+"For",
+"Since",
+"From",
+"By"
+],
+"answer": 1
+},
+{
+"variations": [
+"समाचार पत्र की हेडलाइंस (Newspaper Headlines) और लाइव मैच कमेंट्री (Match Commentary) में किस Tense का प्रयोग किया जाता है?",
+"Match commentary और Newspaper headlines प्रस्तुत करने के लिए कौन-सा Tense प्रयुक्त होता है?"
+],
+"options": [
+"Present Simple Tense",
+"Present Continuous Tense",
+"Past Simple Tense",
+"Present Perfect Tense"
+],
+"answer": 0
+}
+]
 }
