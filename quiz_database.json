@@ -634,5 +634,72 @@
       ],
       "answer": 2
     }
+  ],
+  "LDC_English_Class_7": [
+    {
+      "variations": [
+        "Present Simple Tense में प्लूरल सब्जेक्ट (Plural Subject) के साथ किस Helping Verb का प्रयोग होता है?",
+        "Which helping verb is used with plural subjects in Present Simple negative/interrogative sentences?"
+      ],
+      "options": [
+        "Does",
+        "Do",
+        "Is",
+        "Has"
+      ],
+      "answer": 1
+    },
+    {
+      "variations": [
+        "Present Continuous Tense में I, He/She/It तथा Plural subjects के साथ क्रमशः कौन-सी Helping Verbs प्रयोग होती हैं?",
+        "Which set of helping verbs is used in Present Continuous Tense for I, Singular, and Plural subjects?"
+      ],
+      "options": [
+        "Was / Were / Been",
+        "Am / Is / Are",
+        "Do / Does / Did",
+        "Has / Have / Had"
+      ],
+      "answer": 1
+    },
+    {
+      "variations": [
+        "Present Perfect Tense में Singular और Plural subjects के साथ प्रयोग होने वाली Helping Verbs कौन-सी हैं?",
+        "Identify the correct helping verbs used in Present Perfect Tense for singular and plural subjects."
+      ],
+      "options": [
+        "Is / Are",
+        "Was / Were",
+        "Has / Have",
+        "Do / Does"
+      ],
+      "answer": 2
+    },
+    {
+      "variations": [
+        "Past Simple Tense के affirmative वाक्य में मुख्य क्रिया (Main Verb) का कौन-सा रूप प्रयोग किया जाता है?",
+        "Which form of Main Verb is used in affirmative sentences of Past Simple Tense?"
+      ],
+      "options": [
+        "V1",
+        "V2",
+        "V3",
+        "V4 (V1+ing)"
+      ],
+      "answer": 1
+    },
+    {
+      "variations": [
+        "Future Tense में I और We के साथ सामान्यतः किस Helping Verb का प्रयोग किया जाता है?",
+        "In traditional grammar, which helping verb is used with 'I' and 'We' in Future Tense?"
+      ],
+      "options": [
+        "Will",
+        "Shall",
+        "Would",
+        "Should"
+      ],
+      "answer": 1
+    }
   ]
 }
