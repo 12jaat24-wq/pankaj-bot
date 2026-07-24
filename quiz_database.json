@@ -394,5 +394,67 @@
       "options": ["Subject Pronoun", "Possessive Determiner", "Reflexive Pronoun", "Relative Pronoun"],
       "answer": 2
     }
+  ],
+  "LDC_English_Class_4_Verb_Basics": [
+    {
+      "variations": ["वाक्य में 'Verb' (क्रिया) क्या दर्शाती है?", "एक 'Verb' का मुख्य कार्य क्या होता है?"],
+      "options": ["केवल शारीरिक क्रिया (Activity)", "अवस्था (State) और अधिकार (Possession)", "भावना (Feeling)", "उपरोक्त सभी"],
+      "answer": 3
+    },
+    {
+      "variations": ["Modal Verbs के साथ Main Verb की कौन सी फॉर्म का प्रयोग किया जाता है?", "मोडल वर्ब (जैसे Can, Will, Must) के ठीक बाद क्रिया का कौन सा रूप आता है?"],
+      "options": ["V2 (Past Form)", "V3 (Past Participle)", "Base Form (V1)", "V-ing (Continuous Form)"],
+      "answer": 2
+    },
+    {
+      "variations": ["इनमें से कौन सी 'Primary Helping Verbs' की श्रेणी में आती हैं?", "प्राइमरी हेल्पिंग वर्ब्स के अंतर्गत कौन से शब्द समूह आते हैं?"],
+      "options": ["Do, Have, Be", "Can, Could, May", "Will, Shall, Must", "Ought to, Used to"],
+      "answer": 0
+    },
+    {
+      "variations": ["'Be' क्रिया की Past (भूतकाल) फॉर्म कौन सी होती है?", "Verb 'Be' के पास्ट फॉर्म्स को पहचानें।"],
+      "options": ["Is/Am/Are", "Was/Were", "Been", "Being"],
+      "answer": 1
+    },
+    {
+      "variations": ["क्रिया 'Begin' की तीनों फॉर्म्स का सही क्रम क्या है?", "Begin, ________, ________ (V1, V2, V3) सही विकल्प चुनें।"],
+      "options": ["Begin, Begined, Begined", "Begin, Began, Begun", "Begin, Begun, Began", "Begin, Beganing, Begins"],
+      "answer": 1
+    },
+    {
+      "variations": ["'Choose' की V2 (Past Form) में कितने 'o' आते हैं?", "Choose की सेकंड फॉर्म की सही स्पेलिंग क्या है?"],
+      "options": ["Choose", "Chosen", "Chose", "Choosed"],
+      "answer": 2
+    },
+    {
+      "variations": ["यदि किसी अपराधी को फांसी देनी हो, तो 'Hang' की कौन सी फॉर्म प्रयोग होगी?", "फांसी देने के अर्थ में 'Hang' की सेकंड और थर्ड फॉर्म क्या होती है?"],
+      "options": ["Hang, Hung, Hung", "Hang, Hanged, Hanged", "Hang, Hunged, Hunged", "Hang, Hang, Hang"],
+      "answer": 1
+    },
+    {
+      "variations": ["'Find' (ढूंढना) और 'Found' (नींव रखना) में 'Found' की V2 फॉर्म क्या है?", "जब 'Found' का अर्थ 'नींव रखना' हो, तो उसकी सेकंड फॉर्म क्या होगी?"],
+      "options": ["Found", "Finded", "Founded", "Founden"],
+      "answer": 2
+    },
+    {
+      "variations": ["'Fly' (उड़ना) और 'Flow' (बहना) में 'Flow' की सही फॉर्म्स कौन सी हैं?", "पानी के बहने (Flow) के संदर्भ में सही क्रिया रूप चुनें।"],
+      "options": ["Flow, Flew, Flown", "Flow, Flowed, Flowed", "Flow, Flew, Flowed", "Flow, Flown, Flown"],
+      "answer": 1
+    },
+    {
+      "variations": ["'Drink' (पीना) की V3 फॉर्म क्या होती है जो एडजेक्टिव का भी काम करती है?", "Drink की पास्ट पार्टिसिपल (V3) फॉर्म क्या है?"],
+      "options": ["Drank", "Drinked", "Drunken", "Drunk"],
+      "answer": 2
+    },
+    {
+      "variations": ["'Draw' (चित्र बनाना या आकर्षित करना) की तीनों फॉर्म्स क्या हैं?", "Draw की V1, V2 और V3 फॉर्म्स का सही जोड़ा चुनें।"],
+      "options": ["Draw, Drew, Drawn", "Draw, Drawed, Drawed", "Draw, Drew, Drown", "Draw, Drawn, Drew"],
+      "answer": 0
+    },
+    {
+      "variations": ["'Fall' (गिरना) और 'Fell' (काटकर गिराना) में 'गिरना' की सेकंड फॉर्म क्या है?", "Fall की V2 फॉर्म को पहचानें।"],
+      "options": ["Felled", "Fallen", "Fell", "Falls"],
+      "answer": 2
+    }
   ]
 }
