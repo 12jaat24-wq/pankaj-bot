@@ -394,5 +394,98 @@
       "options": ["Subject Pronoun", "Possessive Determiner", "Reflexive Pronoun", "Relative Pronoun"],
       "answer": 2
     }
+  ],
+  "LDC_English_Class_1": [
+    {
+      "variations": [
+        "What do words that show an activity, state, possession, or feeling represent?",
+        "क्रिया, अवस्था, अधिकार या भावनाओं को दर्शाने वाले शब्दों को क्या कहा जाता है?"
+      ],
+      "options": [
+        "Noun",
+        "Pronoun",
+        "Verb",
+        "Adverb"
+      ],
+      "answer": 2
+    },
+    {
+      "variations": [
+        "Into how many main categories are helping verbs generally divided in this class?",
+        "इस क्लास में हेल्पिंग वर्ब्स को मुख्य रूप से कितनी श्रेणियों में विभाजित किया गया है?"
+      ],
+      "options": [
+        "2",
+        "3",
+        "4",
+        "5"
+      ],
+      "answer": 0
+    },
+    {
+      "variations": [
+        "Which form of the main verb always follows a modal verb?",
+        "मॉडल वर्ब के बाद हमेशा मेन वर्ब की कौन सी फॉर्म आती है?"
+      ],
+      "options": [
+        "V2 (Second Form)",
+        "V3 (Third Form)",
+        "V1 (Base / First Form)",
+        "V4 (Ing Form)"
+      ],
+      "answer": 2
+    },
+    {
+      "variations": [
+        "What is the singular form of the primary verb 'Have'?",
+        "प्राइमरी वर्ब 'Have' का सिंगुलर (एकवचन) रूप क्या होता है?"
+      ],
+      "options": [
+        "Had",
+        "Has",
+        "Having",
+        "Do"
+      ],
+      "answer": 1
+    },
+    {
+      "variations": [
+        "What are the past forms (V2 and V3) of the main verb 'Catch'?",
+        "मुख्य क्रिया 'Catch' की पास्ट फॉर्म्स (V2 और V3) क्या होती हैं?"
+      ],
+      "options": [
+        "Catched, Catched",
+        "Catch, Caught",
+        "Cought, Cought",
+        "Cott, Cott"
+      ],
+      "answer": 1
+    },
+    {
+      "variations": [
+        "What is the difference between 'Hang (Hung, Hung)' and 'Hang (Hanged, Hanged)'?",
+        "'Hang (Hung, Hung)' और 'Hang (Hanged, Hanged)' के अर्थ में क्या अंतर है?"
+      ],
+      "options": [
+        "दोनों का अर्थ एक ही है",
+        "पहला टांगने के लिए और दूसरा फांसी देने के लिए उपयोग होता है",
+        "पहला फांसी देने के लिए और दूसरा वस्तु टांगने के लिए उपयोग होता है",
+        "दोनों ही केवल इंसानों के लिए उपयोग होते हैं"
+      ],
+      "answer": 1
+    },
+    {
+      "variations": [
+        "What is the V2 and V3 form of the verb 'Choose'?",
+        "क्रिया 'Choose' की V2 और V3 फॉर्म क्या होती है?"
+      ],
+      "options": [
+        "Choose, Chosen",
+        "Choosed, Choosed",
+        "Chose, Chosen",
+        "Chose, Chose"
+      ],
+      "answer": 2
+    }
   ]
 }
