@@ -567,5 +567,72 @@
       ],
       "answer": 2
     }
+  ],
+  "LDC_English_Class_6": [
+    {
+      "variations": [
+        "What does the term 'Tense' indicate in English grammar?",
+        "अंग्रेजी व्याकरण में 'टेंस' (Tense) मुख्य रूप से क्या दर्शाता है?"
+      ],
+      "options": [
+        "Place of an activity",
+        "Time of an activity (Action)",
+        "Reason for an activity",
+        "Manner of an activity"
+      ],
+      "answer": 1
+    },
+    {
+      "variations": [
+        "Through which element of a sentence is Tense mainly expressed?",
+        "वाक्य के किस घटक/तत्व के माध्यम से मुख्य रूप से टेंस (काल) को दर्शाया जाता है?"
+      ],
+      "options": [
+        "Noun forms",
+        "Pronoun forms",
+        "Verb forms",
+        "Adjective forms"
+      ],
+      "answer": 2
+    },
+    {
+      "variations": [
+        "How many total Tense forms/types are systematically studied in English grammar?",
+        "अंग्रेजी व्याकरण में कुल कितने टेंस रूपों/प्रकारों का व्यवस्थित अध्ययन किया जाता है?"
+      ],
+      "options": [
+        "8",
+        "10",
+        "12",
+        "16"
+      ],
+      "answer": 2
+    },
+    {
+      "variations": [
+        "Which aspects are primarily discussed to master any tense structure?",
+        "किसी भी टेंस संरचना को समझने के लिए किन प्रमुख बिंदुओं पर चर्चा की जाती है?"
+      ],
+      "options": [
+        "Identification, Helping Verb, Main Verb, and Keywords",
+        "Only Noun and Pronoun",
+        "Prefix, Suffix, and Synonyms",
+        "Only Adverbs and Prepositions"
+      ],
+      "answer": 0
+    },
+    {
+      "variations": [
+        "Where is 'Not' placed in a standard negative sentence structure?",
+        "मानक नकारात्मक (Negative) वाक्य संरचना में 'Not' कहाँ लगाया जाता है?"
+      ],
+      "options": [
+        "Before the Subject",
+        "After the Main Verb",
+        "Just after the Helping Verb",
+        "At the end of the sentence"
+      ],
+      "answer": 2
+    }
   ]
 }
