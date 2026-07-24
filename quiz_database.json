@@ -394,5 +394,163 @@
       "options": ["Subject Pronoun", "Possessive Determiner", "Reflexive Pronoun", "Relative Pronoun"],
       "answer": 2
     }
+  ],
+  "LDC_English_Class_09": [
+    {
+      "variations": [
+        "वे शब्द जो किसी क्रिया (Activity), अवस्था (State), अधिकार (Possession) या भावना (Feeling) को दर्शाते हैं, क्या कहलाते हैं?",
+        "इंग्लिश ग्रामर में 'Verb' का मुख्य कार्य क्या है?"
+      ],
+      "options": [
+        "Noun",
+        "Pronoun",
+        "Verb",
+        "Adjective"
+      ],
+      "answer": 2
+    },
+    {
+      "variations": [
+        "Modal Verbs के बाद हमेशा मुख्य क्रिया (Main Verb) के किस रूप का प्रयोग किया जाता है?",
+        "किसी वाक्य में Modal Verb के साथ प्रयुक्त होने वाली मुख्य क्रिया की फॉर्म कौन सी होती है?"
+      ],
+      "options": [
+        "V2 (Past Form)",
+        "V3 (Past Participle Form)",
+        "Base Form (V1)",
+        "V-ing Form"
+      ],
+      "answer": 2
+    },
+    {
+      "variations": [
+        "इनमें से कौन सा समूह Modal Verbs के अंतर्गत आता है?",
+        "निम्नलिखित में से सही Modal Verbs का चुनाव करें।"
+      ],
+      "options": [
+        "is, am, are",
+        "do, did, done",
+        "can, could, may, might",
+        "have, has, had"
+      ],
+      "answer": 2
+    },
+    {
+      "variations": [
+        "Primary Verb 'Do' का Singular रूप क्या है?",
+        "Present Simple टेंस में 'Do' का प्रयोग जब Singular Subject के साथ किया जाता है, तो वह क्या बन जाता है?"
+      ],
+      "options": [
+        "Doing",
+        "Done",
+        "Does",
+        "Did"
+      ],
+      "answer": 2
+    },
+    {
+      "variations": [
+        "मुख्य क्रिया के रूप में 'Have' का अर्थ क्या हो सकता है?",
+        "'Have' का प्रयोग किन अर्थों में किया जा सकता है?"
+      ],
+      "options": [
+        "अधिकार रखना (Possession)",
+        "खाना या पीना (Eat/Drink)",
+        "अनुभव करना (Experience)",
+        "उपरोक्त सभी"
+      ],
+      "answer": 3
+    },
+    {
+      "variations": [
+        "Verb 'Be' की Present फॉर्म्स कौन सी हैं?",
+        "Primary Verb 'Be' के वर्तमान काल (Present) के रूपों को पहचानें।"
+      ],
+      "options": [
+        "Was, Were",
+        "Is, Am, Are",
+        "Been, Being",
+        "Has, Have"
+      ],
+      "answer": 1
+    },
+    {
+      "variations": [
+        "Verb 'Be' की तीसरी फॉर्म (V3/Past Participle) क्या है?",
+        "Be-Was/Were-_______ रिक्त स्थान भरें।"
+      ],
+      "options": [
+        "Being",
+        "Be",
+        "Been",
+        "Am"
+      ],
+      "answer": 2
+    },
+    {
+      "variations": [
+        "क्रिया 'Begin' (शुरू करना) की तीनों फॉर्म्स का सही क्रम क्या है?",
+        "Begin-Began-_______ (V3) क्या होगा?"
+      ],
+      "options": [
+        "Beginned, Beginned",
+        "Began, Begun",
+        "Begun, Began",
+        "Begin, Began"
+      ],
+      "answer": 1
+    },
+    {
+      "variations": [
+        "क्रिया 'Choose' (चुनना) की Second Form (V2) की सही स्पेलिंग क्या है?",
+        "Choose (V1) का Past Form (V2) क्या होता है?"
+      ],
+      "options": [
+        "Choosed",
+        "Choosen",
+        "Chose",
+        "Chosen"
+      ],
+      "answer": 2
+    },
+    {
+      "variations": [
+        "जब 'Hang' का अर्थ 'फांसी देना' हो, तो इसकी Second और Third फॉर्म क्या होंगी?",
+        "किसी व्यक्ति को फांसी देने के संदर्भ में 'Hang' की वर्ब फॉर्म्स क्या होती हैं?"
+      ],
+      "options": [
+        "Hung, Hung",
+        "Hanged, Hanged",
+        "Hang, Hung",
+        "Hanged, Hung"
+      ],
+      "answer": 1
+    },
+    {
+      "variations": [
+        "जब 'Found' का अर्थ 'नींव रखना' या 'आधार रखना' (Establish) हो, तो इसकी फॉर्म्स क्या होंगी?",
+        "किसी संस्था की स्थापना के संदर्भ में 'Found' की वर्ब फॉर्म्स चुनें।"
+      ],
+      "options": [
+        "Find, Found, Found",
+        "Found, Found, Found",
+        "Found, Founded, Founded",
+        "Find, Founded, Founded"
+      ],
+      "answer": 2
+    },
+    {
+      "variations": [
+        "पानी के बहने (Flow) के संदर्भ में सही वर्ब फॉर्म्स क्या हैं?",
+        "Flow (बहना) की सेकंड और थर्ड फॉर्म क्या होती हैं?"
+      ],
+      "options": [
+        "Flow, Flew, Flown",
+        "Flow, Flowed, Flowed",
+        "Flow, Flow, Flow",
+        "Fly, Flew, Flown"
+      ],
+      "answer": 1
+    }
   ]
 }
