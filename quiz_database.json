@@ -394,57 +394,5 @@
       "options": ["Subject Pronoun", "Possessive Determiner", "Reflexive Pronoun", "Relative Pronoun"],
       "answer": 2
     }
-  ],
-  "LDC_English_Class_Verb_Forms": [
-    {
-      "variations": ["Verb क्या दर्शाता है?", "A verb shows what?"],
-      "options": ["क्रिया (Action)", "नाम (Noun)", "विशेषण (Adjective)", "क्रिया और स्थिति (Action and State)"],
-      "answer": 3
-    },
-    {
-      "variations": ["Helping Verb को क्या कहा जाता है?", "What is another name for Helping Verb?"],
-      "options": ["Main Verb", "Auxiliary Verb", "Modal Verb", "Primary Verb"],
-      "answer": 1
-    },
-    {
-      "variations": ["Modal Verbs के बाद Main Verb की कौन सी form आती है?", "After Modal Verbs, which form of the Main Verb is used?"],
-      "options": ["V2 (Past Form)", "V3 (Past Participle)", "V1 (Base Form)", "V4 (ING Form)"],
-      "answer": 2
-    },
-    {
-      "variations": ["Primary Verbs के उदाहरण कौन से हैं?", "Examples of Primary Verbs are?"],
-      "options": ["Will, Shall", "Do, Have, Be", "Can, Could", "May, Might"],
-      "answer": 1
-    },
-    {
-      "variations": ["Main Verb की मुख्य forms कितनी याद रखनी चाहिए?", "How many main forms of a Verb should be remembered primarily?"],
-      "options": ["2", "3 (V1, V2, V3)", "5", "8"],
-      "answer": 1
-    },
-    {
-      "variations": ["Be Verb की forms कितनी हैं?", "How many forms does the Be Verb have?"],
-      "options": ["3", "5", "8", "4"],
-      "answer": 2
-    },
-    {
-      "variations": ["V3 form को क्या कहते हैं?", "What is the V3 form called?"],
-      "options": ["Base Form", "Past Form", "Past Participle", "Gerund"],
-      "answer": 2
-    },
-    {
-      "variations": ["Regular Verbs की forms कैसे बनती हैं?", "How are forms of Regular Verbs made?"],
-      "options": ["ED जोड़कर", "Vowel change", "No change", "ING only"],
-      "answer": 0
-    },
-    {
-      "variations": ["Eat verb की V2 और V3 forms क्या हैं?", "What are V2 and V3 forms of Eat?"],
-      "options": ["Ate, Eaten", "Eated, Eated", "Eat, Eaten", "Ate, Ate"],
-      "answer": 0
-    },
-    {
-      "variations": ["Hang verb की दो forms क्या हैं और उनके अर्थ?", "What are the two forms of Hang and their meanings?"],
-      "options": ["Hanged (फांसी देना), Hung (लटकाना)", "Hang, Hanged", "Hung, Hanged", "Hang, Hang"],
-      "answer": 0
-    }
   ]
 }
