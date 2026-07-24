@@ -1,398 +1,523 @@
 {
-  "LDC_English_Class_1": [
+  "RBI_and_Monetary_Policy": [
     {
       "variations": [
-        "अंग्रेजी वर्णमाला (English Alphabet) में कुल कितने लेटर्स (Letters) होते हैं?",
-        "English Alphabet में अक्षरों/लेटर्स की कुल संख्या कितनी होती है?"
+        "RBI की स्थापना किस समिति/आयोग की सिफारिश पर की गई थी?",
+        "रॉयल कमीशन (Royal Commission) की किस सिफारिश के तहत भारतीय रिजर्व बैंक का गठन हुआ?"
       ],
-      "options": ["21", "24", "26", "44"],
+      "options": ["उर्जित पटेल समिति", "हिल्टन-यंग कमीशन", "के. सी. नियोगी समिति", "नरसिम्हम समिति"],
+      "answer": 1
+    },
+    {
+      "variations": [
+        "हिल्टन-यंग कमीशन ने RBI की स्थापना की सिफारिश किस वर्ष की थी?",
+        "Royal Commission द्वारा RBI के गठन का सुझाव किस वर्ष दिया गया था?"
+      ],
+      "options": ["1921", "1926", "1934", "1935"],
+      "answer": 1
+    },
+    {
+      "variations": [
+        "भारतीय रिजर्व बैंक अधिनियम (RBI Act) किस वर्ष पारित किया गया था?",
+        "RBI किस कानून/अधिनियम के तहत स्थापित किया गया था?"
+      ],
+      "options": ["1926", "1934", "1935", "1949"],
+      "answer": 1
+    },
+    {
+      "variations": [
+        "भारतीय रिजर्व बैंक ने अपना संचालन (स्थापना तिथि) कब शुरू किया?",
+        "RBI की स्थापना किस तिथि को हुई थी?"
+      ],
+      "options": ["1 जनवरी 1949", "1 अप्रैल 1935", "1 अक्टूबर 2016", "26 जनवरी 1950"],
+      "answer": 1
+    },
+    {
+      "variations": [
+        "RBI का राष्ट्रीयकरण (Nationalisation) कब किया गया था?",
+        "भारतीय रिजर्व बैंक को पूर्ण रूप से सरकारी स्वामित्व किस तिथि को प्राप्त हुआ?"
+      ],
+      "options": ["1 अप्रैल 1935", "1 जनवरी 1949", "15 अगस्त 1947", "1 अक्टूबर 2016"],
+      "answer": 1
+    },
+    {
+      "variations": [
+        "भारतीय रिजर्व बैंक के प्रथम गवर्नर कौन थे?",
+        "1935 में RBI के पहले गवर्नर के रूप में किसने कार्यभार संभाला था?"
+      ],
+      "options": ["सी. डी. देशमुख", "सर ओसबोर्न स्मिथ", "उर्जित पटेल", "शक्तिकांत दास"],
+      "answer": 1
+    },
+    {
+      "variations": [
+        "भारतीय रिजर्व बैंक के प्रथम भारतीय गवर्नर (1st Indian Governor) कौन थे?",
+        "RBI के पहले भारतीय मूल के गवर्नर का नाम क्या है?"
+      ],
+      "options": ["सर ओसबोर्न स्मिथ", "सी. डी. देशमुख", "उर्जित पटेल", "मनमोहन सिंह"],
+      "answer": 1
+    },
+    {
+      "variations": [
+        "मौद्रिक नीति समिति (MPC) का गठन किस समिति की सिफारिश पर किया गया था?",
+        "RBI में MPC लागू करने का सुझाव किस समिति ने दिया था?"
+      ],
+      "options": ["हिल्टन-यंग कमीशन", "उर्जित पटेल समिति", "नरसिम्हम समिति", "के. सी. नियोगी समिति"],
+      "answer": 1
+    },
+    {
+      "variations": [
+        "मौद्रिक नीति समिति (MPC) का गठन RBI Act 1934 की किस धारा के तहत किया गया है?",
+        "वित्त अधिनियम 2016 द्वारा संशोधित RBI Act की कौन सी धारा MPC के कानूनी ढांचे का प्रावधान करती है?"
+      ],
+      "options": ["Section 22", "Section 45ZB", "Section 17", "Section 42"],
+      "answer": 1
+    },
+    {
+      "variations": [
+        "मौद्रिक नीति समिति (MPC) की पहली बैठक कब आयोजित की गई थी?",
+        "भारत में MPC ने कार्य करना कब शुरू किया?"
+      ],
+      "options": ["1 अप्रैल 1935", "1 जनवरी 1949", "1 अक्टूबर 2016", "8 नवंबर 2016"],
       "answer": 2
     },
     {
       "variations": [
-        "अंग्रेजी भाषा में कुल कितने साउंड्स (Sounds) होते हैं?",
-        "How many sounds are there in English language?"
+        "मौद्रिक नीति समिति (MPC) में कुल कितने सदस्य होते हैं?",
+        "MPC की संरचना में कुल कितने सदस्य शामिल हैं?"
       ],
-      "options": ["26", "34", "44", "52"],
+      "options": ["4 सदस्य", "5 सदस्य", "6 सदस्य", "8 सदस्य"],
       "answer": 2
     },
     {
       "variations": [
-        "वाक्य (Sentence) की सही परिभाषा क्या है?",
-        "What is a Sentence in English Grammar?"
+        "मौद्रिक नीति समिति (MPC) का पदेन अध्यक्ष (Chairperson) कौन होता है?",
+        "MPC की बैठकों की अध्यक्षता किसके द्वारा की जाती है?"
+      ],
+      "options": ["वित्त मंत्री", "RBI गवर्नर", "मुख्य आर्थिक सलाहकार", "प्रधान मंत्री"],
+      "answer": 1
+    },
+    {
+      "variations": [
+        "एक वर्ष में मौद्रिक नीति समिति (MPC) की न्यूनतम (Minimum) कितनी बैठकें होना अनिवार्य है?",
+        "MPC को एक साल में कम से कम कितनी बार बैठक करनी होती है?"
+      ],
+      "options": ["2 बैठकें", "4 बैठकें", "6 बैठकें", "12 बैठकें"],
+      "answer": 1
+    },
+    {
+      "variations": [
+        "MPC में भारत सरकार द्वारा नियुक्त सदस्यों का कार्यकाल कितने वर्ष का होता है?",
+        "मौद्रिक नीति समिति के सरकारी सदस्यों का कार्यकाल कितना तय किया गया है?"
+      ],
+      "options": ["2 वर्ष", "3 वर्ष", "4 वर्ष", "5 वर्ष"],
+      "answer": 2
+    },
+    {
+      "variations": [
+        "भारत में मुद्रास्फीति (Inflation) नियंत्रण के लिए मानक लक्ष्य सीमा (Target Band) क्या निर्धारित की गई है?",
+        "RBI के अनुसार महंगाई दर की सीमा क्या होनी चाहिए?"
+      ],
+      "options": ["3% (±1%)", "4% (±2%)", "5% (±1%)", "6% (±2%)"],
+      "answer": 1
+    },
+    {
+      "variations": [
+        "मंदी (Deflation) के समय बाजार में तरलता (Money Supply) और मांग (Demand) की स्थिति क्या होती है?",
+        "मंदी की स्थिति में बाजार पर क्या प्रभाव पड़ता है?"
       ],
       "options": [
-        "Group of letters with no meaning",
-        "Systematic arrangement of words (शब्दों का सार्थक समूह)",
-        "Collection of unarranged letters",
-        "Set of punctuation marks"
+        "Money Supply अत्यधिक और मांग उच्च होती है",
+        "Money Supply बहुत कम और मांग बहुत कम या शून्य होती है",
+        "Money Supply स्थिर और मांग उच्च होती है",
+        "इनमें से कोई नहीं"
       ],
       "answer": 1
     },
     {
       "variations": [
-        "ग्रामर (Grammar) को किस रूप में परिभाषित किया जाता है?",
-        "What is Grammar basically?"
+        "मंदी (Deflation) से निपटने और बाजार को गति देने के लिए RBI किस नीति का उपयोग करता है?",
+        "बाजार में Money Supply बढ़ाने के लिए कौन सी नीतियां अपनाई जाती हैं?"
       ],
       "options": [
-        "Collection of letters",
-        "Set of rules (नियमों का समूह)",
-        "List of vocabulary words",
-        "Group of sound symbols"
+        "संकुचनकारी नीति (Contractionary Policy)",
+        "विस्तारवादी नीति (Expansionary Policy)",
+        "राजकोषीय नीति (Fiscal Policy)",
+        "न्यूट्रल नीति"
       ],
       "answer": 1
     },
     {
       "variations": [
-        "पारंपरिक अंग्रेजी (Traditional English) में कुल कितने Parts of Speech होते हैं?",
-        "How many Parts of Speech are there in Traditional English?"
-      ],
-      "options": ["6", "8", "10", "12"],
-      "answer": 1
-    },
-    {
-      "variations": [
-        "आधुनिक अंग्रेजी (Modern English) में Determiner और Article को मिलाकर कुल कितने Parts of Speech माने जाते हैं?",
-        "Modern English के अनुसार Parts of Speech की कुल संख्या कितनी मानी जाती है?"
-      ],
-      "options": ["8", "9", "10", "12"],
-      "answer": 2
-    },
-    {
-      "variations": [
-        "संज्ञा (Noun) किसे कहते हैं?",
-        "What is the definition of a Noun?"
+        "महंगाई (Inflation) को नियंत्रित करने के लिए RBI द्वारा अपनाई जाने वाली नीति में ब्याज दरों पर क्या प्रभाव पड़ता है?",
+        "संकुचनकारी नीति (Contractionary Policy) के तहत ब्याज दरें क्या की जाती हैं?"
       ],
       "options": [
-        "Name of a person, place, thing, idea or emotion",
-        "A word that replaces a verb",
-        "An action showing word",
-        "A connecting word between sentences"
+        "घटाई जाती हैं",
+        "बढ़ाई जाती हैं",
+        "स्थिर रखी जाती हैं",
+        "शून्य कर दी जाती हैं"
       ],
-      "answer": 0
-    },
-    {
-      "variations": [
-        "संज्ञा के स्थान पर प्रयोग होने वाले शब्दों को क्या कहते हैं?",
-        "Which word is used instead of or in place of a Noun?"
-      ],
-      "options": ["Adjective", "Pronoun", "Adverb", "Preposition"],
-      "answer": 1
-    },
-    {
-      "variations": [
-        "Noun या Pronoun की विशेषता (Quality) बताने वाले शब्द क्या कहलाते हैं?",
-        "Words that describe or qualify a Noun or Pronoun are called:"
-      ],
-      "options": ["Verb", "Adverb", "Adjective", "Conjunction"],
-      "answer": 2
-    },
-    {
-      "variations": [
-        "किसी एक्शन (Action), कार्य या स्थिति को दर्शाने वाले शब्द क्या कहलाते हैं?",
-        "Words that denote action or activity in a sentence are known as:"
-      ],
-      "options": ["Noun", "Verb", "Preposition", "Interjection"],
-      "answer": 1
-    },
-    {
-      "variations": [
-        "Verb, Adjective या दूसरे Adverb की विशेषता बताने वाले शब्द क्या कहलाते हैं?",
-        "Words that describe a Verb, an Adjective, or another Adverb are called:"
-      ],
-      "options": ["Adverb", "Conjunction", "Noun", "Pronoun"],
-      "answer": 0
-    },
-    {
-      "variations": [
-        "मन के अचानक उठने वाले भावों या उद्गारों को व्यक्त करने वाले शब्दों को क्या कहते हैं?",
-        "Words used to express sudden feelings or emotions in mind are called:"
-      ],
-      "options": ["Conjunction", "Preposition", "Interjection", "Determiner"],
-      "answer": 2
-    },
-    {
-      "variations": [
-        "वाक्यों (Sentences) या वाक्यांशों (Phrases) को आपस में जोड़ने वाले शब्द क्या कहलाते हैं?",
-        "Words that join words, phrases, or sentences together are called:"
-      ],
-      "options": ["Adjective", "Conjunction", "Interjection", "Pronoun"],
-      "answer": 1
-    },
-    {
-      "variations": [
-        "Article (A, An, The) वास्तव में किस पार्ट्स ऑफ स्पीच का एक प्रकार या भाग है?",
-        "Article is a part or type of which grammatical category?"
-      ],
-      "options": ["Preposition", "Determiner", "Interjection", "Verb"],
-      "answer": 1
-    },
-    {
-      "variations": [
-        "टेंस (Tense) को अच्छे से समझने के लिए किन तीन मुख्य Parts of Speech का ज्ञान होना सबसे आवश्यक है?",
-        "Which three main Parts of Speech should be learned in detail before Tense?"
-      ],
-      "options": [
-        "Noun, Pronoun, Verb",
-        "Adverb, Preposition, Conjunction",
-        "Article, Determiner, Interjection",
-        "Adjective, Adverb, Preposition"
-      ],
-      "answer": 0
-    }
-  ],
-  "LDC_English_Class_2": [
-    {
-      "variations": [
-        "संज्ञा (Noun) को एक शब्द में क्या कहा जा सकता है?",
-        "What is the simplest definition of a Noun in one word?"
-      ],
-      "options": ["Action", "Naming Word", "Describing Word", "Joining Word"],
-      "answer": 1
-    },
-    {
-      "variations": [
-        "किसी विशेष व्यक्ति, वस्तु या स्थान के नाम को क्या कहते हैं?",
-        "A name given to a specific person, place, or thing is called:"
-      ],
-      "options": ["Common Noun", "Proper Noun", "Abstract Noun", "Collective Noun"],
-      "answer": 1
-    },
-    {
-      "variations": [
-        "Proper Noun का पहला अक्षर हमेशा कैसा होना चाहिए?",
-        "The first letter of a Proper Noun must always be written in:"
-      ],
-      "options": ["Small Case", "Cursive only", "Capital Letter", "Italics"],
-      "answer": 2
-    },
-    {
-      "variations": [
-        "पूरी जाति या श्रेणी का बोध कराने वाली संज्ञा क्या कहलाती है?",
-        "A noun that represents a whole class or category is known as:"
-      ],
-      "options": ["Proper Noun", "Common Noun", "Material Noun", "Abstract Noun"],
-      "answer": 1
-    },
-    {
-      "variations": [
-        "व्यक्तियों या वस्तुओं के समूह (Group) को दर्शाने वाली संज्ञा को क्या कहते हैं?",
-        "A name given to a group of people or collection of things is:"
-      ],
-      "options": ["Proper Noun", "Collective Noun", "Common Noun", "Abstract Noun"],
-      "answer": 1
-    },
-    {
-      "variations": [
-        "ऐसी संज्ञा जिसे हम छू नहीं सकते, केवल महसूस कर सकते हैं, क्या कहलाती है?",
-        "A noun that refers to ideas, qualities, or conditions and cannot be touched is:"
-      ],
-      "options": ["Material Noun", "Common Noun", "Abstract Noun", "Proper Noun"],
-      "answer": 2
-    },
-    {
-      "variations": [
-        "किसी पदार्थ या द्रव्य (Substance) का बोध कराने वाली संज्ञा क्या कहलाती है जिससे अन्य वस्तुएं बनती हैं?",
-        "A name used for a substance or matter of which things are made is:"
-      ],
-      "options": ["Common Noun", "Material Noun", "Proper Noun", "Collective Noun"],
-      "answer": 1
-    },
-    {
-      "variations": [
-        "इनमें से कौन सा शब्द Collective Noun का उदाहरण है?",
-        "Which of the following is an example of a Collective Noun?"
-      ],
-      "options": ["Ram", "City", "Team", "Gold"],
-      "answer": 2
-    },
-    {
-      "variations": [
-        "इनमें से कौन सा शब्द Proper Noun है?",
-        "Identify the Proper Noun from the given options:"
-      ],
-      "options": ["Boy", "Jaipur", "River", "Dog"],
-      "answer": 1
-    },
-    {
-      "variations": [
-        "Material Noun और Abstract Noun आमतौर पर किस श्रेणी में आते हैं?",
-        "Material Noun and Abstract Noun generally fall into which category?"
-      ],
-      "options": ["Countable", "Uncountable", "Proper", "Collective"],
-      "answer": 1
-    },
-    {
-      "variations": [
-        "वह संज्ञा जिसे गिना जा सकता है, उसे क्या कहते हैं?",
-        "A noun that can be counted is called:"
-      ],
-      "options": ["Uncountable Noun", "Material Noun", "Countable Noun", "Abstract Noun"],
-      "answer": 2
-    },
-    {
-      "variations": [
-        "Proper Noun के साथ सामान्यतः किन आर्टिकल्स (Articles) का प्रयोग नहीं किया जाता?",
-        "Generally, which articles are NOT used before a Proper Noun?"
-      ],
-      "options": ["A or An", "The", "Both A or An and The", "No restriction"],
-      "answer": 2
-    },
-    {
-      "variations": [
-        "इनमें से Abstract Noun की पहचान करें:",
-        "Identify the Abstract Noun among these:"
-      ],
-      "options": ["Honesty", "Water", "Class", "Pen"],
-      "answer": 0
-    },
-    {
-      "variations": [
-        "क्या Common Noun का बहुवचन (Plural) बनाया जा सकता है?",
-        "Can a Common Noun be changed into a Plural form?"
-      ],
-      "options": ["Yes", "No", "Only for Proper Nouns", "Never"],
-      "answer": 0
-    },
-    {
-      "variations": [
-        "इनमें से कौन सी संज्ञा Material Noun है?",
-        "Which of these nouns is a Material Noun?"
-      ],
-      "options": ["Army", "Milk", "Kindness", "Delhi"],
       "answer": 1
     }
   ],
-  "LDC_English_Class_3": [
+  "RBI_and_Monetary_Policy_Advanced": [
     {
       "variations": [
-        "संज्ञा के स्थान पर प्रयुक्त होने वाला शब्द क्या कहलाता है?",
-        "What is a word used in place of a noun called?"
+        "RBI का राष्ट्रीयकरण किस अधिनियम के तहत 1 जनवरी 1949 को किया गया था?",
+        "भारतीय रिजर्व बैंक को सार्वजनिक स्वामित्व में लाने के लिए कौन सा अधिनियम लागू किया गया था?"
       ],
-      "options": ["Adjective", "Pronoun", "Verb", "Preposition"],
+      "options": [
+        "RBI Act, 1934",
+        "Public Ownership Act, 1948",
+        "Banking Regulation Act, 1949",
+        "Finance Act, 2016"
+      ],
       "answer": 1
     },
     {
       "variations": [
-        "वाक्य में कार्य को करने वाले (Doer) को क्या कहा जाता है?",
-        "What is the doer of an action in a sentence called?"
+        "यदि MPC लगातार कितने समय तक मुद्रास्फीति लक्ष्य (2%-6%) को बनाए रखने में विफल रहती है, तो उसे सरकार को लिखित कारण देना होता है?",
+        "मौद्रिक नीति समिति (MPC) के विफल माने जाने की समयावधि क्या निर्धारित की गई है?"
       ],
-      "options": ["Object", "Verb", "Subject", "Complement"],
-      "answer": 2
-    },
-    {
-      "variations": [
-        "वाक्य में क्रिया का प्रभाव झेलने वाले को क्या कहते हैं?",
-        "What is the receiver of an action in a sentence called?"
-      ],
-      "options": ["Subject", "Object", "Adverb", "Determiner"],
+      "options": ["2 तिमाही (Quarters)", "3 तिमाही (Quarters)", "4 तिमाही (Quarters)", "6 महीने"],
       "answer": 1
     },
     {
       "variations": [
-        "पर्सनल प्रोनाउन (Personal Pronouns) को कुल कितने Persons में विभाजित किया गया है?",
-        "Into how many persons are Personal Pronouns divided?"
+        "मौद्रिक नीति समिति (MPC) की संरचना में कुल कितने आंतरिक (Internal) सदस्य RBI से होते हैं?",
+        "MPC में रिजर्व बैंक की ओर से शामिल होने वाले सदस्यों की संख्या कितनी है?"
       ],
-      "options": ["2", "3", "4", "5"],
+      "options": ["2 सदस्य", "3 सदस्य", "4 सदस्य", "6 सदस्य"],
       "answer": 1
     },
     {
       "variations": [
-        "फर्स्ट पर्सन (First Person) के अंतर्गत कौन से Subject Pronouns आते हैं?",
-        "Which Subject Pronouns belong to the First Person?"
+        "राजकोषीय नीति (Fiscal Policy) का संचालन किसके द्वारा किया जाता है?",
+        "सरकारी खर्चों, करों की दरों और सार्वजनिक ऋणों का समायोजन करने वाली नीति कौन चलाता है?"
       ],
-      "options": ["He, She", "You", "I, We", "They"],
+      "options": ["भारतीय रिजर्व बैंक (RBI)", "भारत सरकार", "सेबी (SEBI)", "नीति आयोग"],
+      "answer": 1
+    },
+    {
+      "variations": [
+        "महंगाई (Inflation) के समय RBI बाजार से तरलता कम करने के लिए सरकारी प्रतिभूतियों (G-Sec) का क्या करता है?",
+        "संकुचनकारी नीति (Contractionary Policy) के तहत G-Sec पर क्या कार्रवाई की जाती है?"
+      ],
+      "options": ["खरीदता है", "बेचता है", "रद्द करता है", "इनमें से कोई नहीं"],
+      "answer": 1
+    },
+    {
+      "variations": [
+        "विस्तारवादी मौद्रिक नीति (Expansionary Policy) के दौरान RBI सरकारी प्रतिभूतियों (G-Sec) के साथ क्या करता है?",
+        "मंदी या अवस्फीति के समय बाजार में तरलता बढ़ाने हेतु RBI G-Sec पर क्या कदम उठाता है?"
+      ],
+      "options": ["बैंकों को बेचता है", "बैंकों से खरीदता है", "फ्रीज कर देता है", "कोई बदलाव नहीं करता"],
+      "answer": 1
+    },
+    {
+      "variations": [
+        "नकद आरक्षित अनुपात (CRR) का उल्लेख RBI अधिनियम 1934 की किस धारा में है?",
+        "किस धारा के तहत व्यावसायिक बैंकों को अपने NDTL का निश्चित प्रतिशत नकद रूप में RBI के पास रखना अनिवार्य होता है?"
+      ],
+      "options": ["Section 24", "Section 42", "Section 45ZB", "Section 17"],
+      "answer": 1
+    },
+    {
+      "variations": [
+        "यदि कोई बैंक CRR बनाए रखने में विफल रहता है, तो उस पर किस कानून के तहत जुर्माना लगाया जाता है?",
+        "CRR उल्लंघन पर दंडात्मक कार्रवाई किस अधिनियम के अंतर्गत की जाती है?"
+      ],
+      "options": [
+        "RBI Act, 1934",
+        "Banking Regulation Act, 1949",
+        "Public Ownership Act, 1948",
+        "Finance Act, 2016"
+      ],
+      "answer": 1
+    },
+    {
+      "variations": [
+        "वैधानिक तरलता अनुपात (SLR) का कानूनी प्रावधान बैंकिंग विनियमन अधिनियम, 1949 की किस धारा में निहित है?",
+        "बैंकों द्वारा अपने पास नकद, सोना या अनुमोदित बांड सुरक्षित रखने का नियम (SLR) किस धारा के अंतर्गत आता है?"
+      ],
+      "options": ["Section 42", "Section 24", "Section 45ZB", "Section 18"],
+      "answer": 1
+    },
+    {
+      "variations": [
+        "रेपो रेट (Repo Rate) के तहत ऋण लेने की अधिकतम समयावधि कितनी होती है?",
+        "RBI वाणिज्यिक बैंकों को अल्पकालिक ऋण अधिकतम कितने दिनों के लिए देता है?"
+      ],
+      "options": ["30 दिन", "60 दिन", "90 दिन", "180 दिन"],
       "answer": 2
     },
     {
       "variations": [
-        "Pronoun I का ऑब्जेक्टिव रूप (Object Form) क्या होता है?",
-        "What is the object form of the pronoun I?"
+        "रेपो रेट के तहत RBI से प्राप्त किए जाने वाले न्यूनतम ऋण की राशि कितनी होती है?",
+        "बैंक रेपो विंडो के तहत कम से कम कितनी राशि का उधार ले सकते हैं?"
       ],
-      "options": ["My", "Mine", "Me", "Myself"],
+      "options": ["1 करोड़ रुपये", "2 करोड़ रुपये", "5 करोड़ रुपये", "10 करोड़ रुपये"],
       "answer": 2
     },
     {
       "variations": [
-        "Pronoun We का रिफ्लेक्सिव रूप (Reflexive Pronoun) क्या होता है?",
-        "What is the reflexive form of the pronoun We?"
+        "दीर्घकालिक ऋणों (90 दिनों से अधिक) के लिए RBI किस दर पर वाणिज्यिक बैंकों को ऋण देता है?",
+        "बिना किसी बंधक/कोलैटरल के RBI बैंकों को किस दर पर लंबी अवधि के लिए उधार प्रदान करता है?"
       ],
-      "options": ["Ours", "Our", "Ourself", "Ourselves"],
+      "options": ["रेपो रेट", "बैंक रेट", "रिवर्स रेपो रेट", "MSF"],
+      "answer": 1
+    },
+    {
+      "variations": [
+        "स्टैंडिंग डिपॉजिट फैसिलिटी (SDF) को किस वर्ष फिक्स्ड रिवर्स रेपो रेट के स्थान पर पेश किया गया था?",
+        "RBI ने बिना किसी बंधक (No Collateral) के ओवरनाइट जमा स्वीकार करने की नई व्यवस्था SDF कब लागू की?"
+      ],
+      "options": ["2016", "2018", "2020", "2022"],
       "answer": 3
     },
     {
       "variations": [
-        "सब्जेक्टिव केस में प्रयुक्त प्रोनाउन He का पज़ेसिव डिटरमिनर क्या है?",
-        "What is the Possessive Determiner of He?"
+        "स्टैंडिंग डिपॉजिट फैसिलिटी (SDF) की दर सामान्यतः रेपो रेट से कितनी कम होती है?",
+        "SDF दर रेपो रेट से कितना प्रतिशत (बेसिस पॉइंट) नीचे निर्धारित की जाती है?"
       ],
-      "options": ["Him", "His", "Himself", "Hes"],
+      "options": ["10 बेसिस पॉइंट (0.10%)", "25 बेसिस पॉइंट (0.25%)", "50 बेसिस पॉइंट (0.50%)", "75 बेसिस पॉइंट (0.75%)"],
       "answer": 1
     },
     {
       "variations": [
-        "पज़ेसिव डिटरमिनर के तुरंत बाद किसका आना अनिवार्य होता है?",
-        "What must immediately follow a Possessive Determiner?"
+        "मार्जिनल स्टैंडिंग फैसिलिटी (MSF) के तहत बैंक अपने NDTL का अधिकतम कितने प्रतिशत तक का ओवरनाइट ऋण ले सकते हैं?",
+        "अति-अल्पकालिक आवश्यकताओं के लिए MSF के तहत ऋण सीमा NDTL का कितना प्रतिशत तय की गई है?"
       ],
-      "options": ["Verb", "Adverb", "Noun", "Preposition"],
-      "answer": 2
-    },
-    {
-      "variations": [
-        "वाक्य में जब कर्ता का प्रभाव खुद उसी पर पड़ता है, तब किस प्रोनाउन का प्रयोग किया जाता है?",
-        "Which pronoun is used when the action of the subject reflects back on the subject itself?"
-      ],
-      "options": ["Relative Pronoun", "Reflexive Pronoun", "Reciprocal Pronoun", "Interrogative Pronoun"],
+      "options": ["1%", "2%", "3%", "5%"],
       "answer": 1
     },
     {
       "variations": [
-        "बिना एपोस्ट्रॉफी वाला शब्द Its ग्रामर में क्या दर्शाता है?",
-        "What does the word Its without apostrophe represent in grammar?"
+        "मार्जिनल स्टैंडिंग फैसिलिटी (MSF) के अंतर्गत न्यूनतम ऋण राशि कितनी होती है?",
+        "MSF विंडो के जरिए बैंक कम से कम कितना ऋण ले सकते हैं?"
+      ],
+      "options": ["50 लाख रुपये", "1 करोड़ रुपये", "5 करोड़ रुपये", "10 करोड़ रुपये"],
+      "answer": 1
+    },
+    {
+      "variations": [
+        "NDTL की मांग देनदारियों (Demand Liabilities) में मुख्य रूप से कौन से खाते शामिल होते हैं?",
+        "CASA का पूर्ण रूप क्या है जो NDTL का हिस्सा है?"
       ],
       "options": [
-        "It is की शॉर्ट फॉर्म",
-        "Possessive Determiner",
-        "Reflexive Pronoun",
-        "Plural Noun"
+        "Recurring Account & Fixed Deposit Account",
+        "Current Account & Saving Account",
+        "Capital Account & Saving Account",
+        "Credit Account & Service Account"
       ],
       "answer": 1
     },
     {
       "variations": [
-        "Apostrophe वाले शब्द It is का क्या अर्थ होता है?",
-        "What does Its with an apostrophe stand for?"
+        "NDTL की समय देनदारियों (Time Liabilities) का प्रतिनिधित्व कौन से खाते करते हैं?",
+        "RAFA खातों के अंतर्गत कौन से खाते आते हैं?"
       ],
       "options": [
-        "It is or It has or It was",
-        "It function",
-        "Plural of It",
-        "Possessive Case of It"
+        "Current Account & Saving Account",
+        "Recurring Account & Fixed Deposit Account",
+        "Reserve Account & Fund Account",
+        "Reinvestment & Fixed Account"
+      ],
+      "answer": 1
+    }
+  ],
+  "Evolution_of_Indian_Banking_System": [
+    {
+      "variations": [
+        "भारत में स्थापित होने वाला सबसे पहला बैंक कौन सा था?",
+        "वर्ष 1770 में स्थापित भारत के प्रथम बैंक का नाम क्या था?"
+      ],
+      "options": ["बैंक ऑफ बंगाल", "बैंक ऑफ हिंदुस्तान", "इंपीरियल बैंक ऑफ इंडिया", "पंजाब नेशनल बैंक"],
+      "answer": 1
+    },
+    {
+      "variations": [
+        "भारत का पहला बैंक 'बैंक ऑफ हिंदुस्तान' किस वर्ष स्थापित किया गया था?",
+        "1770 में स्थापित बैंक ऑफ हिंदुस्तान ने किस वर्ष अपना संचालन बंद कर दिया था?"
+      ],
+      "options": ["1770 और 1832", "1786 और 1791", "1806 और 1840", "1894 और 1921"],
+      "answer": 0
+    },
+    {
+      "variations": [
+        "किन तीन प्रेसीडेंसी बैंकों को मिलाकर वर्ष 1921 में 'इंपीरियल बैंक ऑफ इंडिया' का गठन किया गया था?",
+        "27 जनवरी 1921 को इंपीरियल बैंक ऑफ इंडिया का गठन किन बैंकों के विलय से हुआ था?"
+      ],
+      "options": [
+        "बैंक ऑफ हिंदुस्तान, जनरल बैंक, अवध बैंक",
+        "बैंक ऑफ बंगाल, बैंक ऑफ बॉम्बे, बैंक ऑफ मद्रास",
+        "इलाहाबाद बैंक, पंजाब नेशनल बैंक, कैनरा बैंक",
+        "बैंक ऑफ इंडिया, बैंक ऑफ बड़ौदा, सेंट्रल बैंक ऑफ इंडिया"
+      ],
+      "answer": 1
+    },
+    {
+      "variations": [
+        "ब्रिटिश ईस्ट इंडिया कंपनी द्वारा स्थापित तीन प्रेसीडेंसी बैंकों की स्थापना का सही क्रम वर्ष क्या है?",
+        "बैंक ऑफ बंगाल, बैंक ऑफ बॉम्बे और बैंक ऑफ मद्रास की स्थापना क्रमशः किन वर्षों में हुई थी?"
+      ],
+      "options": [
+        "1806, 1840, 1843",
+        "1770, 1786, 1806",
+        "1865, 1881, 1894",
+        "1906, 1908, 1911"
       ],
       "answer": 0
     },
     {
       "variations": [
-        "स्थान सूचक शब्द के रूप में प्रयुक्त There क्या है?",
-        "What is the word There denoting a place grammatically?"
+        "इंपीरियल बैंक ऑफ इंडिया का वर्ष 1955 में नाम बदलकर क्या कर दिया गया था?",
+        "वर्ष 1955 में राष्ट्रीयकरण के पश्चात इंपीरियल बैंक ऑफ इंडिया किस नए नाम से जाना गया?"
       ],
-      "options": ["Possessive Determiner", "Adverb of Place", "Personal Pronoun", "Noun"],
+      "options": ["भारतीय रिजर्व बैंक (RBI)", "स्टेट बैंक ऑफ इंडिया (SBI)", "पंजाब नेशनल बैंक (PNB)", "बैंक ऑफ बड़ौदा (BOB)"],
       "answer": 1
     },
     {
       "variations": [
-        "जब रिफ्लेक्सिव प्रोनाउन का प्रयोग कर्ता (Subject) पर ज़ोर (Emphasis) देने के लिए किया जाता है, तो उसे क्या कहते हैं?",
-        "When a reflexive form is used to emphasize the subject, it is called an:"
+        "भारत का सबसे पुराना निरंतर कार्य करने वाला संयुक्त स्टॉक बैंक (Joint Stock Bank) कौन सा है?",
+        "वर्ष 1865 में स्थापित वह कौन सा बैंक है जिसका विलय बाद में इंडियन बैंक में कर दिया गया?"
       ],
-      "options": ["Emphatic Pronoun", "Relative Pronoun", "Demonstrative Pronoun", "Indefinite Pronoun"],
+      "options": ["अवध कमर्शियल बैंक", "इलाहाबाद बैंक", "पंजाब नेशनल बैंक", "नेदुंगदी बैंक"],
+      "answer": 1
+    },
+    {
+      "variations": [
+        "सीमित देयता (Limited Liability) वाला पहला बैंक और भारतीयों द्वारा संचालित पहला संयुक्त स्टॉक बैंक कौन सा था?",
+        "वर्ष 1881 से 1958 तक संचालित अवध कमर्शियल बैंक की मुख्य विशेषता क्या थी?"
+      ],
+      "options": [
+        "पूर्ण रूप से सरकारी बैंक",
+        "सीमित देयता वाला भारतीयों द्वारा संचालित पहला संयुक्त स्टॉक बैंक",
+        "भारत का पहला विदेशी बैंक",
+        "भारत का पहला केंद्रीय बैंक"
+      ],
+      "answer": 1
+    },
+    {
+      "variations": [
+        "पूर्ण रूप से भारतीयों द्वारा प्रबंधित पहला बैंक कौन सा था जिसकी स्थापना 1894 में लाहौर में हुई थी?",
+        "पंजाब नेशनल बैंक (PNB) की स्थापना किस वर्ष और कहाँ हुई थी?"
+      ],
+      "options": [
+        "1894 में लाहौर",
+        "1865 में इलाहाबाद",
+        "1899 में कोझिकोड",
+        "1906 में मुंबई"
+      ],
       "answer": 0
     },
     {
       "variations": [
-        "वाक्य I love myself में myself किस रूप में कार्य कर रहा है?",
-        "In the sentence I love myself, myself is acting as a:"
+        "राव बहादुर टी.एम. अप्पू नेदुंगदी द्वारा 1899 में केरल के कोझिकोड में स्थापित भारत का पहला निजी क्षेत्र (Private Sector) का बैंक कौन सा था?",
+        "भारत के प्रथम प्राइवेट सेक्टर बैंक 'नेदुंगदी बैंक' की स्थापना किसने की थी?"
       ],
-      "options": ["Subject Pronoun", "Possessive Determiner", "Reflexive Pronoun", "Relative Pronoun"],
+      "options": [
+        "एम. नरसिम्हम",
+        "राव बहादुर टी.एम. अप्पू नेदुंगदी",
+        "इंदिरा गांधी",
+        "सी.डी. देशमुख"
+      ],
+      "answer": 1
+    },
+    {
+      "variations": [
+        "स्वदेशी आंदोलन (1906-1911) के दौरान किन प्रमुख बैंकों की स्थापना हुई थी?",
+        "वर्ष 1906 में स्थापित बैंक ऑफ इंडिया और केनरा बैंक किस आंदोलन की देन थे?"
+      ],
+      "options": ["भारत छोड़ो आंदोलन", "असहयोग आंदोलन", "स्वदेशी आंदोलन", "सविनय अवज्ञा आंदोलन"],
       "answer": 2
+    },
+    {
+      "variations": [
+        "भारतीय बैंकिंग प्रणाली में अतुलनीय योगदान के लिए किसे 'फादर ऑफ इंडियन बैंकिंग' (भारतीय बैंकिंग का जनक) कहा जाता है?",
+        "RBI के 13वें गवर्नर (मई 1977 - नवंबर 1977) रहे किस व्यक्ति को 'भारतीय बैंकिंग का पितामह' माना जाता है?"
+      ],
+      "options": ["ओसबॉर्न स्मिथ", "सी.डी. देशमुख", "मैदावोलु नरसिम्हम (M. Narasimham)", "उर्जित पटेल"],
+      "answer": 2
+    },
+    {
+      "variations": [
+        "भारत में 14 बड़े वाणिज्यिक बैंकों का राष्ट्रीयकरण किस तिथि को किया गया था?",
+        "19 जुलाई 1969 को तत्कालीन प्रधानमंत्री इंदिरा गांधी द्वारा कितने बैंकों का राष्ट्रीयकरण किया गया था?"
+      ],
+      "options": ["19 जुलाई 1969 (14 बैंक)", "15 अगस्त 1980 (6 बैंक)", "1 जनवरी 1949 (1 बैंक)", "1 अप्रैल 1935 (10 बैंक)"],
+      "answer": 0
+    },
+    {
+      "variations": [
+        "19 जुलाई 1969 को बैंकों के पहले चरण के राष्ट्रीयकरण के लिए न्यूनतम जमा पूंजी (Deposit Limit) कितनी तय की गई थी?",
+        "किन वाणिज्यिक बैंकों का राष्ट्रीयकरण 1969 में किया गया था?"
+      ],
+      "options": ["₹10 करोड़ से अधिक", "₹50 करोड़ से अधिक", "₹100 करोड़ से अधिक", "₹200 करोड़ से अधिक"],
+      "answer": 1
+    },
+    {
+      "variations": [
+        "बैंकों के राष्ट्रीयकरण के दूसरे चरण में वर्ष 1980 में कितने और निजी बैंकों का राष्ट्रीयकरण किया गया था?",
+        "वर्ष 1980 में 6 निजी बैंकों (जैसे विजया बैंक, कॉर्पोरेशन बैंक) का राष्ट्रीयकरण किस चरण के तहत हुआ?"
+      ],
+      "options": ["4 बैंक", "6 बैंक", "10 बैंक", "14 बैंक"],
+      "answer": 1
+    },
+    {
+      "variations": [
+        "वर्ष 2020 के मेगा मर्जर (Mega Merger) में ओरिएंटल बैंक ऑफ कॉमर्स (OBC) और यूनाइटेड बैंक ऑफ इंडिया का विलय किस बैंक में हुआ?",
+        "पंजाब नेशनल बैंक (PNB) में वर्ष 2020 में किन दो बैंकों का विलय किया गया?"
+      ],
+      "options": [
+        "देना बैंक और विजया बैंक",
+        "ओरिएंटल बैंक ऑफ कॉमर्स (OBC) और यूनाइटेड बैंक ऑफ इंडिया",
+        "कॉर्पोरेशन बैंक और आंध्रा बैंक",
+        "इलाहाबाद बैंक और आंध्रा बैंक"
+      ],
+      "answer": 1
+    },
+    {
+      "variations": [
+        "वर्ष 2020 में इलाहाबाद बैंक का विलय किस एकीकृत मुख्य बैंक (Anchor Bank) में किया गया?",
+        "इंडियन बैंक में किस पुराने राष्ट्रीयकृत बैंक का विलय वर्ष 2020 में हुआ?"
+      ],
+      "options": ["पंजाब नेशनल बैंक", "यूनियन बैंक ऑफ इंडिया", "इंडियन बैंक", "बैंक ऑफ बड़ौदा"],
+      "answer": 2
+    },
+    {
+      "variations": [
+        "कॉर्पोरेशन बैंक और आंध्रा बैंक का विलय वर्ष 2020 में किस मुख्य बैंक में हुआ?",
+        "यूनियन बैंक ऑफ इंडिया में 2020 के मेगा विलय के तहत किन दो बैंकों को एकीकृत किया गया?"
+      ],
+      "options": [
+        "ओरिएंटल बैंक ऑफ कॉमर्स + यूनाइटेड बैंक",
+        "देना बैंक + विजया बैंक",
+        "कॉर्पोरेशन बैंक + आंध्रा बैंक",
+        "इलाहाबाद बैंक + केनरा बैंक"
+      ],
+      "answer": 2
+    },
+    {
+      "variations": [
+        "देना बैंक और विजया बैंक का विलय किस बैंक में किया गया?",
+        "बैंक ऑफ बड़ौदा (BOB) में किन दो बैंकों का विलय हुआ?"
+      ],
+      "options": ["पंजाब नेशनल बैंक", "बैंक ऑफ बड़ौदा", "यूनियन बैंक ऑफ इंडिया", "कैनरा बैंक"],
+      "answer": 1
+    },
+    {
+      "variations": [
+        "भारत में सबसे पहला ATM किस बैंक द्वारा और किस वर्ष में स्थापित किया गया था?",
+        "वर्ष 1987 में मुंबई में भारत का पहला ATM लगाने वाला बैंक कौन सा था?"
+      ],
+      "options": [
+        "SBI (1955, दिल्ली)",
+        "HSBC बैंक (1987, मुंबई)",
+        "PNB (1894, लाहौर)",
+        "RBI (1935, कोलकाता)"
+      ],
+      "answer": 1
     }
   ]
 }
