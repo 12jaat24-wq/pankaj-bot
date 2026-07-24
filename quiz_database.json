@@ -487,5 +487,85 @@
       ],
       "answer": 2
     }
+  ],
+  "LDC_English_Class_2": [
+    {
+      "variations": [
+        "What is the basic sentence structure in English grammar?",
+        "अंग्रेजी व्याकरण में वाक्य की सबसे मूलभूत संरचना (Basic Structure) क्या होती है?"
+      ],
+      "options": [
+        "Subject + Object + Verb",
+        "Verb + Subject + Object",
+        "Subject + Verb + Object",
+        "Object + Verb + Subject"
+      ],
+      "answer": 2
+    },
+    {
+      "variations": [
+        "What are the two sub-categories of an Assertive (Declarative) sentence?",
+        "असर्शन/डिक्लेरेटिव (Assertive/Declarative) वाक्यों को किन दो उप-श्रेणियों में विभाजित किया जाता है?"
+      ],
+      "options": [
+        "Simple and Compound",
+        "Affirmative and Negative",
+        "Imperative and Exclamatory",
+        "Optative and Interrogative"
+      ],
+      "answer": 1
+    },
+    {
+      "variations": [
+        "Which type of question generally receives a 'Yes' or 'No' answer?",
+        "किस प्रकार के प्रश्नवाचक वाक्यों का उत्तर आमतौर पर 'हाँ' या 'ना' (Yes/No) में होता है?"
+      ],
+      "options": [
+        "Questions starting with WH-words",
+        "Questions starting with Helping Verbs",
+        "Imperative questions",
+        "Exclamatory questions"
+      ],
+      "answer": 1
+    },
+    {
+      "variations": [
+        "With what component do Imperative sentences usually begin?",
+        "इंपैरेटिव (Imperative) वाक्य आमतौर पर किससे शुरू होते हैं?"
+      ],
+      "options": [
+        "Subject",
+        "WH-word",
+        "Base Form of Verb (V1)",
+        "Exclamation Mark"
+      ],
+      "answer": 2
+    },
+    {
+      "variations": [
+        "Which of the following sentence types is used to express a wish, desire, or curse?",
+        "इच्छा, प्रार्थना या श्राप (Wish, Desire, Curse) व्यक्त करने के लिए किस प्रकार के वाक्य का उपयोग किया जाता है?"
+      ],
+      "options": [
+        "Imperative Sentence",
+        "Exclamatory Sentence",
+        "Optative Sentence",
+        "Assertive Sentence"
+      ],
+      "answer": 2
+    },
+    {
+      "variations": [
+        "Identify the negative sentence among the options below:",
+        "निम्नलिखित विकल्पों में से नकारात्मक (Negative) वाक्य की पहचान करें:"
+      ],
+      "options": [
+        "I usually watch a movie on weekends.",
+        "I study in VIPM.",
+        "I seldome eat mangoes.",
+        "He is an intelligent student."
+      ],
+      "answer": 2
+    }
   ]
 }
