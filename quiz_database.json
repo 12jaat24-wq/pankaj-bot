@@ -262,5 +262,136 @@
       ],
       "answer": 0
     }
+  ],
+  "LDC_English_Class_3": [
+    {
+      "variations": [
+        "संज्ञा के स्थान पर प्रयुक्त होने वाला शब्द (Replacement of Noun) क्या कहलाता है?",
+        "What is a word used in place of a noun called?"
+      ],
+      "options": ["Adjective", "Pronoun", "Verb", "Preposition"],
+      "answer": 1
+    },
+    {
+      "variations": [
+        "वाक्य में कार्य को करने वाले (Doer) को क्या कहा जाता है?",
+        "What is the doer of an action in a sentence called?"
+      ],
+      "options": ["Object", "Verb", "Subject", "Complement"],
+      "answer": 2
+    },
+    {
+      "variations": [
+        "वाक्य में क्रिया का प्रभाव झेलने वाले (Receiver of action) को क्या कहते हैं?",
+        "What is the receiver of an action in a sentence called?"
+      ],
+      "options": ["Subject", "Object", "Adverb", "Determiner"],
+      "answer": 1
+    },
+    {
+      "variations": [
+        "पर्सनल प्रोनाउन (Personal Pronouns) को कुल कितने 'Persons' में विभाजित किया गया है?",
+        "Into how many 'persons' are Personal Pronouns divided?"
+      ],
+      "options": ["2", "3", "4", "5"],
+      "answer": 1
+    },
+    {
+      "variations": [
+        "फर्स्ट पर्सन (First Person) के अंतर्गत कौन-कौन से Subject Pronouns आते हैं?",
+        "Which Subject Pronouns belong to the First Person?"
+      ],
+      "options": ["He, She", "You", "I, We", "They"],
+      "answer": 2
+    },
+    {
+      "variations": [
+        "Pronoun 'I' का ऑब्जेक्टिव रूप (Object Form) क्या होता है?",
+        "What is the object form of the pronoun 'I'?"
+      ],
+      "options": ["My", "Mine", "Me", "Myself"],
+      "answer": 2
+    },
+    {
+      "variations": [
+        "Pronoun 'We' का रिफ्लेक्सिव रूप (Reflexive Pronoun) क्या होता है?",
+        "What is the reflexive form of the pronoun 'We'?"
+      ],
+      "options": ["Ours", "Our", "Ourself", "Ourselves"],
+      "answer": 3
+    },
+    {
+      "variations": [
+        "सब्जेक्टिव केस में प्रयुक्त प्रोनाउन 'He' का पज़ेसिव डिटरमिनर (Possessive Determiner) क्या है?",
+        "What is the Possessive Determiner of 'He'?"
+      ],
+      "options": ["Him", "His", "Himself", "He's"],
+      "answer": 1
+    },
+    {
+      "variations": [
+        "पज़ेसिव डिटरमिनर (Possessive Determiner) के तुरंत बाद किसका आना अनिवार्य होता है?",
+        "What must immediately follow a Possessive Determiner?"
+      ],
+      "options": ["Verb", "Adverb", "Noun", "Preposition"],
+      "answer": 2
+    },
+    {
+      "variations": [
+        "वाक्य में जब कर्ता (Subject) का प्रभाव खुद उसी पर पड़ता है, तब किस प्रोनाउन का प्रयोग किया जाता है?",
+        "Which pronoun is used when the action of the subject reflects back on the subject itself?"
+      ],
+      "options": ["Relative Pronoun", "Reflexive Pronoun", "Reciprocal Pronoun", "Interrogative Pronoun"],
+      "answer": 1
+    },
+    {
+      "variations": [
+        "बिना एप्रोस्ट्रॉफी वाला शब्द 'Its' ग्रामर में क्या दर्शाता है?",
+        "What does the word 'Its' (without apostrophe) represent in grammar?"
+      ],
+      "options": [
+        "It is की शॉर्ट फॉर्म",
+        "Possessive Determiner",
+        "Reflexive Pronoun",
+        "Plural Noun"
+      ],
+      "answer": 1
+    },
+    {
+      "variations": [
+        "Apostrophe वाले शब्द 'It's' का क्या अर्थ होता है?",
+        "What does 'It\'s' (with an apostrophe) stand for?"
+      ],
+      "options": [
+        "It is / It has / It was",
+        "It function",
+        "Plural of It",
+        "Possessive Case of It"
+      ],
+      "answer": 0
+    },
+    {
+      "variations": [
+        "स्थान सूचक शब्द के रूप में प्रयुक्त 'There' (T-H-E-R-E) क्या है?",
+        "What is the word 'There' (denoting a place) grammatically?"
+      ],
+      "options": ["Possessive Determiner", "Adverb of Place", "Personal Pronoun", "Noun"],
+      "answer": 1
+    },
+    {
+      "variations": [
+        "जब रिफ्लेक्सिव प्रोनाउन का प्रयोग कर्ता (Subject) पर ज़ोर (Emphasis) देने के लिए किया जाता है, तो उसे क्या कहते हैं?",
+        "When a reflexive form is used to emphasize the subject, it is called an:"
+      ],
+      "options": ["Emphatic Pronoun", "Relative Pronoun", "Demonstrative Pronoun", "Indefinite Pronoun"],
+      "answer": 0
+    },
+    {
+      "variations": [
+        "वाक्य 'I love myself' में 'myself' किस रूप में कार्य कर रहा है?",
+        "In the sentence 'I love myself', 'myself' is acting as a:"
+      ],
+      "options": ["Subject Pronoun", "Possessive Determiner", "Reflexive Pronoun", "Relative Pronoun"],
+      "answer": 2
+    }
   ]
-}
