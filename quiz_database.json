@@ -701,5 +701,137 @@
       ],
       "answer": 1
     }
+  ],
+  "LDC_English_Class_8": [
+    {
+      "variations": [
+        "In English grammar, 'Since' is used with which type of time?",
+        "'Since' का प्रयोग किस प्रकार के समय (Time) को दर्शाने के लिए किया जाता है?"
+      ],
+      "options": [
+        "Point of time",
+        "Length of time",
+        "Period of time",
+        "Total duration of time"
+      ],
+      "answer": 0
+    },
+    {
+      "variations": [
+        "In English grammar, 'For' is used with which type of time?",
+        "'For' का प्रयोग किस प्रकार के समय को दर्शाने के लिए किया जाता है?"
+      ],
+      "options": [
+        "Point of time",
+        "Length or Period of time",
+        "Name of a day",
+        "Name of a year"
+      ],
+      "answer": 1
+    },
+    {
+      "variations": [
+        "Which preposition should be used before 'last month' in Present Perfect Continuous Tense?",
+        "'Last month' के ठीक पहले सही Preposition क्या होगा?"
+      ],
+      "options": [
+        "For",
+        "Since",
+        "From",
+        "In"
+      ],
+      "answer": 1
+    },
+    {
+      "variations": [
+        "Which preposition is correctly used in the phrase '_____ the last one month'?",
+        "'_____ the last one month' के लिए सही Preposition का चयन करें:"
+      ],
+      "options": [
+        "Since",
+        "For",
+        "From",
+        "By"
+      ],
+      "answer": 1
+    },
+    {
+      "variations": [
+        "Which of the following keywords is typically used with the Past Simple Tense?",
+        "निम्न में से कौन-सा कीवर्ड Past Simple Tense की पहचान कराता है?"
+      ],
+      "options": [
+        "Right now",
+        "Ago",
+        "So far",
+        "Shortly"
+      ],
+      "answer": 1
+    },
+    {
+      "variations": [
+        "Keywords like 'those days', 'at that time', and 'at that moment' indicate which tense?",
+        "'Those days', 'at that time', और 'at that moment' जैसे कीवर्ड्स किस टेंस को दर्शाते हैं?"
+      ],
+      "options": [
+        "Present Continuous",
+        "Past Simple",
+        "Past Continuous",
+        "Future Continuous"
+      ],
+      "answer": 2
+    },
+    {
+      "variations": [
+        "Keywords like 'tomorrow', 'next week', 'soon', and 'shortly' indicate which tense?",
+        "'Tomorrow', 'next week', 'soon', तथा 'shortly' किस टेंस के कीवर्ड्स हैं?"
+      ],
+      "options": [
+        "Present Simple",
+        "Past Simple",
+        "Future Simple",
+        "Future Continuous"
+      ],
+      "answer": 2
+    },
+    {
+      "variations": [
+        "The phrase 'this time tomorrow' is a keyword for which tense?",
+        "'This time tomorrow' किस टेंस की ओर संकेत करता है?"
+      ],
+      "options": [
+        "Past Continuous",
+        "Present Continuous",
+        "Future Continuous",
+        "Future Perfect"
+      ],
+      "answer": 2
+    },
+    {
+      "variations": [
+        "In Future Perfect Continuous Tense, which preposition is frequently used instead of 'since' for a point of time?",
+        "Future Perfect Continuous Tense में Point of Time के लिए 'since' के स्थान पर मुख्य रूप से किसका प्रयोग किया जाता है?"
+      ],
+      "options": [
+        "For",
+        "From",
+        "By",
+        "To"
+      ],
+      "answer": 1
+    },
+    {
+      "variations": [
+        "Universal truths, scientific facts, and daily routines are expressed in which tense?",
+        "सार्वभौमिक सत्य (Universal truths), वैज्ञानिक तथ्य (Scientific facts) और दैनिक दिनचर्या (Daily routines) को किस टेंस में व्यक्त किया जाता है?"
+      ],
+      "options": [
+        "Present Simple Tense",
+        "Present Continuous Tense",
+        "Past Simple Tense",
+        "Present Perfect Tense"
+      ],
+      "answer": 0
+    }
   ]
 }
