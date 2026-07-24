@@ -519,5 +519,147 @@
       ],
       "answer": 1
     }
+  ],
+  "LDC_English_Class_1": [
+    {
+      "variations": [
+        "अंग्रेजी वर्णमाला (English Alphabet) में कुल कितने लेटर्स (Letters) होते हैं?",
+        "English Alphabet में अक्षरों/लेटर्स की कुल संख्या कितनी होती है?"
+      ],
+      "options": ["21", "24", "26", "44"],
+      "answer": 2
+    },
+    {
+      "variations": [
+        "अंग्रेजी भाषा में कुल कितने साउंड्स (Sounds) होते हैं?",
+        "How many sounds are there in English language?"
+      ],
+      "options": ["26", "34", "44", "52"],
+      "answer": 2
+    },
+    {
+      "variations": [
+        "वाक्य (Sentence) की सही परिभाषा क्या है?",
+        "What is a Sentence in English Grammar?"
+      ],
+      "options": [
+        "Group of letters with no meaning",
+        "Systematic arrangement of words (शब्दों का सार्थक समूह)",
+        "Collection of unarranged letters",
+        "Set of punctuation marks"
+      ],
+      "answer": 1
+    },
+    {
+      "variations": [
+        "ग्रामर (Grammar) को किस रूप में परिभाषित किया जाता है?",
+        "What is Grammar basically?"
+      ],
+      "options": [
+        "Collection of letters",
+        "Set of rules (नियमों का समूह)",
+        "List of vocabulary words",
+        "Group of sound symbols"
+      ],
+      "answer": 1
+    },
+    {
+      "variations": [
+        "पारंपरिक अंग्रेजी (Traditional English) में कुल कितने Parts of Speech होते हैं?",
+        "How many Parts of Speech are there in Traditional English?"
+      ],
+      "options": ["6", "8", "10", "12"],
+      "answer": 1
+    },
+    {
+      "variations": [
+        "आधुनिक अंग्रेजी (Modern English) में Determiner और Article को मिलाकर कुल कितने Parts of Speech माने जाते हैं?",
+        "Modern English के अनुसार Parts of Speech की कुल संख्या कितनी मानी जाती है?"
+      ],
+      "options": ["8", "9", "10", "12"],
+      "answer": 2
+    },
+    {
+      "variations": [
+        "संज्ञा (Noun) किसे कहते हैं?",
+        "What is the definition of a Noun?"
+      ],
+      "options": [
+        "Name of a person, place, thing, idea or emotion",
+        "A word that replaces a verb",
+        "An action showing word",
+        "A connecting word between sentences"
+      ],
+      "answer": 0
+    },
+    {
+      "variations": [
+        "संज्ञा के स्थान पर प्रयोग होने वाले शब्दों को क्या कहते हैं?",
+        "Which word is used instead of / in place of a Noun?"
+      ],
+      "options": ["Adjective", "Pronoun", "Adverb", "Preposition"],
+      "answer": 1
+    },
+    {
+      "variations": [
+        "Noun या Pronoun की विशेषता (Quality) बताने वाले शब्द क्या कहलाते हैं?",
+        "Words that describe or qualify a Noun or Pronoun are called:"
+      ],
+      "options": ["Verb", "Adverb", "Adjective", "Conjunction"],
+      "answer": 2
+    },
+    {
+      "variations": [
+        "किसी एक्शन (Action), कार्य या स्थिति को दर्शाने वाले शब्द क्या कहलाते हैं?",
+        "Words that denote action or activity in a sentence are known as:"
+      ],
+      "options": ["Noun", "Verb", "Preposition", "Interjection"],
+      "answer": 1
+    },
+    {
+      "variations": [
+        "Verb, Adjective या दूसरे Adverb की विशेषता बताने वाले शब्द क्या कहलाते हैं?",
+        "Words that describe a Verb, an Adjective, or another Adverb are called:"
+      ],
+      "options": ["Adverb", "Conjunction", "Noun", "Pronoun"],
+      "answer": 0
+    },
+    {
+      "variations": [
+        "मन के अचानक उठने वाले भावों/उद्गारों (Sudden feelings/emotions) को व्यक्त करने वाले शब्दों (जैसे- Wow, Hurrah, Alas) को क्या कहते हैं?",
+        "Words used to express sudden feelings or emotions in mind are called:"
+      ],
+      "options": ["Conjunction", "Preposition", "Interjection", "Determiner"],
+      "answer": 2
+    },
+    {
+      "variations": [
+        "वाक्यों (Sentences) या वाक्यांशों (Phrases) को आपस में जोड़ने वाले शब्द क्या कहलाते हैं?",
+        "Words that join words, phrases, or sentences together are called:"
+      ],
+      "options": ["Adjective", "Conjunction", "Interjection", "Pronoun"],
+      "answer": 1
+    },
+    {
+      "variations": [
+        "Article (A, An, The) वास्तव में किस पार्ट्स ऑफ स्पीच का एक प्रकार/भाग है?",
+        "Article is a part/type of which grammatical category?"
+      ],
+      "options": ["Preposition", "Determiner", "Interjection", "Verb"],
+      "answer": 1
+    },
+    {
+      "variations": [
+        "टेंस (Tense) को अच्छे से समझने के लिए किन तीन मुख्य Parts of Speech का ज्ञान होना सबसे आवश्यक है?",
+        "Which three main Parts of Speech should be learned in detail before Tense?"
+      ],
+      "options": [
+        "Noun, Pronoun, Verb",
+        "Adverb, Preposition, Conjunction",
+        "Article, Determiner, Interjection",
+        "Adjective, Adverb, Preposition"
+      ],
+      "answer": 0
+    }
   ]
 }
