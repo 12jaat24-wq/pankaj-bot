@@ -159,8 +159,8 @@ import google.generativeai as genai
 from youtube_transcript_api import YouTubeTranscriptApi
 
 # अपनी चाबियाँ यहाँ भरें
-G_KEY = "अपनी_Gemini_Key"
-GH_TOKEN = "अपना_GitHub_Token"
+G_KEY = "AQ.Ab8RN6In1gJ34mMQwtf42udm0EWVLWY0eACvCp2PxXfl5xl8lA"
+GH_TOKEN = "ghp_WKcuNgj3oRbZvYSb0X4U3f6tuqc2MF2DXh5K"
 MY_REPO = "12jaat24-wq/pankaj-bot"
 
 genai.configure(api_key=G_KEY, transport='rest')
