@@ -1,3 +1,5 @@
 python-telegram-bot[webhooks]
 requests
 flask
+PyGithub
+google-generativeai
