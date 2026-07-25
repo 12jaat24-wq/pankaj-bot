@@ -21,9 +21,8 @@ logger = logging.getLogger(__name__)
 
 DB_CACHE = {}
 
-# --- जादुई फॉन्ट कन्वर्टर (बटन और टेक्स्ट के लिए) ---
+# --- स्टाइलिश फॉन्ट फंक्शन ---
 def style_txt(text):
-    # यह फंक्शन सादे अक्षरों को स्टाइलिश (Math Bold) में बदल देगा
     normal = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
     stylish = "𝗮𝖻𝗰𝖽𝗲𝖿𝗴𝗁𝗶𝗷𝗸𝗅𝗺𝗻𝗼𝗽𝗊𝗿𝘀𝘁𝘂𝗏𝘄𝘅𝘆𝘇𝗔𝗕𝗖𝗗𝗘𝗙𝗚𝗛𝗜𝗝𝗞𝗟𝗠𝗡𝗢𝗣𝗤𝗥𝗦𝗧𝗨𝗩𝗪𝗫𝗬𝗭𝟬𝟭𝟮𝟯𝟰𝟱𝟲𝟳𝟴𝟵"
     trans = str.maketrans(normal, stylish)
@@ -39,14 +38,13 @@ def sync_db():
     except: return False
     return False
 
-# --- स्टाइलिश रिफ्रेश (Table Style) ---
+# --- स्टाइलिश रिफ्रेश ---
 async def refresh_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     msg = await update.message.reply_text("🔄 `Connecting to GitHub...`", parse_mode="Markdown")
     if sync_db():
         total_topics = len(DB_CACHE.keys())
         total_qs = sum(len(v) for v in DB_CACHE.values())
         
-        # टेबल जैसा लुक
         table_content = "┌───────────────┐\n"
         table_content += "   📚 विषय सूची (Inventory)   \n"
         table_content += "├───────────────┤\n"
@@ -54,7 +52,6 @@ async def refresh_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
         icons = ["🔥", "⚡", "💎", "🎯", "🌟", "🚀"]
         for t, q in DB_CACHE.items():
             table_content += f" {random.choice(icons)} {t[:12]}.. | {len(q)} Q\n"
-        
         table_content += "└───────────────┘"
 
         res = (
@@ -71,25 +68,16 @@ async def refresh_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     else:
         await msg.edit_text("❌ **ERROR:** Sync Failed!")
 
-# --- डेटा सेविंग सिस्टम ---
+# --- डेटा अपडेट ---
 async def process_and_upload(update, context, json_text):
     try:
         new_data = json.loads(json_text.replace('```json', '').replace('```', '').strip())
         m = await update.message.reply_text("⚡ `Processing...`", parse_mode="Markdown")
-        
         g = Github(GITHUB_TOKEN); repo = g.get_repo(REPO_NAME); file = repo.get_contents(DB_FILE)
         db = json.loads(file.decoded_content.decode()); db.update(new_data)
-        repo.update_file(file.path, "Update via Bot", json.dumps(db, indent=4, ensure_ascii=False), file.sha)
+        repo.update_file(file.path, "Bot Update", json.dumps(db, indent=4, ensure_ascii=False), file.sha)
         sync_db()
-        
-        res = (
-            "🚀 **DATA SAVED SUCCESSFULLY**\n"
-            "━━━━━━━━━━━━━━━━━━━━\n"
-            "✅ आपका नया टॉपिक तिजोरी में सेव हो गया है।\n\n"
-            "✨ **आगे क्या करें?**\n"
-            "1️⃣ /refresh दबाकर लोड करें\n"
-            "2️⃣ /start दबाकर क्विज़ खेलें"
-        )
+        res = "🚀 **DATA SAVED!**\n━━━━━━━━━━━━━━━━━━━━\n✅ नया टॉपिक सुरक्षित जुड़ गया है।\n👉 /refresh दबाएँ फिर /start"
         await m.edit_text(res, parse_mode="Markdown")
     except Exception as e:
         await update.message.reply_text(f"❌ **JSON ERROR:** {str(e)}")
@@ -104,36 +92,41 @@ async def delete_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
         if t in db:
             del db[t]
             repo.update_file(file.path, f"Deleted {t}", json.dumps(db, indent=4, ensure_ascii=False), file.sha)
-            sync_db()
-            await update.message.reply_text(f"🗑️ **REMOVED:** `{t}` has been deleted from GitHub.")
+            sync_db(); await update.message.reply_text(f"🗑️ **REMOVED:** `{t}` उड़ गया।")
         else: await update.message.reply_text("❌ Topic not found.")
     except Exception as e: await update.message.reply_text(f"❌ Error: {e}")
 
-# --- क्विज़ लॉजिक (Stylish Buttons) ---
+# --- क्विज़ लॉजिक (फिक्स के साथ) ---
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    # सबसे पहले पुराना स्टेटस साफ़ करें (Fix for getting stuck)
+    context.user_data.clear()
+    
     if not DB_CACHE: sync_db()
     if not DB_CACHE: return await update.message.reply_text("❌ Data Empty!")
     
-    # टॉपिक बटन्स को स्टाइलिश बनाना
     icons = ["🔴", "🔵", "🟢", "🟡", "🟣", "🟠", "🌈"]
-    keyboard = []
-    for t in DB_CACHE.keys():
-        btn_text = f"{random.choice(icons)} {style_txt(t)}"
-        keyboard.append([InlineKeyboardButton(btn_text, callback_data=t)])
+    keyboard = [[InlineKeyboardButton(f"{random.choice(icons)} {style_txt(t)}", callback_data=t)] for t in DB_CACHE.keys()]
     
     welcome = (
         "━━━━━━━━━━━━━━━━━━━━\n"
         "   👑 **PANKAJ QUIZ BOT 2.0** 👑\n"
         "━━━━━━━━━━━━━━━━━━━━\n\n"
-        "✨ **अपने सपनों को साकार करने के लिए तैयार?**\n\n"
-        "🎯 **नीचे से अपना विषय (Topic) चुनें:**"
+        "🎯 **अपना विषय (Topic) चुनें:**"
     )
     await update.message.reply_text(welcome, reply_markup=InlineKeyboardMarkup(keyboard), parse_mode="Markdown")
 
 async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query; await query.answer()
     topic = query.data
+    
     qs = list(DB_CACHE.get(topic, []))
+    
+    # खाली टॉपिक चेक (Important Fix)
+    if not qs:
+        await query.message.reply_text(f"❌ **Error:** विषय `{topic}` अभी खाली है। कृपया इसमें सवाल जोड़ें।")
+        context.user_data['busy'] = False
+        return
+
     random.shuffle(qs)
     context.user_data.update({'qs': qs, 'idx': 0, 'score': 0, 'busy': True, 'topic': topic})
     await query.delete_message()
@@ -141,29 +134,22 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def send_q(context, chat_id):
     ud = context.user_data
-    idx, qs = ud.get('idx', 0), ud['qs']
+    idx, qs = ud.get('idx', 0), ud.get('qs', [])
     total = len(qs)
 
-    if idx >= total:
-        score = ud['score']; per = int((score/total)*100)
-        medal = "🏆" if per >= 80 else "🥈"
-        res = (
-            f"╔══════════════════╗\n"
-            f"   📊 **FINAL REPORT** {medal}  \n"
-            f"╚══════════════════╝\n"
-            f"📝 **TOPIC:**  `{ud['topic']}`\n"
-            f"✅ **CORRECT:** `{score}`\n"
-            f"❌ **WRONG:**   `{total-score}`\n"
-            f"🏆 **SCORE:**   `{per}%` \n"
-            f"━━━━━━━━━━━━━━━━━━━━\n"
-            f"🔥 /start - Play Again"
-        )
-        await context.bot.send_message(chat_id, res, parse_mode="Markdown")
+    if not qs or idx >= total:
+        if total > 0:
+            score = ud.get('score', 0); per = int((score/total)*100)
+            medal = "🏆" if per >= 80 else "🥈"
+            res = (
+                f"╔══════════════════╗\n   📊 **FINAL REPORT** {medal}  \n╚══════════════════╝\n"
+                f"📝 **TOPIC:**  `{ud['topic']}`\n✅ **CORRECT:** `{score}`\n❌ **WRONG:**   `{total-score}`\n🏆 **SCORE:**   `{per}%` \n━━━━━━━━━━━━━━━━━━━━\n🔥 /start - Play Again"
+            )
+            await context.bot.send_message(chat_id, res, parse_mode="Markdown")
         ud['busy'] = False; return
 
     q = qs[idx]
     bar = "🔹" * (idx + 1) + "▫️" * (total - idx - 1)
-    
     try:
         await context.bot.send_poll(
             chat_id=chat_id, 
@@ -181,8 +167,8 @@ async def handle_ans(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if ud and ud.get('busy'):
         current_idx = ud['idx'] - 1
         if ans.option_ids[0] == ud['qs'][current_idx]['answer']: ud['score'] += 1
-        await asyncio.sleep(0.5) # 0.5s Fast Auto-Next
-        
+        await asyncio.sleep(0.5) 
+        # Context पास करने का सही तरीका
         class TC: 
             def __init__(self, u, b): self.user_data=u; self.bot=b
         await send_q(TC(ud, context.bot), uid)
@@ -196,6 +182,7 @@ def main():
     app.add_handler(CallbackQueryHandler(handle_callback))
     app.add_handler(PollAnswerHandler(handle_ans))
     
+    # कमांड्स को प्राथमिकता देने के लिए MessageHandler में सुधार
     app.add_handler(MessageHandler(filters.TEXT & (~filters.COMMAND), lambda u, c: process_and_upload(u, c, u.message.text)))
     app.add_handler(MessageHandler(filters.Document.ALL, lambda u, c: process_and_upload(u, c, u.message.document.get_file().download_as_bytearray().decode())))
 
@@ -203,7 +190,7 @@ def main():
     app.run_webhook(
         listen="0.0.0.0", port=p, url_path=TOKEN, 
         webhook_url=f"https://pankaj-bot.onrender.com/{TOKEN}",
-        drop_pending_updates=False # ताकि कोई कमांड मिस न हो
+        drop_pending_updates=False 
     )
 
 if __name__ == '__main__':
