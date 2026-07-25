@@ -1,997 +1,1374 @@
 {
-  "LDC_English_Class_1": [
-    {
-      "variations": [
-        "अंग्रेजी वर्णमाला (English Alphabet) में कुल कितने लेटर्स (Letters) होते हैं?",
-        "English Alphabet में अक्षरों/लेटर्स की कुल संख्या कितनी होती है?"
-      ],
-      "options": ["21", "24", "26", "44"],
-      "answer": 2
-    },
-    {
-      "variations": [
-        "अंग्रेजी भाषा में कुल कितने साउंड्स (Sounds) होते हैं?",
-        "How many sounds are there in English language?"
-      ],
-      "options": ["26", "34", "44", "52"],
-      "answer": 2
-    },
-    {
-      "variations": [
-        "वाक्य (Sentence) की सही परिभाषा क्या है?",
-        "What is a Sentence in English Grammar?"
-      ],
-      "options": [
-        "Group of letters with no meaning",
-        "Systematic arrangement of words (शब्दों का सार्थक समूह)",
-        "Collection of unarranged letters",
-        "Set of punctuation marks"
-      ],
-      "answer": 1
-    },
-    {
-      "variations": [
-        "ग्रामर (Grammar) को किस रूप में परिभाषित किया जाता है?",
-        "What is Grammar basically?"
-      ],
-      "options": [
-        "Collection of letters",
-        "Set of rules (नियमों का समूह)",
-        "List of vocabulary words",
-        "Group of sound symbols"
-      ],
-      "answer": 1
-    },
-    {
-      "variations": [
-        "पारंपरिक अंग्रेजी (Traditional English) में कुल कितने Parts of Speech होते हैं?",
-        "How many Parts of Speech are there in Traditional English?"
-      ],
-      "options": ["6", "8", "10", "12"],
-      "answer": 1
-    },
-    {
-      "variations": [
-        "आधुनिक अंग्रेजी (Modern English) में Determiner और Article को मिलाकर कुल कितने Parts of Speech माने जाते हैं?",
-        "Modern English के अनुसार Parts of Speech की कुल संख्या कितनी मानी जाती है?"
-      ],
-      "options": ["8", "9", "10", "12"],
-      "answer": 2
-    },
-    {
-      "variations": [
-        "संज्ञा (Noun) किसे कहते हैं?",
-        "What is the definition of a Noun?"
-      ],
-      "options": [
-        "Name of a person, place, thing, idea or emotion",
-        "A word that replaces a verb",
-        "An action showing word",
-        "A connecting word between sentences"
-      ],
-      "answer": 0
-    },
-    {
-      "variations": [
-        "संज्ञा के स्थान पर प्रयोग होने वाले शब्दों को क्या कहते हैं?",
-        "Which word is used instead of or in place of a Noun?"
-      ],
-      "options": ["Adjective", "Pronoun", "Adverb", "Preposition"],
-      "answer": 1
-    },
-    {
-      "variations": [
-        "Noun या Pronoun की विशेषता (Quality) बताने वाले शब्द क्या कहलाते हैं?",
-        "Words that describe or qualify a Noun or Pronoun are called:"
-      ],
-      "options": ["Verb", "Adverb", "Adjective", "Conjunction"],
-      "answer": 2
-    },
-    {
-      "variations": [
-        "किसी एक्शन (Action), कार्य या स्थिति को दर्शाने वाले शब्द क्या कहलाते हैं?",
-        "Words that denote action or activity in a sentence are known as:"
-      ],
-      "options": ["Noun", "Verb", "Preposition", "Interjection"],
-      "answer": 1
-    },
-    {
-      "variations": [
-        "Verb, Adjective या दूसरे Adverb की विशेषता बताने वाले शब्द क्या कहलाते हैं?",
-        "Words that describe a Verb, an Adjective, or another Adverb are called:"
-      ],
-      "options": ["Adverb", "Conjunction", "Noun", "Pronoun"],
-      "answer": 0
-    },
-    {
-      "variations": [
-        "मन के अचानक उठने वाले भावों या उद्गारों को व्यक्त करने वाले शब्दों को क्या कहते हैं?",
-        "Words used to express sudden feelings or emotions in mind are called:"
-      ],
-      "options": ["Conjunction", "Preposition", "Interjection", "Determiner"],
-      "answer": 2
-    },
-    {
-      "variations": [
-        "वाक्यों (Sentences) या वाक्यांशों (Phrases) को आपस में जोड़ने वाले शब्द क्या कहलाते हैं?",
-        "Words that join words, phrases, or sentences together are called:"
-      ],
-      "options": ["Adjective", "Conjunction", "Interjection", "Pronoun"],
-      "answer": 1
-    },
-    {
-      "variations": [
-        "Article (A, An, The) वास्तव में किस पार्ट्स ऑफ स्पीच का एक प्रकार या भाग है?",
-        "Article is a part or type of which grammatical category?"
-      ],
-      "options": ["Preposition", "Determiner", "Interjection", "Verb"],
-      "answer": 1
-    },
-    {
-      "variations": [
-        "टेंस (Tense) को अच्छे से समझने के लिए किन तीन मुख्य Parts of Speech का ज्ञान होना सबसे आवश्यक है?",
-        "Which three main Parts of Speech should be learned in detail before Tense?"
-      ],
-      "options": [
-        "Noun, Pronoun, Verb",
-        "Adverb, Preposition, Conjunction",
-        "Article, Determiner, Interjection",
-        "Adjective, Adverb, Preposition"
-      ],
-      "answer": 0
-    }
-  ],
-  "LDC_English_Class_2": [
-    {
-      "variations": [
-        "संज्ञा (Noun) को एक शब्द में क्या कहा जा सकता है?",
-        "What is the simplest definition of a Noun in one word?"
-      ],
-      "options": ["Action", "Naming Word", "Describing Word", "Joining Word"],
-      "answer": 1
-    },
-    {
-      "variations": [
-        "किसी विशेष व्यक्ति, वस्तु या स्थान के नाम को क्या कहते हैं?",
-        "A name given to a specific person, place, or thing is called:"
-      ],
-      "options": ["Common Noun", "Proper Noun", "Abstract Noun", "Collective Noun"],
-      "answer": 1
-    },
-    {
-      "variations": [
-        "Proper Noun का पहला अक्षर हमेशा कैसा होना चाहिए?",
-        "The first letter of a Proper Noun must always be written in:"
-      ],
-      "options": ["Small Case", "Cursive only", "Capital Letter", "Italics"],
-      "answer": 2
-    },
-    {
-      "variations": [
-        "पूरी जाति या श्रेणी का बोध कराने वाली संज्ञा क्या कहलाती है?",
-        "A noun that represents a whole class or category is known as:"
-      ],
-      "options": ["Proper Noun", "Common Noun", "Material Noun", "Abstract Noun"],
-      "answer": 1
-    },
-    {
-      "variations": [
-        "व्यक्तियों या वस्तुओं के समूह (Group) को दर्शाने वाली संज्ञा को क्या कहते हैं?",
-        "A name given to a group of people or collection of things is:"
-      ],
-      "options": ["Proper Noun", "Collective Noun", "Common Noun", "Abstract Noun"],
-      "answer": 1
-    },
-    {
-      "variations": [
-        "ऐसी संज्ञा जिसे हम छू नहीं सकते, केवल महसूस कर सकते हैं, क्या कहलाती है?",
-        "A noun that refers to ideas, qualities, or conditions and cannot be touched is:"
-      ],
-      "options": ["Material Noun", "Common Noun", "Abstract Noun", "Proper Noun"],
-      "answer": 2
-    },
-    {
-      "variations": [
-        "किसी पदार्थ या द्रव्य (Substance) का बोध कराने वाली संज्ञा क्या कहलाती है जिससे अन्य वस्तुएं बनती हैं?",
-        "A name used for a substance or matter of which things are made is:"
-      ],
-      "options": ["Common Noun", "Material Noun", "Proper Noun", "Collective Noun"],
-      "answer": 1
-    },
-    {
-      "variations": [
-        "इनमें से कौन सा शब्द Collective Noun का उदाहरण है?",
-        "Which of the following is an example of a Collective Noun?"
-      ],
-      "options": ["Ram", "City", "Team", "Gold"],
-      "answer": 2
-    },
-    {
-      "variations": [
-        "इनमें से कौन सा शब्द Proper Noun है?",
-        "Identify the Proper Noun from the given options:"
-      ],
-      "options": ["Boy", "Jaipur", "River", "Dog"],
-      "answer": 1
-    },
-    {
-      "variations": [
-        "Material Noun और Abstract Noun आमतौर पर किस श्रेणी में आते हैं?",
-        "Material Noun and Abstract Noun generally fall into which category?"
-      ],
-      "options": ["Countable", "Uncountable", "Proper", "Collective"],
-      "answer": 1
-    },
-    {
-      "variations": [
-        "वह संज्ञा जिसे गिना जा सकता है, उसे क्या कहते हैं?",
-        "A noun that can be counted is called:"
-      ],
-      "options": ["Uncountable Noun", "Material Noun", "Countable Noun", "Abstract Noun"],
-      "answer": 2
-    },
-    {
-      "variations": [
-        "Proper Noun के साथ सामान्यतः किन आर्टिकल्स (Articles) का प्रयोग नहीं किया जाता?",
-        "Generally, which articles are NOT used before a Proper Noun?"
-      ],
-      "options": ["A or An", "The", "Both A or An and The", "No restriction"],
-      "answer": 2
-    },
-    {
-      "variations": [
-        "इनमें से Abstract Noun की पहचान करें:",
-        "Identify the Abstract Noun among these:"
-      ],
-      "options": ["Honesty", "Water", "Class", "Pen"],
-      "answer": 0
-    },
-    {
-      "variations": [
-        "क्या Common Noun का बहुवचन (Plural) बनाया जा सकता है?",
-        "Can a Common Noun be changed into a Plural form?"
-      ],
-      "options": ["Yes", "No", "Only for Proper Nouns", "Never"],
-      "answer": 0
-    },
-    {
-      "variations": [
-        "इनमें से कौन सी संज्ञा Material Noun है?",
-        "Which of these nouns is a Material Noun?"
-      ],
-      "options": ["Army", "Milk", "Kindness", "Delhi"],
-      "answer": 1
-    }
-  ],
-  "LDC_English_Class_3": [
-    {
-      "variations": [
-        "संज्ञा के स्थान पर प्रयुक्त होने वाला शब्द क्या कहलाता है?",
-        "What is a word used in place of a noun called?"
-      ],
-      "options": ["Adjective", "Pronoun", "Verb", "Preposition"],
-      "answer": 1
-    },
-    {
-      "variations": [
-        "वाक्य में कार्य को करने वाले (Doer) को क्या कहा जाता है?",
-        "What is the doer of an action in a sentence called?"
-      ],
-      "options": ["Object", "Verb", "Subject", "Complement"],
-      "answer": 2
-    },
-    {
-      "variations": [
-        "वाक्य में क्रिया का प्रभाव झेलने वाले को क्या कहते हैं?",
-        "What is the receiver of an action in a sentence called?"
-      ],
-      "options": ["Subject", "Object", "Adverb", "Determiner"],
-      "answer": 1
-    },
-    {
-      "variations": [
-        "पर्सनल प्रोनाउन (Personal Pronouns) को कुल कितने Persons में विभाजित किया गया है?",
-        "Into how many persons are Personal Pronouns divided?"
-      ],
-      "options": ["2", "3", "4", "5"],
-      "answer": 1
-    },
-    {
-      "variations": [
-        "फर्स्ट पर्सन (First Person) के अंतर्गत कौन से Subject Pronouns आते हैं?",
-        "Which Subject Pronouns belong to the First Person?"
-      ],
-      "options": ["He, She", "You", "I, We", "They"],
-      "answer": 2
-    },
-    {
-      "variations": [
-        "Pronoun I का ऑब्जेक्टिव रूप (Object Form) क्या होता है?",
-        "What is the object form of the pronoun I?"
-      ],
-      "options": ["My", "Mine", "Me", "Myself"],
-      "answer": 2
-    },
-    {
-      "variations": [
-        "Pronoun We का रिफ्लेक्सिव रूप (Reflexive Pronoun) क्या होता है?",
-        "What is the reflexive form of the pronoun We?"
-      ],
-      "options": ["Ours", "Our", "Ourself", "Ourselves"],
-      "answer": 3
-    },
-    {
-      "variations": [
-        "सब्जेक्टिव केस में प्रयुक्त प्रोनाउन He का पज़ेसिव डिटरमिनर क्या है?",
-        "What is the Possessive Determiner of He?"
-      ],
-      "options": ["Him", "His", "Himself", "Hes"],
-      "answer": 1
-    },
-    {
-      "variations": [
-        "पज़ेसिव डिटरमिनर के तुरंत बाद किसका आना अनिवार्य होता है?",
-        "What must immediately follow a Possessive Determiner?"
-      ],
-      "options": ["Verb", "Adverb", "Noun", "Preposition"],
-      "answer": 2
-    },
-    {
-      "variations": [
-        "वाक्य में जब कर्ता का प्रभाव खुद उसी पर पड़ता है, तब किस प्रोनाउन का प्रयोग किया जाता है?",
-        "Which pronoun is used when the action of the subject reflects back on the subject itself?"
-      ],
-      "options": ["Relative Pronoun", "Reflexive Pronoun", "Reciprocal Pronoun", "Interrogative Pronoun"],
-      "answer": 1
-    },
-    {
-      "variations": [
-        "बिना एपोस्ट्रॉफी वाला शब्द Its ग्रामर में क्या दर्शाता है?",
-        "What does the word Its without apostrophe represent in grammar?"
-      ],
-      "options": [
-        "It is की शॉर्ट फॉर्म",
-        "Possessive Determiner",
-        "Reflexive Pronoun",
-        "Plural Noun"
-      ],
-      "answer": 1
-    },
-    {
-      "variations": [
-        "Apostrophe वाले शब्द It is का क्या अर्थ होता है?",
-        "What does Its with an apostrophe stand for?"
-      ],
-      "options": [
-        "It is or It has or It was",
-        "It function",
-        "Plural of It",
-        "Possessive Case of It"
-      ],
-      "answer": 0
-    },
-    {
-      "variations": [
-        "स्थान सूचक शब्द के रूप में प्रयुक्त There क्या है?",
-        "What is the word There denoting a place grammatically?"
-      ],
-      "options": ["Possessive Determiner", "Adverb of Place", "Personal Pronoun", "Noun"],
-      "answer": 1
-    },
-    {
-      "variations": [
-        "जब रिफ्लेक्सिव प्रोनाउन का प्रयोग कर्ता (Subject) पर ज़ोर (Emphasis) देने के लिए किया जाता है, तो उसे क्या कहते हैं?",
-        "When a reflexive form is used to emphasize the subject, it is called an:"
-      ],
-      "options": ["Emphatic Pronoun", "Relative Pronoun", "Demonstrative Pronoun", "Indefinite Pronoun"],
-      "answer": 0
-    },
-    {
-      "variations": [
-        "वाक्य I love myself में myself किस रूप में कार्य कर रहा है?",
-        "In the sentence I love myself, myself is acting as a:"
-      ],
-      "options": ["Subject Pronoun", "Possessive Determiner", "Reflexive Pronoun", "Relative Pronoun"],
-      "answer": 2
-    }
-  ],
-  "LDC_English_Class_4": [
-    {
-      "variations": [
-        "What do words that show an activity, state, possession, or feeling represent?",
-        "क्रिया, अवस्था, अधिकार या भावनाओं को दर्शाने वाले शब्दों को क्या कहा जाता है?"
-      ],
-      "options": [
-        "Noun",
-        "Pronoun",
-        "Verb",
-        "Adverb"
-      ],
-      "answer": 2
-    },
-    {
-      "variations": [
-        "Into how many main categories are helping verbs generally divided in this class?",
-        "इस क्लास में हेल्पिंग वर्ब्स को मुख्य रूप से कितनी श्रेणियों में विभाजित किया गया है?"
-      ],
-      "options": [
-        "2",
-        "3",
-        "4",
-        "5"
-      ],
-      "answer": 0
-    },
-    {
-      "variations": [
-        "Which form of the main verb always follows a modal verb?",
-        "मॉडल वर्ब के बाद हमेशा मेन वर्ब की कौन सी फॉर्म आती है?"
-      ],
-      "options": [
-        "V2 (Second Form)",
-        "V3 (Third Form)",
-        "V1 (Base / First Form)",
-        "V4 (Ing Form)"
-      ],
-      "answer": 2
-    },
-    {
-      "variations": [
-        "What is the singular form of the primary verb 'Have'?",
-        "प्राइमरी वर्ब 'Have' का सिंगुलर (एकवचन) रूप क्या होता है?"
-      ],
-      "options": [
-        "Had",
-        "Has",
-        "Having",
-        "Do"
-      ],
-      "answer": 1
-    },
-    {
-      "variations": [
-        "What are the past forms (V2 and V3) of the main verb 'Catch'?",
-        "मुख्य क्रिया 'Catch' की पास्ट फॉर्म्स (V2 और V3) क्या होती हैं?"
-      ],
-      "options": [
-        "Catched, Catched",
-        "Catch, Caught",
-        "Cought, Cought",
-        "Cott, Cott"
-      ],
-      "answer": 1
-    },
-    {
-      "variations": [
-        "What is the difference between 'Hang (Hung, Hung)' and 'Hang (Hanged, Hanged)'?",
-        "'Hang (Hung, Hung)' और 'Hang (Hanged, Hanged)' के अर्थ में क्या अंतर है?"
-      ],
-      "options": [
-        "दोनों का अर्थ एक ही है",
-        "पहला टांगने के लिए और दूसरा फांसी देने के लिए उपयोग होता है",
-        "पहला फांसी देने के लिए और दूसरा वस्तु टांगने के लिए उपयोग होता है",
-        "दोनों ही केवल इंसानों के लिए उपयोग होते हैं"
-      ],
-      "answer": 1
-    },
-    {
-      "variations": [
-        "What is the V2 and V3 form of the verb 'Choose'?",
-        "क्रिया 'Choose' की V2 और V3 फॉर्म क्या होती है?"
-      ],
-      "options": [
-        "Choose, Chosen",
-        "Choosed, Choosed",
-        "Chose, Chosen",
-        "Chose, Chose"
-      ],
-      "answer": 2
-    }
-  ],
-  "LDC_English_Class_5": [
-    {
-      "variations": [
-        "What is the basic sentence structure in English grammar?",
-        "अंग्रेजी व्याकरण में वाक्य की सबसे मूलभूत संरचना (Basic Structure) क्या होती है?"
-      ],
-      "options": [
-        "Subject + Object + Verb",
-        "Verb + Subject + Object",
-        "Subject + Verb + Object",
-        "Object + Verb + Subject"
-      ],
-      "answer": 2
-    },
-    {
-      "variations": [
-        "What are the two sub-categories of an Assertive (Declarative) sentence?",
-        "असर्शन/डिक्लेरेटिव (Assertive/Declarative) वाक्यों को किन दो उप-श्रेणियों में विभाजित किया जाता है?"
-      ],
-      "options": [
-        "Simple and Compound",
-        "Affirmative and Negative",
-        "Imperative and Exclamatory",
-        "Optative and Interrogative"
-      ],
-      "answer": 1
-    },
-    {
-      "variations": [
-        "Which type of question generally receives a 'Yes' or 'No' answer?",
-        "किस प्रकार के प्रश्नवाचक वाक्यों का उत्तर आमतौर पर 'हाँ' या 'ना' (Yes/No) में होता है?"
-      ],
-      "options": [
-        "Questions starting with WH-words",
-        "Questions starting with Helping Verbs",
-        "Imperative questions",
-        "Exclamatory questions"
-      ],
-      "answer": 1
-    },
-    {
-      "variations": [
-        "With what component do Imperative sentences usually begin?",
-        "इंपैरेटिव (Imperative) वाक्य आमतौर पर किससे शुरू होते हैं?"
-      ],
-      "options": [
-        "Subject",
-        "WH-word",
-        "Base Form of Verb (V1)",
-        "Exclamation Mark"
-      ],
-      "answer": 2
-    },
-    {
-      "variations": [
-        "Which of the following sentence types is used to express a wish, desire, or curse?",
-        "इच्छा, प्रार्थना या श्राप (Wish, Desire, Curse) व्यक्त करने के लिए किस प्रकार के वाक्य का उपयोग किया जाता है?"
-      ],
-      "options": [
-        "Imperative Sentence",
-        "Exclamatory Sentence",
-        "Optative Sentence",
-        "Assertive Sentence"
-      ],
-      "answer": 2
-    },
-    {
-      "variations": [
-        "Identify the negative sentence among the options below:",
-        "निम्नलिखित विकल्पों में से नकारात्मक (Negative) वाक्य की पहचान करें:"
-      ],
-      "options": [
-        "I usually watch a movie on weekends.",
-        "I study in VIPM.",
-        "I seldome eat mangoes.",
-        "He is an intelligent student."
-      ],
-      "answer": 2
-    }
-  ],
-  "LDC_English_Class_6": [
-    {
-      "variations": [
-        "What does the term 'Tense' indicate in English grammar?",
-        "अंग्रेजी व्याकरण में 'टेंस' (Tense) मुख्य रूप से क्या दर्शाता है?"
-      ],
-      "options": [
-        "Place of an activity",
-        "Time of an activity (Action)",
-        "Reason for an activity",
-        "Manner of an activity"
-      ],
-      "answer": 1
-    },
-    {
-      "variations": [
-        "Through which element of a sentence is Tense mainly expressed?",
-        "वाक्य के किस घटक/तत्व के माध्यम से मुख्य रूप से टेंस (काल) को दर्शाया जाता है?"
-      ],
-      "options": [
-        "Noun forms",
-        "Pronoun forms",
-        "Verb forms",
-        "Adjective forms"
-      ],
-      "answer": 2
-    },
-    {
-      "variations": [
-        "How many total Tense forms/types are systematically studied in English grammar?",
-        "अंग्रेजी व्याकरण में कुल कितने टेंस रूपों/प्रकारों का व्यवस्थित अध्ययन किया जाता है?"
-      ],
-      "options": [
-        "8",
-        "10",
-        "12",
-        "16"
-      ],
-      "answer": 2
-    },
-    {
-      "variations": [
-        "Which aspects are primarily discussed to master any tense structure?",
-        "किसी भी टेंस संरचना को समझने के लिए किन प्रमुख बिंदुओं पर चर्चा की जाती है?"
-      ],
-      "options": [
-        "Identification, Helping Verb, Main Verb, and Keywords",
-        "Only Noun and Pronoun",
-        "Prefix, Suffix, and Synonyms",
-        "Only Adverbs and Prepositions"
-      ],
-      "answer": 0
-    },
-    {
-      "variations": [
-        "Where is 'Not' placed in a standard negative sentence structure?",
-        "मानक नकारात्मक (Negative) वाक्य संरचना में 'Not' कहाँ लगाया जाता है?"
-      ],
-      "options": [
-        "Before the Subject",
-        "After the Main Verb",
-        "Just after the Helping Verb",
-        "At the end of the sentence"
-      ],
-      "answer": 2
-    }
-  ],
-  "LDC_English_Class_7": [
-    {
-      "variations": [
-        "Present Simple Tense में प्लूरल सब्जेक्ट (Plural Subject) के साथ किस Helping Verb का प्रयोग होता है?",
-        "Which helping verb is used with plural subjects in Present Simple negative/interrogative sentences?"
-      ],
-      "options": [
-        "Does",
-        "Do",
-        "Is",
-        "Has"
-      ],
-      "answer": 1
-    },
-    {
-      "variations": [
-        "Present Continuous Tense में I, He/She/It तथा Plural subjects के साथ क्रमशः कौन-सी Helping Verbs प्रयोग होती हैं?",
-        "Which set of helping verbs is used in Present Continuous Tense for I, Singular, and Plural subjects?"
-      ],
-      "options": [
-        "Was / Were / Been",
-        "Am / Is / Are",
-        "Do / Does / Did",
-        "Has / Have / Had"
-      ],
-      "answer": 1
-    },
-    {
-      "variations": [
-        "Present Perfect Tense में Singular और Plural subjects के साथ प्रयोग होने वाली Helping Verbs कौन-सी हैं?",
-        "Identify the correct helping verbs used in Present Perfect Tense for singular and plural subjects."
-      ],
-      "options": [
-        "Is / Are",
-        "Was / Were",
-        "Has / Have",
-        "Do / Does"
-      ],
-      "answer": 2
-    },
-    {
-      "variations": [
-        "Past Simple Tense के affirmative वाक्य में मुख्य क्रिया (Main Verb) का कौन-सा रूप प्रयोग किया जाता है?",
-        "Which form of Main Verb is used in affirmative sentences of Past Simple Tense?"
-      ],
-      "options": [
-        "V1",
-        "V2",
-        "V3",
-        "V4 (V1+ing)"
-      ],
-      "answer": 1
-    },
-    {
-      "variations": [
-        "Future Tense में I और We के साथ सामान्यतः किस Helping Verb का प्रयोग किया जाता है?",
-        "In traditional grammar, which helping verb is used with 'I' and 'We' in Future Tense?"
-      ],
-      "options": [
-        "Will",
-        "Shall",
-        "Would",
-        "Should"
-      ],
-      "answer": 1
-    }
-  ],
-  "LDC_English_Class_8": [
-    {
-      "variations": [
-        "In English grammar, 'Since' is used with which type of time?",
-        "'Since' का प्रयोग किस प्रकार के समय (Time) को दर्शाने के लिए किया जाता है?"
-      ],
-      "options": [
-        "Point of time",
-        "Length of time",
-        "Period of time",
-        "Total duration of time"
-      ],
-      "answer": 0
-    },
-    {
-      "variations": [
-        "In English grammar, 'For' is used with which type of time?",
-        "'For' का प्रयोग किस प्रकार के समय को दर्शाने के लिए किया जाता है?"
-      ],
-      "options": [
-        "Point of time",
-        "Length or Period of time",
-        "Name of a day",
-        "Name of a year"
-      ],
-      "answer": 1
-    },
-    {
-      "variations": [
-        "Which preposition should be used before 'last month' in Present Perfect Continuous Tense?",
-        "'Last month' के ठीक पहले सही Preposition क्या होगा?"
-      ],
-      "options": [
-        "For",
-        "Since",
-        "From",
-        "In"
-      ],
-      "answer": 1
-    },
-    {
-      "variations": [
-        "Which preposition is correctly used in the phrase '_____ the last one month'?",
-        "'_____ the last one month' के लिए सही Preposition का चयन करें:"
-      ],
-      "options": [
-        "Since",
-        "For",
-        "From",
-        "By"
-      ],
-      "answer": 1
-    },
-    {
-      "variations": [
-        "Which of the following keywords is typically used with the Past Simple Tense?",
-        "निम्न में से कौन-सा कीवर्ड Past Simple Tense की पहचान कराता है?"
-      ],
-      "options": [
-        "Right now",
-        "Ago",
-        "So far",
-        "Shortly"
-      ],
-      "answer": 1
-    },
-    {
-      "variations": [
-        "Keywords like 'those days', 'at that time', and 'at that moment' indicate which tense?",
-        "'Those days', 'at that time', और 'at that moment' जैसे कीवर्ड्स किस टेंस को दर्शाते हैं?"
-      ],
-      "options": [
-        "Present Continuous",
-        "Past Simple",
-        "Past Continuous",
-        "Future Continuous"
-      ],
-      "answer": 2
-    },
-    {
-      "variations": [
-        "Keywords like 'tomorrow', 'next week', 'soon', and 'shortly' indicate which tense?",
-        "'Tomorrow', 'next week', 'soon', तथा 'shortly' किस टेंस के कीवर्ड्स हैं?"
-      ],
-      "options": [
-        "Present Simple",
-        "Past Simple",
-        "Future Simple",
-        "Future Continuous"
-      ],
-      "answer": 2
-    },
-    {
-      "variations": [
-        "The phrase 'this time tomorrow' is a keyword for which tense?",
-        "'This time tomorrow' किस टेंस की ओर संकेत करता है?"
-      ],
-      "options": [
-        "Past Continuous",
-        "Present Continuous",
-        "Future Continuous",
-        "Future Perfect"
-      ],
-      "answer": 2
-    },
-    {
-      "variations": [
-        "In Future Perfect Continuous Tense, which preposition is frequently used instead of 'since' for a point of time?",
-        "Future Perfect Continuous Tense में Point of Time के लिए 'since' के स्थान पर मुख्य रूप से किसका प्रयोग किया जाता है?"
-      ],
-      "options": [
-        "For",
-        "From",
-        "By",
-        "To"
-      ],
-      "answer": 1
-    },
-    {
-      "variations": [
-        "Universal truths, scientific facts, and daily routines are expressed in which tense?",
-        "सार्वभौमिक सत्य (Universal truths), वैज्ञानिक तथ्य (Scientific facts) और दैनिक दिनचर्या (Daily routines) को किस टेंस में व्यक्त किया जाता है?"
-      ],
-      "options": [
-        "Present Simple Tense",
-        "Present Continuous Tense",
-        "Past Simple Tense",
-        "Present Perfect Tense"
-      ],
-      "answer": 0
-    }
-  ],
-"LDC_English_Class_9": [
-{
-"variations": [
-"Universal Truths (सार्वभौमिक सत्य) और Scientific Facts (वैज्ञानिक तथ्य) को दर्शाने के लिए मुख्य रूप से किस Tense का प्रयोग किया जाता है?",
-"वैज्ञानिक तथ्यों और सार्वभौमिक सत्य बताने वाले वाक्यों में किस काल (Tense) का प्रयोग होना चाहिए?"
-],
-"options": [
-"Present Simple Tense",
-"Present Continuous Tense",
-"Present Perfect Tense",
-"Past Simple Tense"
-],
-"answer": 0
-},
-{
-"variations": [
-"भविष्य की निर्धारित आधिकारिक योजनाओं (Future Scheduled Actions) जैसे 'The President _____ the UK tomorrow' के लिए सही क्रिया रूप चुनिए:",
-"वाक्य 'The President _____ the UK tomorrow' में सही Verb क्या होगी?"
-],
-"options": [
-"visiting",
-"visits",
-"visited",
-"will visiting"
-],
-"answer": 1
-},
-{
-"variations": [
-"हाल ही में पूरे हुए कार्यों (Recently Completed Actions) तथा जीवन के अनुभवों (Experiences) को दर्शाने के लिए किस Tense का प्रयोग किया जाता है?",
-"जब कोई कार्य हाल ही में संपन्न हुआ हो और वाक्य में भूतकाल का कोई समय (Past Time) न दिया गया हो, तो किस Tense का प्रयोग होता है?"
-],
-"options": [
-"Present Simple Tense",
-"Present Perfect Tense",
-"Present Continuous Tense",
-"Past Continuous Tense"
-],
-"answer": 1
-},
-{
-"variations": [
-"कोई कार्य जो अतीत में शुरू हुआ हो और वर्तमान में भी लगातार जारी हो, उसे दर्शाने के लिए किस Tense का उपयोग किया जाता है?",
-"वाक्य 'I _____ teaching since morning.' में रिक्त स्थान के लिए सही रूप चुनें:"
-],
-"options": [
-"am teaching",
-"have been teaching",
-"was teaching",
-"taught"
-],
-"answer": 1
-},
-{
-"variations": [
-"यदि किसी Stative Verb का प्रयोग Present Continuous Tense में वर्जित हो, तो उसे किस Tense में बदला जाता है?",
-"Stative Verbs के नियम के अनुसार, Continuous Form से बचने के लिए इसे किस Tense में शिफ्ट किया जाता है?"
-],
-"options": [
-"Present Simple Tense",
-"Present Perfect Tense",
-"Past Simple Tense",
-"Future Simple Tense"
-],
-"answer": 0
-},
-{
-"variations": [
-"निश्चित समय बिंदु (Point of Time) जैसे 'Morning' या निश्चित महीने (जैसे 'July') के साथ किसका प्रयोग किया जाता है?",
-"Present Perfect Continuous Tense में 'Morning' के साथ किस Preposition का प्रयोग होता है?"
-],
-"options": [
-"For",
-"Since",
-"From",
-"By"
-],
-"answer": 1
-},
-{
-"variations": [
-"समाचार पत्र की हेडलाइंस (Newspaper Headlines) और लाइव मैच कमेंट्री (Match Commentary) में किस Tense का प्रयोग किया जाता है?",
-"Match commentary और Newspaper headlines प्रस्तुत करने के लिए कौन-सा Tense प्रयुक्त होता है?"
-],
-"options": [
-"Present Simple Tense",
-"Present Continuous Tense",
-"Past Simple Tense",
-"Present Perfect Tense"
-],
-"answer": 0
-}
-],
-  "LDC_English_Class_10": [
-    {
-      "variations": [
-        "Which tense is used to denote permanent states or facts?",
-        "स्थायी स्थिति या सर्वकालिक सत्य व्यक्त करने के लिए किस टेंस का प्रयोग किया जाता है?"
-      ],
-      "options": [
-        "Present Continuous Tense",
-        "Simple Present Tense",
-        "Present Perfect Tense",
-        "Past Simple Tense"
-      ],
-      "answer": 1
-    },
-    {
-      "variations": [
-        "What type of action is expressed by the Present Continuous Tense?",
-        "Present Continuous Tense मुख्य रूप से किस प्रकार के कार्य (Action) को दर्शाता है?"
-      ],
-      "options": [
-        "Permanent Action",
-        "Completed Action",
-        "Temporary / Ongoing Action",
-        "Past Habitual Action"
-      ],
-      "answer": 2
-    },
-    {
-      "variations": [
-        "Which of the following verbs is generally considered a Stative Verb and does not take continuous form in its state sense?",
-        "निम्नलिखित में से कौन सी क्रिया Stative Verb है जिसका उपयोग सामान्यतः continuous tense में नहीं होता?"
-      ],
-      "options": [
-        "Run",
-        "Know",
-        "Play",
-        "Write"
-      ],
-      "answer": 1
-    },
-    {
-      "variations": [
-        "Which of the following options correctly replaces 'I am knowing him'?",
-        "वाक्य 'I am knowing him' का सही रूप क्या होगा?"
-      ],
-      "options": [
-        "I know him",
-        "I was knowing him",
-        "I have knowing him",
-        "I will be knowing him"
-      ],
-      "answer": 0
-    },
-    {
-      "variations": [
-        "How should 'I am knowing him for 10 years' be correctly changed into Present Perfect Tense?",
-        "'I am knowing him for 10 years' को सही टेंस में बदलने पर कौन सा वाक्य सही होगा?"
-      ],
-      "options": [
-        "I am known him for 10 years",
-        "I have known him for 10 years",
-        "I knew him for 10 years",
-        "I had knowing him for 10 years"
-      ],
-      "answer": 1
-    }
-  ]
+    "LDC_English_Class_1": [
+        {
+            "variations": [
+                "अंग्रेजी वर्णमाला (English Alphabet) में कुल कितने लेटर्स (Letters) होते हैं?",
+                "English Alphabet में अक्षरों/लेटर्स की कुल संख्या कितनी होती है?"
+            ],
+            "options": [
+                "21",
+                "24",
+                "26",
+                "44"
+            ],
+            "answer": 2
+        },
+        {
+            "variations": [
+                "अंग्रेजी भाषा में कुल कितने साउंड्स (Sounds) होते हैं?",
+                "How many sounds are there in English language?"
+            ],
+            "options": [
+                "26",
+                "34",
+                "44",
+                "52"
+            ],
+            "answer": 2
+        },
+        {
+            "variations": [
+                "वाक्य (Sentence) की सही परिभाषा क्या है?",
+                "What is a Sentence in English Grammar?"
+            ],
+            "options": [
+                "Group of letters with no meaning",
+                "Systematic arrangement of words (शब्दों का सार्थक समूह)",
+                "Collection of unarranged letters",
+                "Set of punctuation marks"
+            ],
+            "answer": 1
+        },
+        {
+            "variations": [
+                "ग्रामर (Grammar) को किस रूप में परिभाषित किया जाता है?",
+                "What is Grammar basically?"
+            ],
+            "options": [
+                "Collection of letters",
+                "Set of rules (नियमों का समूह)",
+                "List of vocabulary words",
+                "Group of sound symbols"
+            ],
+            "answer": 1
+        },
+        {
+            "variations": [
+                "पारंपरिक अंग्रेजी (Traditional English) में कुल कितने Parts of Speech होते हैं?",
+                "How many Parts of Speech are there in Traditional English?"
+            ],
+            "options": [
+                "6",
+                "8",
+                "10",
+                "12"
+            ],
+            "answer": 1
+        },
+        {
+            "variations": [
+                "आधुनिक अंग्रेजी (Modern English) में Determiner और Article को मिलाकर कुल कितने Parts of Speech माने जाते हैं?",
+                "Modern English के अनुसार Parts of Speech की कुल संख्या कितनी मानी जाती है?"
+            ],
+            "options": [
+                "8",
+                "9",
+                "10",
+                "12"
+            ],
+            "answer": 2
+        },
+        {
+            "variations": [
+                "संज्ञा (Noun) किसे कहते हैं?",
+                "What is the definition of a Noun?"
+            ],
+            "options": [
+                "Name of a person, place, thing, idea or emotion",
+                "A word that replaces a verb",
+                "An action showing word",
+                "A connecting word between sentences"
+            ],
+            "answer": 0
+        },
+        {
+            "variations": [
+                "संज्ञा के स्थान पर प्रयोग होने वाले शब्दों को क्या कहते हैं?",
+                "Which word is used instead of or in place of a Noun?"
+            ],
+            "options": [
+                "Adjective",
+                "Pronoun",
+                "Adverb",
+                "Preposition"
+            ],
+            "answer": 1
+        },
+        {
+            "variations": [
+                "Noun या Pronoun की विशेषता (Quality) बताने वाले शब्द क्या कहलाते हैं?",
+                "Words that describe or qualify a Noun or Pronoun are called:"
+            ],
+            "options": [
+                "Verb",
+                "Adverb",
+                "Adjective",
+                "Conjunction"
+            ],
+            "answer": 2
+        },
+        {
+            "variations": [
+                "किसी एक्शन (Action), कार्य या स्थिति को दर्शाने वाले शब्द क्या कहलाते हैं?",
+                "Words that denote action or activity in a sentence are known as:"
+            ],
+            "options": [
+                "Noun",
+                "Verb",
+                "Preposition",
+                "Interjection"
+            ],
+            "answer": 1
+        },
+        {
+            "variations": [
+                "Verb, Adjective या दूसरे Adverb की विशेषता बताने वाले शब्द क्या कहलाते हैं?",
+                "Words that describe a Verb, an Adjective, or another Adverb are called:"
+            ],
+            "options": [
+                "Adverb",
+                "Conjunction",
+                "Noun",
+                "Pronoun"
+            ],
+            "answer": 0
+        },
+        {
+            "variations": [
+                "मन के अचानक उठने वाले भावों या उद्गारों को व्यक्त करने वाले शब्दों को क्या कहते हैं?",
+                "Words used to express sudden feelings or emotions in mind are called:"
+            ],
+            "options": [
+                "Conjunction",
+                "Preposition",
+                "Interjection",
+                "Determiner"
+            ],
+            "answer": 2
+        },
+        {
+            "variations": [
+                "वाक्यों (Sentences) या वाक्यांशों (Phrases) को आपस में जोड़ने वाले शब्द क्या कहलाते हैं?",
+                "Words that join words, phrases, or sentences together are called:"
+            ],
+            "options": [
+                "Adjective",
+                "Conjunction",
+                "Interjection",
+                "Pronoun"
+            ],
+            "answer": 1
+        },
+        {
+            "variations": [
+                "Article (A, An, The) वास्तव में किस पार्ट्स ऑफ स्पीच का एक प्रकार या भाग है?",
+                "Article is a part or type of which grammatical category?"
+            ],
+            "options": [
+                "Preposition",
+                "Determiner",
+                "Interjection",
+                "Verb"
+            ],
+            "answer": 1
+        },
+        {
+            "variations": [
+                "टेंस (Tense) को अच्छे से समझने के लिए किन तीन मुख्य Parts of Speech का ज्ञान होना सबसे आवश्यक है?",
+                "Which three main Parts of Speech should be learned in detail before Tense?"
+            ],
+            "options": [
+                "Noun, Pronoun, Verb",
+                "Adverb, Preposition, Conjunction",
+                "Article, Determiner, Interjection",
+                "Adjective, Adverb, Preposition"
+            ],
+            "answer": 0
+        }
+    ],
+    "LDC_English_Class_2": [
+        {
+            "variations": [
+                "संज्ञा (Noun) को एक शब्द में क्या कहा जा सकता है?",
+                "What is the simplest definition of a Noun in one word?"
+            ],
+            "options": [
+                "Action",
+                "Naming Word",
+                "Describing Word",
+                "Joining Word"
+            ],
+            "answer": 1
+        },
+        {
+            "variations": [
+                "किसी विशेष व्यक्ति, वस्तु या स्थान के नाम को क्या कहते हैं?",
+                "A name given to a specific person, place, or thing is called:"
+            ],
+            "options": [
+                "Common Noun",
+                "Proper Noun",
+                "Abstract Noun",
+                "Collective Noun"
+            ],
+            "answer": 1
+        },
+        {
+            "variations": [
+                "Proper Noun का पहला अक्षर हमेशा कैसा होना चाहिए?",
+                "The first letter of a Proper Noun must always be written in:"
+            ],
+            "options": [
+                "Small Case",
+                "Cursive only",
+                "Capital Letter",
+                "Italics"
+            ],
+            "answer": 2
+        },
+        {
+            "variations": [
+                "पूरी जाति या श्रेणी का बोध कराने वाली संज्ञा क्या कहलाती है?",
+                "A noun that represents a whole class or category is known as:"
+            ],
+            "options": [
+                "Proper Noun",
+                "Common Noun",
+                "Material Noun",
+                "Abstract Noun"
+            ],
+            "answer": 1
+        },
+        {
+            "variations": [
+                "व्यक्तियों या वस्तुओं के समूह (Group) को दर्शाने वाली संज्ञा को क्या कहते हैं?",
+                "A name given to a group of people or collection of things is:"
+            ],
+            "options": [
+                "Proper Noun",
+                "Collective Noun",
+                "Common Noun",
+                "Abstract Noun"
+            ],
+            "answer": 1
+        },
+        {
+            "variations": [
+                "ऐसी संज्ञा जिसे हम छू नहीं सकते, केवल महसूस कर सकते हैं, क्या कहलाती है?",
+                "A noun that refers to ideas, qualities, or conditions and cannot be touched is:"
+            ],
+            "options": [
+                "Material Noun",
+                "Common Noun",
+                "Abstract Noun",
+                "Proper Noun"
+            ],
+            "answer": 2
+        },
+        {
+            "variations": [
+                "किसी पदार्थ या द्रव्य (Substance) का बोध कराने वाली संज्ञा क्या कहलाती है जिससे अन्य वस्तुएं बनती हैं?",
+                "A name used for a substance or matter of which things are made is:"
+            ],
+            "options": [
+                "Common Noun",
+                "Material Noun",
+                "Proper Noun",
+                "Collective Noun"
+            ],
+            "answer": 1
+        },
+        {
+            "variations": [
+                "इनमें से कौन सा शब्द Collective Noun का उदाहरण है?",
+                "Which of the following is an example of a Collective Noun?"
+            ],
+            "options": [
+                "Ram",
+                "City",
+                "Team",
+                "Gold"
+            ],
+            "answer": 2
+        },
+        {
+            "variations": [
+                "इनमें से कौन सा शब्द Proper Noun है?",
+                "Identify the Proper Noun from the given options:"
+            ],
+            "options": [
+                "Boy",
+                "Jaipur",
+                "River",
+                "Dog"
+            ],
+            "answer": 1
+        },
+        {
+            "variations": [
+                "Material Noun और Abstract Noun आमतौर पर किस श्रेणी में आते हैं?",
+                "Material Noun and Abstract Noun generally fall into which category?"
+            ],
+            "options": [
+                "Countable",
+                "Uncountable",
+                "Proper",
+                "Collective"
+            ],
+            "answer": 1
+        },
+        {
+            "variations": [
+                "वह संज्ञा जिसे गिना जा सकता है, उसे क्या कहते हैं?",
+                "A noun that can be counted is called:"
+            ],
+            "options": [
+                "Uncountable Noun",
+                "Material Noun",
+                "Countable Noun",
+                "Abstract Noun"
+            ],
+            "answer": 2
+        },
+        {
+            "variations": [
+                "Proper Noun के साथ सामान्यतः किन आर्टिकल्स (Articles) का प्रयोग नहीं किया जाता?",
+                "Generally, which articles are NOT used before a Proper Noun?"
+            ],
+            "options": [
+                "A or An",
+                "The",
+                "Both A or An and The",
+                "No restriction"
+            ],
+            "answer": 2
+        },
+        {
+            "variations": [
+                "इनमें से Abstract Noun की पहचान करें:",
+                "Identify the Abstract Noun among these:"
+            ],
+            "options": [
+                "Honesty",
+                "Water",
+                "Class",
+                "Pen"
+            ],
+            "answer": 0
+        },
+        {
+            "variations": [
+                "क्या Common Noun का बहुवचन (Plural) बनाया जा सकता है?",
+                "Can a Common Noun be changed into a Plural form?"
+            ],
+            "options": [
+                "Yes",
+                "No",
+                "Only for Proper Nouns",
+                "Never"
+            ],
+            "answer": 0
+        },
+        {
+            "variations": [
+                "इनमें से कौन सी संज्ञा Material Noun है?",
+                "Which of these nouns is a Material Noun?"
+            ],
+            "options": [
+                "Army",
+                "Milk",
+                "Kindness",
+                "Delhi"
+            ],
+            "answer": 1
+        }
+    ],
+    "LDC_English_Class_3": [
+        {
+            "variations": [
+                "संज्ञा के स्थान पर प्रयुक्त होने वाला शब्द क्या कहलाता है?",
+                "What is a word used in place of a noun called?"
+            ],
+            "options": [
+                "Adjective",
+                "Pronoun",
+                "Verb",
+                "Preposition"
+            ],
+            "answer": 1
+        },
+        {
+            "variations": [
+                "वाक्य में कार्य को करने वाले (Doer) को क्या कहा जाता है?",
+                "What is the doer of an action in a sentence called?"
+            ],
+            "options": [
+                "Object",
+                "Verb",
+                "Subject",
+                "Complement"
+            ],
+            "answer": 2
+        },
+        {
+            "variations": [
+                "वाक्य में क्रिया का प्रभाव झेलने वाले को क्या कहते हैं?",
+                "What is the receiver of an action in a sentence called?"
+            ],
+            "options": [
+                "Subject",
+                "Object",
+                "Adverb",
+                "Determiner"
+            ],
+            "answer": 1
+        },
+        {
+            "variations": [
+                "पर्सनल प्रोनाउन (Personal Pronouns) को कुल कितने Persons में विभाजित किया गया है?",
+                "Into how many persons are Personal Pronouns divided?"
+            ],
+            "options": [
+                "2",
+                "3",
+                "4",
+                "5"
+            ],
+            "answer": 1
+        },
+        {
+            "variations": [
+                "फर्स्ट पर्सन (First Person) के अंतर्गत कौन से Subject Pronouns आते हैं?",
+                "Which Subject Pronouns belong to the First Person?"
+            ],
+            "options": [
+                "He, She",
+                "You",
+                "I, We",
+                "They"
+            ],
+            "answer": 2
+        },
+        {
+            "variations": [
+                "Pronoun I का ऑब्जेक्टिव रूप (Object Form) क्या होता है?",
+                "What is the object form of the pronoun I?"
+            ],
+            "options": [
+                "My",
+                "Mine",
+                "Me",
+                "Myself"
+            ],
+            "answer": 2
+        },
+        {
+            "variations": [
+                "Pronoun We का रिफ्लेक्सिव रूप (Reflexive Pronoun) क्या होता है?",
+                "What is the reflexive form of the pronoun We?"
+            ],
+            "options": [
+                "Ours",
+                "Our",
+                "Ourself",
+                "Ourselves"
+            ],
+            "answer": 3
+        },
+        {
+            "variations": [
+                "सब्जेक्टिव केस में प्रयुक्त प्रोनाउन He का पज़ेसिव डिटरमिनर क्या है?",
+                "What is the Possessive Determiner of He?"
+            ],
+            "options": [
+                "Him",
+                "His",
+                "Himself",
+                "Hes"
+            ],
+            "answer": 1
+        },
+        {
+            "variations": [
+                "पज़ेसिव डिटरमिनर के तुरंत बाद किसका आना अनिवार्य होता है?",
+                "What must immediately follow a Possessive Determiner?"
+            ],
+            "options": [
+                "Verb",
+                "Adverb",
+                "Noun",
+                "Preposition"
+            ],
+            "answer": 2
+        },
+        {
+            "variations": [
+                "वाक्य में जब कर्ता का प्रभाव खुद उसी पर पड़ता है, तब किस प्रोनाउन का प्रयोग किया जाता है?",
+                "Which pronoun is used when the action of the subject reflects back on the subject itself?"
+            ],
+            "options": [
+                "Relative Pronoun",
+                "Reflexive Pronoun",
+                "Reciprocal Pronoun",
+                "Interrogative Pronoun"
+            ],
+            "answer": 1
+        },
+        {
+            "variations": [
+                "बिना एपोस्ट्रॉफी वाला शब्द Its ग्रामर में क्या दर्शाता है?",
+                "What does the word Its without apostrophe represent in grammar?"
+            ],
+            "options": [
+                "It is की शॉर्ट फॉर्म",
+                "Possessive Determiner",
+                "Reflexive Pronoun",
+                "Plural Noun"
+            ],
+            "answer": 1
+        },
+        {
+            "variations": [
+                "Apostrophe वाले शब्द It is का क्या अर्थ होता है?",
+                "What does Its with an apostrophe stand for?"
+            ],
+            "options": [
+                "It is or It has or It was",
+                "It function",
+                "Plural of It",
+                "Possessive Case of It"
+            ],
+            "answer": 0
+        },
+        {
+            "variations": [
+                "स्थान सूचक शब्द के रूप में प्रयुक्त There क्या है?",
+                "What is the word There denoting a place grammatically?"
+            ],
+            "options": [
+                "Possessive Determiner",
+                "Adverb of Place",
+                "Personal Pronoun",
+                "Noun"
+            ],
+            "answer": 1
+        },
+        {
+            "variations": [
+                "जब रिफ्लेक्सिव प्रोनाउन का प्रयोग कर्ता (Subject) पर ज़ोर (Emphasis) देने के लिए किया जाता है, तो उसे क्या कहते हैं?",
+                "When a reflexive form is used to emphasize the subject, it is called an:"
+            ],
+            "options": [
+                "Emphatic Pronoun",
+                "Relative Pronoun",
+                "Demonstrative Pronoun",
+                "Indefinite Pronoun"
+            ],
+            "answer": 0
+        },
+        {
+            "variations": [
+                "वाक्य I love myself में myself किस रूप में कार्य कर रहा है?",
+                "In the sentence I love myself, myself is acting as a:"
+            ],
+            "options": [
+                "Subject Pronoun",
+                "Possessive Determiner",
+                "Reflexive Pronoun",
+                "Relative Pronoun"
+            ],
+            "answer": 2
+        }
+    ],
+    "LDC_English_Class_4": [
+        {
+            "variations": [
+                "What do words that show an activity, state, possession, or feeling represent?",
+                "क्रिया, अवस्था, अधिकार या भावनाओं को दर्शाने वाले शब्दों को क्या कहा जाता है?"
+            ],
+            "options": [
+                "Noun",
+                "Pronoun",
+                "Verb",
+                "Adverb"
+            ],
+            "answer": 2
+        },
+        {
+            "variations": [
+                "Into how many main categories are helping verbs generally divided in this class?",
+                "इस क्लास में हेल्पिंग वर्ब्स को मुख्य रूप से कितनी श्रेणियों में विभाजित किया गया है?"
+            ],
+            "options": [
+                "2",
+                "3",
+                "4",
+                "5"
+            ],
+            "answer": 0
+        },
+        {
+            "variations": [
+                "Which form of the main verb always follows a modal verb?",
+                "मॉडल वर्ब के बाद हमेशा मेन वर्ब की कौन सी फॉर्म आती है?"
+            ],
+            "options": [
+                "V2 (Second Form)",
+                "V3 (Third Form)",
+                "V1 (Base / First Form)",
+                "V4 (Ing Form)"
+            ],
+            "answer": 2
+        },
+        {
+            "variations": [
+                "What is the singular form of the primary verb 'Have'?",
+                "प्राइमरी वर्ब 'Have' का सिंगुलर (एकवचन) रूप क्या होता है?"
+            ],
+            "options": [
+                "Had",
+                "Has",
+                "Having",
+                "Do"
+            ],
+            "answer": 1
+        },
+        {
+            "variations": [
+                "What are the past forms (V2 and V3) of the main verb 'Catch'?",
+                "मुख्य क्रिया 'Catch' की पास्ट फॉर्म्स (V2 और V3) क्या होती हैं?"
+            ],
+            "options": [
+                "Catched, Catched",
+                "Catch, Caught",
+                "Cought, Cought",
+                "Cott, Cott"
+            ],
+            "answer": 1
+        },
+        {
+            "variations": [
+                "What is the difference between 'Hang (Hung, Hung)' and 'Hang (Hanged, Hanged)'?",
+                "'Hang (Hung, Hung)' और 'Hang (Hanged, Hanged)' के अर्थ में क्या अंतर है?"
+            ],
+            "options": [
+                "दोनों का अर्थ एक ही है",
+                "पहला टांगने के लिए और दूसरा फांसी देने के लिए उपयोग होता है",
+                "पहला फांसी देने के लिए और दूसरा वस्तु टांगने के लिए उपयोग होता है",
+                "दोनों ही केवल इंसानों के लिए उपयोग होते हैं"
+            ],
+            "answer": 1
+        },
+        {
+            "variations": [
+                "What is the V2 and V3 form of the verb 'Choose'?",
+                "क्रिया 'Choose' की V2 और V3 फॉर्म क्या होती है?"
+            ],
+            "options": [
+                "Choose, Chosen",
+                "Choosed, Choosed",
+                "Chose, Chosen",
+                "Chose, Chose"
+            ],
+            "answer": 2
+        }
+    ],
+    "LDC_English_Class_5": [
+        {
+            "variations": [
+                "What is the basic sentence structure in English grammar?",
+                "अंग्रेजी व्याकरण में वाक्य की सबसे मूलभूत संरचना (Basic Structure) क्या होती है?"
+            ],
+            "options": [
+                "Subject + Object + Verb",
+                "Verb + Subject + Object",
+                "Subject + Verb + Object",
+                "Object + Verb + Subject"
+            ],
+            "answer": 2
+        },
+        {
+            "variations": [
+                "What are the two sub-categories of an Assertive (Declarative) sentence?",
+                "असर्शन/डिक्लेरेटिव (Assertive/Declarative) वाक्यों को किन दो उप-श्रेणियों में विभाजित किया जाता है?"
+            ],
+            "options": [
+                "Simple and Compound",
+                "Affirmative and Negative",
+                "Imperative and Exclamatory",
+                "Optative and Interrogative"
+            ],
+            "answer": 1
+        },
+        {
+            "variations": [
+                "Which type of question generally receives a 'Yes' or 'No' answer?",
+                "किस प्रकार के प्रश्नवाचक वाक्यों का उत्तर आमतौर पर 'हाँ' या 'ना' (Yes/No) में होता है?"
+            ],
+            "options": [
+                "Questions starting with WH-words",
+                "Questions starting with Helping Verbs",
+                "Imperative questions",
+                "Exclamatory questions"
+            ],
+            "answer": 1
+        },
+        {
+            "variations": [
+                "With what component do Imperative sentences usually begin?",
+                "इंपैरेटिव (Imperative) वाक्य आमतौर पर किससे शुरू होते हैं?"
+            ],
+            "options": [
+                "Subject",
+                "WH-word",
+                "Base Form of Verb (V1)",
+                "Exclamation Mark"
+            ],
+            "answer": 2
+        },
+        {
+            "variations": [
+                "Which of the following sentence types is used to express a wish, desire, or curse?",
+                "इच्छा, प्रार्थना या श्राप (Wish, Desire, Curse) व्यक्त करने के लिए किस प्रकार के वाक्य का उपयोग किया जाता है?"
+            ],
+            "options": [
+                "Imperative Sentence",
+                "Exclamatory Sentence",
+                "Optative Sentence",
+                "Assertive Sentence"
+            ],
+            "answer": 2
+        },
+        {
+            "variations": [
+                "Identify the negative sentence among the options below:",
+                "निम्नलिखित विकल्पों में से नकारात्मक (Negative) वाक्य की पहचान करें:"
+            ],
+            "options": [
+                "I usually watch a movie on weekends.",
+                "I study in VIPM.",
+                "I seldome eat mangoes.",
+                "He is an intelligent student."
+            ],
+            "answer": 2
+        }
+    ],
+    "LDC_English_Class_6": [
+        {
+            "variations": [
+                "What does the term 'Tense' indicate in English grammar?",
+                "अंग्रेजी व्याकरण में 'टेंस' (Tense) मुख्य रूप से क्या दर्शाता है?"
+            ],
+            "options": [
+                "Place of an activity",
+                "Time of an activity (Action)",
+                "Reason for an activity",
+                "Manner of an activity"
+            ],
+            "answer": 1
+        },
+        {
+            "variations": [
+                "Through which element of a sentence is Tense mainly expressed?",
+                "वाक्य के किस घटक/तत्व के माध्यम से मुख्य रूप से टेंस (काल) को दर्शाया जाता है?"
+            ],
+            "options": [
+                "Noun forms",
+                "Pronoun forms",
+                "Verb forms",
+                "Adjective forms"
+            ],
+            "answer": 2
+        },
+        {
+            "variations": [
+                "How many total Tense forms/types are systematically studied in English grammar?",
+                "अंग्रेजी व्याकरण में कुल कितने टेंस रूपों/प्रकारों का व्यवस्थित अध्ययन किया जाता है?"
+            ],
+            "options": [
+                "8",
+                "10",
+                "12",
+                "16"
+            ],
+            "answer": 2
+        },
+        {
+            "variations": [
+                "Which aspects are primarily discussed to master any tense structure?",
+                "किसी भी टेंस संरचना को समझने के लिए किन प्रमुख बिंदुओं पर चर्चा की जाती है?"
+            ],
+            "options": [
+                "Identification, Helping Verb, Main Verb, and Keywords",
+                "Only Noun and Pronoun",
+                "Prefix, Suffix, and Synonyms",
+                "Only Adverbs and Prepositions"
+            ],
+            "answer": 0
+        },
+        {
+            "variations": [
+                "Where is 'Not' placed in a standard negative sentence structure?",
+                "मानक नकारात्मक (Negative) वाक्य संरचना में 'Not' कहाँ लगाया जाता है?"
+            ],
+            "options": [
+                "Before the Subject",
+                "After the Main Verb",
+                "Just after the Helping Verb",
+                "At the end of the sentence"
+            ],
+            "answer": 2
+        }
+    ],
+    "LDC_English_Class_7": [
+        {
+            "variations": [
+                "Present Simple Tense में प्लूरल सब्जेक्ट (Plural Subject) के साथ किस Helping Verb का प्रयोग होता है?",
+                "Which helping verb is used with plural subjects in Present Simple negative/interrogative sentences?"
+            ],
+            "options": [
+                "Does",
+                "Do",
+                "Is",
+                "Has"
+            ],
+            "answer": 1
+        },
+        {
+            "variations": [
+                "Present Continuous Tense में I, He/She/It तथा Plural subjects के साथ क्रमशः कौन-सी Helping Verbs प्रयोग होती हैं?",
+                "Which set of helping verbs is used in Present Continuous Tense for I, Singular, and Plural subjects?"
+            ],
+            "options": [
+                "Was / Were / Been",
+                "Am / Is / Are",
+                "Do / Does / Did",
+                "Has / Have / Had"
+            ],
+            "answer": 1
+        },
+        {
+            "variations": [
+                "Present Perfect Tense में Singular और Plural subjects के साथ प्रयोग होने वाली Helping Verbs कौन-सी हैं?",
+                "Identify the correct helping verbs used in Present Perfect Tense for singular and plural subjects."
+            ],
+            "options": [
+                "Is / Are",
+                "Was / Were",
+                "Has / Have",
+                "Do / Does"
+            ],
+            "answer": 2
+        },
+        {
+            "variations": [
+                "Past Simple Tense के affirmative वाक्य में मुख्य क्रिया (Main Verb) का कौन-सा रूप प्रयोग किया जाता है?",
+                "Which form of Main Verb is used in affirmative sentences of Past Simple Tense?"
+            ],
+            "options": [
+                "V1",
+                "V2",
+                "V3",
+                "V4 (V1+ing)"
+            ],
+            "answer": 1
+        },
+        {
+            "variations": [
+                "Future Tense में I और We के साथ सामान्यतः किस Helping Verb का प्रयोग किया जाता है?",
+                "In traditional grammar, which helping verb is used with 'I' and 'We' in Future Tense?"
+            ],
+            "options": [
+                "Will",
+                "Shall",
+                "Would",
+                "Should"
+            ],
+            "answer": 1
+        }
+    ],
+    "LDC_English_Class_8": [
+        {
+            "variations": [
+                "In English grammar, 'Since' is used with which type of time?",
+                "'Since' का प्रयोग किस प्रकार के समय (Time) को दर्शाने के लिए किया जाता है?"
+            ],
+            "options": [
+                "Point of time",
+                "Length of time",
+                "Period of time",
+                "Total duration of time"
+            ],
+            "answer": 0
+        },
+        {
+            "variations": [
+                "In English grammar, 'For' is used with which type of time?",
+                "'For' का प्रयोग किस प्रकार के समय को दर्शाने के लिए किया जाता है?"
+            ],
+            "options": [
+                "Point of time",
+                "Length or Period of time",
+                "Name of a day",
+                "Name of a year"
+            ],
+            "answer": 1
+        },
+        {
+            "variations": [
+                "Which preposition should be used before 'last month' in Present Perfect Continuous Tense?",
+                "'Last month' के ठीक पहले सही Preposition क्या होगा?"
+            ],
+            "options": [
+                "For",
+                "Since",
+                "From",
+                "In"
+            ],
+            "answer": 1
+        },
+        {
+            "variations": [
+                "Which preposition is correctly used in the phrase '_____ the last one month'?",
+                "'_____ the last one month' के लिए सही Preposition का चयन करें:"
+            ],
+            "options": [
+                "Since",
+                "For",
+                "From",
+                "By"
+            ],
+            "answer": 1
+        },
+        {
+            "variations": [
+                "Which of the following keywords is typically used with the Past Simple Tense?",
+                "निम्न में से कौन-सा कीवर्ड Past Simple Tense की पहचान कराता है?"
+            ],
+            "options": [
+                "Right now",
+                "Ago",
+                "So far",
+                "Shortly"
+            ],
+            "answer": 1
+        },
+        {
+            "variations": [
+                "Keywords like 'those days', 'at that time', and 'at that moment' indicate which tense?",
+                "'Those days', 'at that time', और 'at that moment' जैसे कीवर्ड्स किस टेंस को दर्शाते हैं?"
+            ],
+            "options": [
+                "Present Continuous",
+                "Past Simple",
+                "Past Continuous",
+                "Future Continuous"
+            ],
+            "answer": 2
+        },
+        {
+            "variations": [
+                "Keywords like 'tomorrow', 'next week', 'soon', and 'shortly' indicate which tense?",
+                "'Tomorrow', 'next week', 'soon', तथा 'shortly' किस टेंस के कीवर्ड्स हैं?"
+            ],
+            "options": [
+                "Present Simple",
+                "Past Simple",
+                "Future Simple",
+                "Future Continuous"
+            ],
+            "answer": 2
+        },
+        {
+            "variations": [
+                "The phrase 'this time tomorrow' is a keyword for which tense?",
+                "'This time tomorrow' किस टेंस की ओर संकेत करता है?"
+            ],
+            "options": [
+                "Past Continuous",
+                "Present Continuous",
+                "Future Continuous",
+                "Future Perfect"
+            ],
+            "answer": 2
+        },
+        {
+            "variations": [
+                "In Future Perfect Continuous Tense, which preposition is frequently used instead of 'since' for a point of time?",
+                "Future Perfect Continuous Tense में Point of Time के लिए 'since' के स्थान पर मुख्य रूप से किसका प्रयोग किया जाता है?"
+            ],
+            "options": [
+                "For",
+                "From",
+                "By",
+                "To"
+            ],
+            "answer": 1
+        },
+        {
+            "variations": [
+                "Universal truths, scientific facts, and daily routines are expressed in which tense?",
+                "सार्वभौमिक सत्य (Universal truths), वैज्ञानिक तथ्य (Scientific facts) और दैनिक दिनचर्या (Daily routines) को किस टेंस में व्यक्त किया जाता है?"
+            ],
+            "options": [
+                "Present Simple Tense",
+                "Present Continuous Tense",
+                "Past Simple Tense",
+                "Present Perfect Tense"
+            ],
+            "answer": 0
+        }
+    ],
+    "LDC_English_Class_9": [
+        {
+            "variations": [
+                "Universal Truths (सार्वभौमिक सत्य) और Scientific Facts (वैज्ञानिक तथ्य) को दर्शाने के लिए मुख्य रूप से किस Tense का प्रयोग किया जाता है?",
+                "वैज्ञानिक तथ्यों और सार्वभौमिक सत्य बताने वाले वाक्यों में किस काल (Tense) का प्रयोग होना चाहिए?"
+            ],
+            "options": [
+                "Present Simple Tense",
+                "Present Continuous Tense",
+                "Present Perfect Tense",
+                "Past Simple Tense"
+            ],
+            "answer": 0
+        },
+        {
+            "variations": [
+                "भविष्य की निर्धारित आधिकारिक योजनाओं (Future Scheduled Actions) जैसे 'The President _____ the UK tomorrow' के लिए सही क्रिया रूप चुनिए:",
+                "वाक्य 'The President _____ the UK tomorrow' में सही Verb क्या होगी?"
+            ],
+            "options": [
+                "visiting",
+                "visits",
+                "visited",
+                "will visiting"
+            ],
+            "answer": 1
+        },
+        {
+            "variations": [
+                "हाल ही में पूरे हुए कार्यों (Recently Completed Actions) तथा जीवन के अनुभवों (Experiences) को दर्शाने के लिए किस Tense का प्रयोग किया जाता है?",
+                "जब कोई कार्य हाल ही में संपन्न हुआ हो और वाक्य में भूतकाल का कोई समय (Past Time) न दिया गया हो, तो किस Tense का प्रयोग होता है?"
+            ],
+            "options": [
+                "Present Simple Tense",
+                "Present Perfect Tense",
+                "Present Continuous Tense",
+                "Past Continuous Tense"
+            ],
+            "answer": 1
+        },
+        {
+            "variations": [
+                "कोई कार्य जो अतीत में शुरू हुआ हो और वर्तमान में भी लगातार जारी हो, उसे दर्शाने के लिए किस Tense का उपयोग किया जाता है?",
+                "वाक्य 'I _____ teaching since morning.' में रिक्त स्थान के लिए सही रूप चुनें:"
+            ],
+            "options": [
+                "am teaching",
+                "have been teaching",
+                "was teaching",
+                "taught"
+            ],
+            "answer": 1
+        },
+        {
+            "variations": [
+                "यदि किसी Stative Verb का प्रयोग Present Continuous Tense में वर्जित हो, तो उसे किस Tense में बदला जाता है?",
+                "Stative Verbs के नियम के अनुसार, Continuous Form से बचने के लिए इसे किस Tense में शिफ्ट किया जाता है?"
+            ],
+            "options": [
+                "Present Simple Tense",
+                "Present Perfect Tense",
+                "Past Simple Tense",
+                "Future Simple Tense"
+            ],
+            "answer": 0
+        },
+        {
+            "variations": [
+                "निश्चित समय बिंदु (Point of Time) जैसे 'Morning' या निश्चित महीने (जैसे 'July') के साथ किसका प्रयोग किया जाता है?",
+                "Present Perfect Continuous Tense में 'Morning' के साथ किस Preposition का प्रयोग होता है?"
+            ],
+            "options": [
+                "For",
+                "Since",
+                "From",
+                "By"
+            ],
+            "answer": 1
+        },
+        {
+            "variations": [
+                "समाचार पत्र की हेडलाइंस (Newspaper Headlines) और लाइव मैच कमेंट्री (Match Commentary) में किस Tense का प्रयोग किया जाता है?",
+                "Match commentary और Newspaper headlines प्रस्तुत करने के लिए कौन-सा Tense प्रयुक्त होता है?"
+            ],
+            "options": [
+                "Present Simple Tense",
+                "Present Continuous Tense",
+                "Past Simple Tense",
+                "Present Perfect Tense"
+            ],
+            "answer": 0
+        }
+    ],
+    "LDC_English_Class_10": [
+        {
+            "variations": [
+                "Which tense is used to denote permanent states or facts?",
+                "स्थायी स्थिति या सर्वकालिक सत्य व्यक्त करने के लिए किस टेंस का प्रयोग किया जाता है?"
+            ],
+            "options": [
+                "Present Continuous Tense",
+                "Simple Present Tense",
+                "Present Perfect Tense",
+                "Past Simple Tense"
+            ],
+            "answer": 1
+        },
+        {
+            "variations": [
+                "What type of action is expressed by the Present Continuous Tense?",
+                "Present Continuous Tense मुख्य रूप से किस प्रकार के कार्य (Action) को दर्शाता है?"
+            ],
+            "options": [
+                "Permanent Action",
+                "Completed Action",
+                "Temporary / Ongoing Action",
+                "Past Habitual Action"
+            ],
+            "answer": 2
+        },
+        {
+            "variations": [
+                "Which of the following verbs is generally considered a Stative Verb and does not take continuous form in its state sense?",
+                "निम्नलिखित में से कौन सी क्रिया Stative Verb है जिसका उपयोग सामान्यतः continuous tense में नहीं होता?"
+            ],
+            "options": [
+                "Run",
+                "Know",
+                "Play",
+                "Write"
+            ],
+            "answer": 1
+        },
+        {
+            "variations": [
+                "Which of the following options correctly replaces 'I am knowing him'?",
+                "वाक्य 'I am knowing him' का सही रूप क्या होगा?"
+            ],
+            "options": [
+                "I know him",
+                "I was knowing him",
+                "I have knowing him",
+                "I will be knowing him"
+            ],
+            "answer": 0
+        },
+        {
+            "variations": [
+                "How should 'I am knowing him for 10 years' be correctly changed into Present Perfect Tense?",
+                "'I am knowing him for 10 years' को सही टेंस में बदलने पर कौन सा वाक्य सही होगा?"
+            ],
+            "options": [
+                "I am known him for 10 years",
+                "I have known him for 10 years",
+                "I knew him for 10 years",
+                "I had knowing him for 10 years"
+            ],
+            "answer": 1
+        }
+    ],
+    "Class 6: Current Affairs": [
+        {
+            "variations": [
+                "हाल ही में Google और Microsoft जैसी शीर्ष कंपनियों में बेहतरीन प्लेसमेंट रिकॉर्ड के लिए कौन सा संस्थान चर्चा में रहा?"
+            ],
+            "options": [
+                "IIT पटना",
+                "IIIT रांची",
+                "NIT जमशेदपुर",
+                "BIT मेसरा"
+            ],
+            "answer": 1
+        },
+        {
+            "variations": [
+                "बिहार के किस विभाग में हाल ही में भ्रष्टाचार के खिलाफ 'जीरो टॉलरेंस' के तहत कड़ी कार्रवाई की गई है?"
+            ],
+            "options": [
+                "शिक्षा विभाग",
+                "स्वास्थ्य विभाग",
+                "राजस्व एवं भूमि सुधार विभाग",
+                "पथ निर्माण विभाग"
+            ],
+            "answer": 2
+        },
+        {
+            "variations": [
+                "बिहार के राजस्व एवं भूमि सुधार विभाग के वर्तमान मंत्री कौन हैं?"
+            ],
+            "options": [
+                "डॉ. दिलीप कुमार जायसवाल",
+                "संजय गुप्ता",
+                "सम्राट चौधरी",
+                "विजय कुमार सिन्हा"
+            ],
+            "answer": 0
+        },
+        {
+            "variations": [
+                "राजस्व एवं भूमि सुधार विभाग में चलाए गए सफाई अभियान के तहत महज एक हफ्ते के भीतर कितने अधिकारियों पर कार्रवाई की गई?"
+            ],
+            "options": [
+                "10",
+                "15",
+                "23",
+                "30"
+            ],
+            "answer": 2
+        },
+        {
+            "variations": [
+                "हाल ही में बिहार के किस प्रमुख जिले में मौसम विभाग की रिपोर्ट के अनुसार तापमान कितने डिग्री सेल्सियस के पार दर्ज किया गया?"
+            ],
+            "options": [
+                "35°C",
+                "40°C",
+                "45°C",
+                "50°C"
+            ],
+            "answer": 1
+        },
+        {
+            "variations": [
+                "झारखंड कर्मचारी चयन आयोग (JSSC) द्वारा 8 जून को कितने जनजातीय एवं क्षेत्रीय भाषा के अभ्यर्थियों के दस्तावेजों की जांच तय की गई है?"
+            ],
+            "options": [
+                "200",
+                "250",
+                "316",
+                "500"
+            ],
+            "answer": 2
+        },
+        {
+            "variations": [
+                "JSSC द्वारा माध्यमिक आचार्य परीक्षा के अभ्यर्थियों का दस्तावेज सत्यापन किस स्थान पर किया जाएगा?"
+            ],
+            "options": [
+                "नामकुम स्थित आयोग कार्यालय",
+                "डोरांडा कार्यालय",
+                "कांके रोड",
+                "हिनू"
+            ],
+            "answer": 0
+        },
+        {
+            "variations": [
+                "हाल ही में पटना में किस मशहूर शिक्षक और यूट्यूबर के कोचिंग सेंटर पर पत्थरबाजी की घटना हुई?"
+            ],
+            "options": [
+                "आनंद कुमार",
+                "खान सर",
+                "विकास दिव्यकीर्ति",
+                "अवध ओझा"
+            ],
+            "answer": 1
+        },
+        {
+            "variations": [
+                "खान सर के कोचिंग सेंटर पर हुए हमले के बाद घटना स्थल का जायजा लेने कौन से स्थानीय विधायक पहुंचे थे?"
+            ],
+            "options": [
+                "संजय गुप्ता (कुम्हरार विधायक)",
+                "तेजस्वी यादव",
+                "नितिन नवीन",
+                "जीवेश कुमार"
+            ],
+            "answer": 0
+        },
+        {
+            "variations": [
+                "बिहार में किसकी अध्यक्षता में आयोजित कैबिनेट बैठक में राज्य के विकास से जुड़े फैसले लिए गए?"
+            ],
+            "options": [
+                "मुख्यमंत्री सम्राट चौधरी",
+                "नितीश कुमार",
+                "तेजस्वी यादव",
+                "ललन सिंह"
+            ],
+            "answer": 0
+        },
+        {
+            "variations": [
+                "हाल ही में आयोजित बिहार कैबिनेट की बैठक में कुल कितने महत्वपूर्ण एजेंडों पर मुहर लगाई गई?"
+            ],
+            "options": [
+                "8",
+                "10",
+                "13",
+                "18"
+            ],
+            "answer": 2
+        },
+        {
+            "variations": [
+                "बिहार कैबिनेट की महत्वपूर्ण बैठक कहाँ आयोजित की गई थी?"
+            ],
+            "options": [
+                "मुख्य सचिवालय के मंत्रिपरिषद कक्ष में",
+                "राजभवन में",
+                "ज्ञान भवन में",
+                "विधानसभा कक्ष में"
+            ],
+            "answer": 0
+        },
+        {
+            "variations": [
+                "कैबिनेट बैठक में निम्नलिखित में से किन विभागों के नीतिगत प्रस्तावों को मंजूरी दी गई?"
+            ],
+            "options": [
+                "स्वास्थ्य और उद्योग",
+                "ऊर्जा और श्रम संसाधन",
+                "समाज कल्याण",
+                "उपर्युक्त सभी"
+            ],
+            "answer": 3
+        },
+        {
+            "variations": [
+                "झारखंड माध्यमिक आचार्य नियुक्ति परीक्षा 2025 का आयोजन किस संस्था/आयोग द्वारा किया जा रहा है?"
+            ],
+            "options": [
+                "JPSC",
+                "JSSC",
+                "BPSC",
+                "UPSC"
+            ],
+            "answer": 1
+        },
+        {
+            "variations": [
+                "IIIT रांची किस शहर में स्थित है?"
+            ],
+            "options": [
+                "पटना",
+                "रांची",
+                "जमशेदपुर",
+                "धनबाद"
+            ],
+            "answer": 1
+        }
+    ]
 }
