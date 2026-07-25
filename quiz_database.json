@@ -1058,5 +1058,137 @@
             ],
             "answer": 1
         }
+    ],
+    "LDC_English_Class_12": [
+        {
+            "variations": [
+                "वाक्य में 'know' (जानना) किस प्रकार की वर्ब है और इसका प्रयोग किस टेंस में सामान्यतः वर्जित है?",
+                "Statative Verbs (जैसे कि 'know') के संदर्भ में टेंस का कौन सा नियम सही है?"
+            ],
+            "options": [
+                "यह Action verb है और इसका Continuous टेंस में प्रयोग होता है।",
+                "यह Statative verb है और इसका Continuous टेंस में प्रयोग नहीं किया जाता।",
+                "यह Helping verb है और इसका Perfect टेंस में प्रयोग नहीं होता।",
+                "यह Modal verb है और इसका प्रयोग केवल Future टेंस में होता है।"
+            ],
+            "answer": 1
+        },
+        {
+            "variations": [
+                "वाक्य में 'yesterday' (बीता हुआ कल) शब्द आने पर सामान्यतः किस टेंस का प्रयोग किया जाता है?",
+                "Past Simple Tense को दर्शाने के लिए वाक्य में कौन सा एडवर्बियल कीवर्ड प्रयुक्त होता है?"
+            ],
+            "options": [
+                "Present Perfect (Has/Have + V3)",
+                "Past Perfect (Had + V3)",
+                "Past Simple (V2 Form)",
+                "Present Simple (V1 + s/es)"
+            ],
+            "answer": 2
+        },
+        {
+            "variations": [
+                "वाक्य में 'just', 'just now' या 'recently' आने पर किस टेंस का प्रयोग सही माना जाता है?",
+                "Present Perfect Tense को पहचानने के लिए कौन से कीवर्ड्स का उपयोग किया जाता है?"
+            ],
+            "options": [
+                "Past Simple Tense",
+                "Present Continuous Tense",
+                "Present Perfect Tense",
+                "Future Simple Tense"
+            ],
+            "answer": 2
+        },
+        {
+            "variations": [
+                "सार्वभौमिक सत्य (Universal Truth) और वैज्ञानिक तथ्यों (Scientific Facts) को व्यक्त करने के लिए किस टेंस का प्रयोग किया जाता है?",
+                "General statement या वैज्ञानिक नियमों के लिए कौन सा टेंस निर्धारित है?"
+            ],
+            "options": [
+                "Present Simple Tense",
+                "Past Simple Tense",
+                "Present Continuous Tense",
+                "Future Simple Tense"
+            ],
+            "answer": 0
+        },
+        {
+            "variations": [
+                "यदि वाक्य में 'by + future time' (जैसे: by next year) दिया हो, तो वहाँ कौन सा टेंस प्रयुक्त होगा?",
+                "केवल 'next year' होने पर Future Simple आता है, लेकिन 'by next year' होने पर कौन सा टेंस आता है?"
+            ],
+            "options": [
+                "Future Continuous Tense",
+                "Future Perfect Tense",
+                "Present Perfect Tense",
+                "Past Perfect Tense"
+            ],
+            "answer": 1
+        },
+        {
+            "variations": [
+                "यदि वाक्य की शुरुआत 'It is the first time / second time / third time' से हो, तो आगे किस टेंस का प्रयोग किया जाता है?",
+                "अपना अनुभव (Experience) शेयर करने के लिए 'It is the third time' के साथ कौन सा स्ट्रक्चर सही है?"
+            ],
+            "options": [
+                "Past Simple Tense",
+                "Present Perfect Tense",
+                "Future Simple Tense",
+                "Present Continuous Tense"
+            ],
+            "answer": 1
+        },
+        {
+            "variations": [
+                "यदि वाक्य की शुरुआत 'It is time / It is high time / It is about time' से हो और उसके बाद Subject दिया हो, तो कौन सी वर्ब फॉर्म आएगी?",
+                "'It is high time + Subject' के बाद नियमतः किस वर्ब फॉर्म का उपयोग किया जाता है?"
+            ],
+            "options": [
+                "V1 (Verb 1st Form)",
+                "V2 (Verb 2nd Form)",
+                "Has/Have + V3",
+                "Will/Shall + V1"
+            ],
+            "answer": 1
+        },
+        {
+            "variations": [
+                "यदि वाक्य में 'Since / For + Time' दिया हो और पास्ट या फ्यूचर का कोई हिंट न हो, तो कौन सा टेंस उपयुक्त होगा?",
+                "समय अवधि दर्शाने वाले सिंस/फॉर (Since/For) के साथ सामान्यतः किस टेंस का कॉम्बिनेशन बनता है?"
+            ],
+            "options": [
+                "Present Continuous Tense",
+                "Present Perfect Continuous Tense",
+                "Past Simple Tense",
+                "Future Continuous Tense"
+            ],
+            "answer": 1
+        },
+        {
+            "variations": [
+                "Do, Does और Did के बाद हमेशा वर्ब की कौन सी फॉर्म का प्रयोग किया जाता है?",
+                "नकारात्मक या प्रश्नवाचक वाक्यों में Do/Does/Did के साथ मुख्य क्रिया (Main Verb) का कौन सा रूप आता है?"
+            ],
+            "options": [
+                "Verb की 1st Form (V1)",
+                "Verb की 2nd Form (V2)",
+                "Verb की 3rd Form (V3)",
+                "Verb के साथ ing Form"
+            ],
+            "answer": 0
+        },
+        {
+            "variations": [
+                "यदि वाक्य में 'As if' या 'As though' के साथ प्रेजेंट इमेजिनरी (वर्तमान की कल्पना) को दर्शाया जाए, तो Subject चाहे सिंगुलर हो या प्लूरल, किसका प्रयोग किया जाता है?",
+                "काल्पनिक वाक्यों (जैसे कि 'She behaves as if...') में किस काल्पनिक हेल्पिंग वर्ब या फॉर्म का उपयोग किया जाता है?"
+            ],
+            "options": [
+                "Was",
+                "Is",
+                "Were / V2 Form",
+                "Am"
+            ],
+            "answer": 2
+        }
     ]
 }
