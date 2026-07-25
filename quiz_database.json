@@ -1123,5 +1123,72 @@
             ],
             "answer": 1
         }
+    ],
+    "LDC_English_Class_11": [
+        {
+            "variations": [
+                "प्रेजेंट सिंपल टेंस के पॉजिटिव वाक्यों का स्ट्रक्चर सामान्यतः क्या होता है?",
+                "Present Simple Tense के affirmative वाक्यों में किसका प्रयोग किया जाता है?"
+            ],
+            "options": [
+                "Helpings Verb + Main Verb",
+                "V1 या V1 के साथ s/es",
+                "V2",
+                "Had + V3"
+            ],
+            "answer": 1
+        },
+        {
+            "variations": [
+                "पास्ट सिंपल टेंस के पॉजिटिव वाक्यों में वर्ब की कौन सी फॉर्म का प्रयोग किया जाता है?",
+                "Past Simple Tense के affirmative वाक्यों का मुख्य स्ट्रक्चर क्या है?"
+            ],
+            "options": [
+                "V1",
+                "V3",
+                "V2",
+                "Was/Were + V1"
+            ],
+            "answer": 2
+        },
+        {
+            "variations": [
+                "किसी भी टेंस में नेगेटिव वाक्य बनाते समय 'Not' का प्रयोग कहाँ किया जाता है?",
+                "नकारात्मक वाक्यों (Negative Sentences) में 'Not' की सही स्थिति क्या होती है?"
+            ],
+            "options": [
+                "मेन वर्ब (Main Verb) के बाद",
+                "हेल्पिंग वर्ब (Helpings Verb) के तुरंत बाद",
+                "सब्जेक्ट (Subject) से पहले",
+                "वाक्य के बिल्कुल अंत में"
+            ],
+            "answer": 1
+        },
+        {
+            "variations": [
+                "जिन प्रश्नों का जवाब केवल 'हाँ' या 'ना' (Yes/No) में होता है, उनकी शुरुआत किससे होती है?",
+                "Yes/No type interrogative वाक्यों को किस प्रकार शुरू किया जाता है?"
+            ],
+            "options": [
+                "WH Word से",
+                "Subject से",
+                "Helpings Verb से",
+                "Object से"
+            ],
+            "answer": 2
+        },
+        {
+            "variations": [
+                "वाक्य में एडवर्ब 'yet' का प्रयोग सामान्यतः किस टेंस को प्रदर्शित करने के लिए किया जाता है?",
+                "अगर वाक्य में 'yet' का प्रयोग हो, तो वह सामान्यतः कौन सा टेंस दर्शाता है?"
+            ],
+            "options": [
+                "Past Simple Tense",
+                "Present Perfect Tense",
+                "Present Continuous Tense",
+                "Future Simple Tense"
+            ],
+            "answer": 1
+        }
     ]
 }
