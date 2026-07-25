@@ -153,4 +153,57 @@ def main():
     )
 
 if __name__ == '__main__':
+# --- नया ऑटोमेशन कोड (यहाँ से कॉपी करें) ---
+from github import Github
+import google.generativeai as genai
+from youtube_transcript_api import YouTubeTranscriptApi
+
+# अपनी चाबियाँ यहाँ भरें
+G_KEY = "अपनी_Gemini_Key"
+GH_TOKEN = "अपना_GitHub_Token"
+MY_REPO = "12jaat24-wq/pankaj-bot"
+
+genai.configure(api_key=G_KEY, transport='rest')
+ai_model = genai.GenerativeModel('gemini-pro')
+
+async def add_link(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    link = update.message.text
+    if "youtube.com" not in link and "youtu.be" not in link:
+        return # अगर लिंक नहीं है तो कुछ न करें
+
+    msg = await update.message.reply_text("⏳ वीडियो पढ़ रहा हूँ और सवाल बना रहा हूँ... इसमें 1-2 मिनट लग सकते हैं।")
+    
+    try:
+        # 1. ID निकालना
+        v_id = link.split("v=")[1].split("&")[0] if "v=" in link else link.split("/")[-1]
+        
+        # 2. सबटाइटल्स लाना
+        ts = YouTubeTranscriptApi.list_transcripts(v_id)
+        try:
+            transcript = ts.find_transcript(['hi', 'en'])
+        except:
+            transcript = ts.find_generated_transcript(['hi', 'en'])
+        
+        data = transcript.fetch()
+        text = " ".join([i['text'] for i in data])
+
+        # 3. AI से सवाल बनवाना
+        prompt = f"Make 20 MCQ quiz from this text. JSON format ONLY. Key: 'Class X: Topic'. Text: {text[:8000]}"
+        response = ai_model.generate_content(prompt)
+        new_quiz = json.loads(response.text.replace('```json', '').replace('```', '').strip())
+
+        # 4. GitHub अपडेट करना
+        g = Github(GH_TOKEN)
+        repo = g.get_repo(MY_REPO)
+        file = repo.get_contents("quiz_database.json")
+        db = json.loads(file.decoded_content.decode())
+        db.update(new_quiz)
+        repo.update_file(file.path, "Bot Auto Update", json.dumps(db, indent=4, ensure_ascii=False), file.sha)
+
+        await msg.edit_text("✅ सफलता! नया टॉपिक जुड़ गया है। अब /start दबाकर देखें।")
+    except Exception as e:
+        await msg.edit_text(f"❌ गड़बड़ हुई: {str(e)}")
+
+# इसे अपने main() फंक्शन के अंदर handlers के साथ जोड़ें:
+# application.add_handler(MessageHandler(filters.TEXT & (~filters.COMMAND), add_link))    
     main()
