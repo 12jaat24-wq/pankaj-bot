@@ -3,17 +3,18 @@ import json
 import random
 import logging
 import asyncio
-import requests
+import httpx
 import time
 from github import Github
 from telegram import Update, Poll, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import Application, CommandHandler, CallbackQueryHandler, PollAnswerHandler, MessageHandler, filters, ContextTypes
 
-# --- रेंडर Environment Variables ---
+# --- कॉन्फ़िगरेशन ---
 TOKEN = os.environ.get("BOT_TOKEN")
 GITHUB_TOKEN = os.environ.get("GITHUB_TOKEN")
 REPO_NAME = "12jaat24-wq/pankaj-bot"
 DB_FILE = "quiz_database.json"
+RENDER_URL = "https://pankaj-bot.onrender.com"
 GITHUB_URL = f"https://raw.githubusercontent.com/{REPO_NAME}/main/{DB_FILE}"
 
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
@@ -21,87 +22,156 @@ logger = logging.getLogger(__name__)
 
 DB_CACHE = {}
 
-def sync_db():
+# --- स्टाइलिश फॉन्ट ---
+def style_txt(text):
+    normal =  "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+    stylish = "𝗮𝗯𝗰𝗱𝗲𝗳𝗴𝗵𝗶𝗷𝗸𝗹𝗺𝗻𝗼𝗽𝗿𝘀𝘁𝘂𝘃𝘄𝘅𝘆𝘇𝗔𝗕𝗖𝗗𝗘𝗙𝗚𝗛𝗜𝗝𝗞𝗟𝗠𝗡𝗢𝗣𝗤𝗥𝗦𝗧𝗨𝗩𝗪𝗫𝗬𝗭𝟬𝟭𝟮𝟯𝟰𝟱𝟲𝟳𝟴𝟵"
+    trans = str.maketrans(normal, stylish)
+    return str(text).translate(trans)
+
+SHAYARIS = [
+    "✨ *मंज़िल उन्हीं को मिलती है, जिनके सपनों में जान होती है!*",
+    "🔥 *हौसले के तरकश में कोशिश का तीर ज़िंदा रख!*",
+    "🚀 *जीतने का असली मज़ा तब है, जब दुनिया हारने का इंतज़ार करे!*",
+    "💎 *संघर्ष जितना कठिन होगा, जीत उतनी ही शानदार होगी!*"
+]
+
+async def sync_db():
     global DB_CACHE
     try:
-        r = requests.get(f"{GITHUB_URL}?t={int(time.time())}", timeout=20)
-        if r.status_code == 200:
-            DB_CACHE = r.json()
-            return True
+        async with httpx.AsyncClient() as client:
+            r = await client.get(f"{GITHUB_URL}?t={int(time.time())}", timeout=15.0)
+            if r.status_code == 200:
+                DB_CACHE = r.json()
+                return True
     except: return False
+    return False
 
-# --- 1. रिफ्रेश और डिलीट कमांड्स ---
-async def refresh_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    msg = await update.message.reply_text("⏳ **डेटा ताज़ा किया जा रहा है...**")
-    if sync_db():
-        await msg.edit_text(f"✅ **सफलता!** अब आप नए सवाल देख सकते हैं।")
-    else:
-        await msg.edit_text("❌ **फेल!** गिटहब चेक करें।")
-
-async def delete_topic(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if not context.args: return await update.message.reply_text("💡 `/delete Topic_Name` लिखें।")
-    topic = " ".join(context.args)
-    msg = await update.message.reply_text(f"🗑️ **'{topic}' को हटा रहा हूँ...**")
+# --- 🛠️ जादुई रिसेट कमांड (बॉट को होश में लाने के लिए) ---
+async def reset_bot(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    msg = await update.message.reply_text("⚡ `REBOOTING NEURAL NETWORK...`", parse_mode="Markdown")
     try:
-        g = Github(GITHUB_TOKEN)
-        repo = g.get_repo(REPO_NAME)
-        file = repo.get_contents(DB_FILE)
-        db = json.loads(file.decoded_content.decode())
-        if topic in db:
-            del db[topic]
-            repo.update_file(file.path, f"Deleted {topic}", json.dumps(db, indent=4, ensure_ascii=False), file.sha)
-            sync_db()
-            await msg.edit_text(f"💥 **डिलीट सफल!**")
-        else: await msg.edit_text("❌ विषय नहीं मिला।")
-    except Exception as e: await msg.edit_text(f"❌ गड़बड़: {str(e)}")
+        # 1. पुराना वेबहुक डिलीट करना
+        await context.bot.delete_webhook(drop_pending_updates=True)
+        await asyncio.sleep(1)
+        # 2. नया फ्रेश वेबहुक सेट करना
+        await context.bot.set_webhook(url=f"{RENDER_URL}/{TOKEN}", drop_pending_updates=True)
+        # 3. डेटा सिंक करना
+        await sync_db()
+        context.user_data.clear()
+        
+        res = (
+            "╔════════════════════╗\n"
+            "   ⚡ **SUPER RESET DONE** ⚡   \n"
+            "╚════════════════════╝\n\n"
+            "✅ **बॉट अब पूरी तरह होश में है!**\n"
+            "🚀 सारे जाम साफ़ कर दिए गए हैं।\n"
+            "━━━━━━━━━━━━━━━━━━━━\n"
+            "👉 अब /start दबाकर धमाका करें!"
+        )
+        await msg.edit_text(res, parse_mode="Markdown")
+    except Exception as e:
+        await msg.edit_text(f"❌ `Reset Failed: {e}`")
 
-# --- 2. डेटा जोड़ने का सिस्टम ---
-async def handle_json_input(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    text = update.message.text
-    if "variations" not in text: return 
-    msg = await update.message.reply_text("⏳ **गिटहब अपडेट हो रहा है...**")
+# --- स्टाइलिश रिफ्रेश ---
+async def refresh_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    context.user_data.clear()
+    msg = await update.message.reply_text("📡 `Syncing Vault...`", parse_mode="Markdown")
+    if await sync_db():
+        total_topics = len(DB_CACHE.keys())
+        total_qs = sum(len(v) for v in DB_CACHE.values())
+        table = "┌──────────────────┐\n   📋  SUBJECT  |  MCQS   \n├──────────────────┤\n"
+        for t, q in list(DB_CACHE.items()):
+            short_t = (t[:10] + '..') if len(t) > 10 else t.ljust(12)
+            table += f" 🔅 {short_t} | {len(q)} Q\n"
+        table += "└──────────────────┘"
+        res = (
+            "╔════════════════════╗\n"
+            "   🔄 **REFRESH SUCCESS** 🔄  \n"
+            "╚════════════════════╝\n\n"
+            f"```\n{table}\n```\n"
+            f"📂 कुल विषय:  `{total_topics}`\n"
+            f"📊 कुल सवाल: `{total_qs}`\n"
+            "━━━━━━━━━━━━━━━━━━━━\n"
+            "👉 /start दबाएँ!"
+        )
+        await msg.edit_text(res, parse_mode="Markdown")
+    else: await msg.edit_text("❌ `Sync Failed!`")
+
+# --- डेटा अपडेट (The Vault Design) ---
+async def handle_input(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if update.message.document:
+        file = await context.bot.get_file(update.message.document.file_id)
+        content = await file.download_as_bytearray()
+        json_text = content.decode('utf-8')
+    elif update.message.text and "variations" in update.message.text:
+        json_text = update.message.text
+    else: return
+
     try:
-        new_data = json.loads(text.replace('```json', '').replace('```', '').strip())
-        g = Github(GITHUB_TOKEN)
-        repo = g.get_repo(REPO_NAME)
-        file = repo.get_contents(DB_FILE)
-        db = json.loads(file.decoded_content.decode())
-        db.update(new_data)
-        repo.update_file(file.path, "Bot Update", json.dumps(db, indent=4, ensure_ascii=False), file.sha)
-        sync_db()
-        await msg.edit_text("✅ **सेव हो गया!** अब /start दबाएँ।")
-    except Exception as e: await msg.edit_text(f"❌ गड़बड़: {str(e)}")
+        new_data = json.loads(json_text.replace('```json', '').replace('```', '').strip())
+        m = await update.message.reply_text("🌀 `Processing Vault...`", parse_mode="Markdown")
+        loop = asyncio.get_event_loop()
+        def gh_push():
+            g = Github(GITHUB_TOKEN); repo = g.get_repo(REPO_NAME); file = repo.get_contents(DB_FILE)
+            db = json.loads(file.decoded_content.decode()); db.update(new_data)
+            repo.update_file(file.path, "Vault Update", json.dumps(db, indent=4, ensure_ascii=False), file.sha)
+        await loop.run_in_executor(None, gh_push)
+        await sync_db()
+        res = (
+            "╔════════════════════╗\n"
+            "   📦 **DATABASE UPDATED** 🚀  \n"
+            "╚════════════════════╝\n\n"
+            "✅ **नया खजाना तिजोरी में जड़ दिया गया!** 🔐\n"
+            "👉 लोड करें: /refresh\n"
+            "👉 शुरू करें: /start"
+        )
+        await m.edit_text(res, parse_mode="Markdown")
+    except Exception as e: await update.message.reply_text(f"❌ **Error:** `{e}`")
 
-# --- 3. रंगीन UI और क्विज़ लॉजिक ---
+# --- स्टाइलिश डिलीट ---
+async def delete_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    t = " ".join(context.args)
+    if not t: return await update.message.reply_text("💡 `/delete TopicName` लिखें।")
+    try:
+        g = Github(GITHUB_TOKEN); repo = g.get_repo(REPO_NAME); file = repo.get_contents(DB_FILE)
+        db = json.loads(file.decoded_content.decode())
+        if t in db:
+            del db[t]
+            repo.update_file(file.path, f"Deleted {t}", json.dumps(db, indent=4, ensure_ascii=False), file.sha)
+            await sync_db()
+            await update.message.reply_text(f"🗑️ **SUCCESS:** `{t}` उड़ गया।")
+    except Exception as e: await update.message.reply_text(f"❌ {e}")
+
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if not DB_CACHE: sync_db()
-    if not DB_CACHE: return await update.message.reply_text("❌ **डेटाबेस खाली है!**")
-    icons = ["🔴", "🔵", "🟢", "🟡", "🟣", "💎", "🔥", "🌈", "⚡"]
-    keyboard = [[InlineKeyboardButton(f"{random.choice(icons)} {t}", callback_data=t)] for t in DB_CACHE.keys()]
-    welcome = "━━━━━━━━━━━━━━\n✨ **PANKAJ QUIZ BOT** ✨\n━━━━━━━━━━━━━━\n\n🎯 अपना विषय चुनें और शुरू करें: 👇"
+    context.user_data.clear()
+    if not DB_CACHE: await sync_db()
+    icons = ["🔴", "🔵", "🟢", "🟡", "🟣", "💎", "⚡", "🔥"]
+    keyboard = [[InlineKeyboardButton(f"{random.choice(icons)} {style_txt(t)}", callback_data=t)] for t in sorted(DB_CACHE.keys())]
+    # रिसेट बटन भी जोड़ दिया
+    keyboard.append([InlineKeyboardButton("⚡ SUPER RESET ⚡", callback_data="super_reset")])
+    
+    welcome = (
+        "╔════════════════════╗\n"
+        f"   👑 **{style_txt('PANKAJ QUIZ BOT 2.0')}** 👑\n"
+        "╚════════════════════╝\n\n"
+        f"{random.choice(SHAYARIS)}\n\n"
+        "🎯 **विषय चुनें और धमाका शुरू करें:** 👇"
+    )
     await update.message.reply_text(welcome, reply_markup=InlineKeyboardMarkup(keyboard), parse_mode="Markdown")
 
 async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    query = update.callback_query
-    await query.answer()
-    
-    # अगर "Next" बटन दबाया गया है
-    if query.data == "next_q":
-        user_id = query.from_user.id
-        ud = context.application.user_data.get(user_id)
-        if ud and ud.get('busy'):
-            # पुराना 'Next' मैसेज डिलीट करना (साफ़-सफाई के लिए)
-            try: await query.delete_message()
-            except: pass
-            # अगला सवाल भेजना
-            class TempContext:
-                def __init__(self, user_data, bot): self.user_data = user_data; self.bot = bot
-            await send_q(TempContext(ud, context.bot), user_id)
+    query = update.callback_query; await query.answer()
+    if query.data == "super_reset":
+        # अगर कोई बटन से रिसेट करना चाहे
+        class TempUpdate:
+            def __init__(self, m): self.message = m
+        await reset_bot(TempUpdate(query.message), context)
         return
 
-    # विषय चुनने पर
     topic = query.data
     qs = list(DB_CACHE.get(topic, []))
+    if not qs: return 
     random.shuffle(qs)
     context.user_data.update({'qs': qs, 'idx': 0, 'score': 0, 'busy': True, 'topic': topic})
     await query.delete_message()
@@ -110,77 +180,58 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def send_q(context, chat_id):
     ud = context.user_data
     idx, qs = ud.get('idx', 0), ud['qs']
-    total = len(qs)
-
-    # क्विज़ समाप्त होने पर
-    if idx >= total:
-        score = ud['score']
-        msg = (
-            "━━━━━━━━━━━━━━\n🎊 **क्विज़ संपन्न!** 🎊\n━━━━━━━━━━━━━━\n\n"
-            f"📊 विषय: `{ud['topic']}`\n"
-            f"🏆 स्कोर: `{score}/{total}` ({int((score/total)*100)}%)\n\n"
-            "नया टॉपिक चुनने के लिए /start दबाएँ। 🔥"
+    if idx >= len(qs):
+        score = ud['score']; total = len(qs); per = int((score/total)*100)
+        medal = "🏆" if per >= 80 else "🥇"
+        res = (
+            f"╔══════════════════╗\n"
+            f"   📊   **{style_txt('REPORT CARD')}**  {medal}  \n"
+            f"╚══════════════════╝\n"
+            f"📝 विषय:  `{ud['topic']}`\n"
+            f"✅ सही:   `{score}` | ❌ गलत: `{total-score}`\n"
+            f"🏆 स्कोर:  `{per}%` \n"
+            f"━━━━━━━━━━━━━━━━━━━━\n"
+            f"🔥 /start - फिर से खेलें"
         )
-        await context.bot.send_message(chat_id, msg, parse_mode="Markdown")
-        ud['busy'] = False
-        return
+        await context.bot.send_message(chat_id, res, parse_mode="Markdown")
+        ud.clear(); return
 
     q = qs[idx]
-    progress = "🔹" * (idx + 1) + "▫️" * (total - idx - 1)
-    
-    # पोल भेजना
-    await context.bot.send_poll(
-        chat_id=chat_id,
-        question=f"✨ ({idx+1}/{total}) {q['variations'][0]}\n{progress}",
-        options=q['options'],
-        type=Poll.QUIZ,
-        correct_option_id=q['answer'],
-        is_anonymous=False,
-        explanation="सही उत्तर ही सफलता की कुंजी है! 📚"
-    )
-    ud['idx'] = idx + 1
+    bar = "🔹" * (idx + 1) + "▫️" * (len(qs) - idx - 1)
+    try:
+        await context.bot.send_poll(
+            chat_id=chat_id, question=f"✨ ({idx+1}/{len(qs)}) {q['variations'][0]}\n{bar}", 
+            options=q['options'], type=Poll.QUIZ, correct_option_id=q['answer'], is_anonymous=False
+        )
+        ud['idx'] = idx + 1
+    except: await asyncio.sleep(1); await send_q(context, chat_id)
 
-    # रंगीन "NEXT" बटन भेजना (ताकि नेट स्लो होने पर काम आए)
-    next_btn = [[InlineKeyboardButton("⏭️ अगे बढ़ें (Next) ⏩", callback_data="next_q")]]
-    await context.bot.send_message(
-        chat_id, 
-        "💡 *अगर अगला सवाल खुद न आए, तो नीचे बटन दबाएँ:*", 
-        reply_markup=InlineKeyboardMarkup(next_btn),
-        parse_mode="Markdown"
-    )
-
-# --- 4. ऑटो-नेक्स्ट फंक्शन ---
 async def handle_ans(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    ans = update.poll_answer
-    user_id = ans.user.id
-    ud = context.application.user_data.get(user_id)
-    
+    ans = update.poll_answer; uid = ans.user.id
+    ud = context.application.user_data.get(uid)
     if ud and ud.get('busy'):
-        current_idx = ud['idx'] - 1
-        if ans.option_ids[0] == ud['qs'][current_idx]['answer']:
-            ud['score'] += 1
-        
-        # ऑटो-नेक्स्ट के लिए छोटा गैप
-        await asyncio.sleep(1.2)
-        class TempContext:
-            def __init__(self, user_data, bot): self.user_data = user_data; self.bot = bot
-        await send_q(TempContext(ud, context.bot), user_id)
+        if ans.option_ids[0] == ud['qs'][ud['idx']-1]['answer']: ud['score'] += 1
+        await asyncio.sleep(0.5)
+        class TC:
+            def __init__(self, u, b): self.user_data=u; self.bot=b
+        await send_q(TC(ud, context.bot), uid)
 
 def main():
-    sync_db()
     app = Application.builder().token(TOKEN).build()
-    
     app.add_handler(CommandHandler("start", start))
-    app.add_handler(CommandHandler("refresh", refresh_command))
-    app.add_handler(CommandHandler("delete", delete_topic))
-    app.add_handler(CallbackQueryHandler(handle_callback)) # कंबाइंड हैंडलर
+    app.add_handler(CommandHandler("refresh", refresh_cmd))
+    app.add_handler(CommandHandler("reset", reset_bot)) # नयी जादुई कमांड
+    app.add_handler(CommandHandler("delete", delete_cmd))
+    app.add_handler(CallbackQueryHandler(handle_callback))
     app.add_handler(PollAnswerHandler(handle_ans))
-    app.add_handler(MessageHandler(filters.TEXT & (~filters.COMMAND), handle_json_input))
+    app.add_handler(MessageHandler(filters.TEXT & (~filters.COMMAND), handle_input))
+    app.add_handler(MessageHandler(filters.Document.ALL, handle_input))
 
-    port = int(os.environ.get("PORT", 10000))
+    p = int(os.environ.get("PORT", 10000))
     app.run_webhook(
-        listen="0.0.0.0", port=port, url_path=TOKEN,
-        webhook_url=f"https://pankaj-bot.onrender.com/{TOKEN}"
+        listen="0.0.0.0", port=p, url_path=TOKEN,
+        webhook_url=f"{RENDER_URL}/{TOKEN}",
+        drop_pending_updates=True
     )
 
 if __name__ == '__main__':
