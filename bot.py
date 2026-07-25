@@ -11,9 +11,9 @@ from telegram import Update, Poll, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import Application, CommandHandler, CallbackQueryHandler, PollAnswerHandler, MessageHandler, filters, ContextTypes
 
 # --- 1. अपनी चाबियाँ यहाँ भरें ---
-TOKEN = "आपका_टेलीग्राम_बॉट_टोकन"
-GEMINI_KEY = "आपकी_Gemini_API_Key"
-GITHUB_TOKEN = "आपका_GitHub_Token"
+TOKEN = "7908449655:AAFU5S4qmv223fQ0ffK6g80acVxGX3SpO7A"
+GEMINI_KEY = "AQ.Ab8RN6In1gJ34mMQwtf42udm0EWVLWY0eACvCp2PxXfl5xl8lA"
+GITHUB_TOKEN = "ghp_WKcuNgj3oRbZvYSb0X4U3f6tuqc2MF2DXh5K"
 REPO_NAME = "12jaat24-wq/pankaj-bot"
 DB_FILE = "quiz_database.json"
 GITHUB_URL = f"https://raw.githubusercontent.com/{REPO_NAME}/main/{DB_FILE}"
