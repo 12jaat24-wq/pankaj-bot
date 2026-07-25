@@ -10,7 +10,7 @@ from telegram.ext import Application, CommandHandler, CallbackQueryHandler, Poll
 
 # --- सिर्फ ये 3 चीज़ें भरें ---
 TOKEN = "7908449655:AAFU5S4qmv223fQ0ffK6g80acVxGX3SpO7A"
-GITHUB_TOKEN = "ghp_WKcuNgj3oRbZvYSb0X4U3f6tuqc2MF2DXh5K"
+GITHUB_TOKEN = "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"
 REPO_NAME = "12jaat24-wq/pankaj-bot"
 DB_FILE = "quiz_database.json"
 GITHUB_URL = f"https://raw.githubusercontent.com/{REPO_NAME}/main/{DB_FILE}"
