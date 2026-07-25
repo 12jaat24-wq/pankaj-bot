@@ -2,16 +2,14 @@ import os
 import json
 import random
 import logging
-import asyncio
 import requests
 import time
 from github import Github
 from telegram import Update, Poll, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import Application, CommandHandler, CallbackQueryHandler, PollAnswerHandler, MessageHandler, filters, ContextTypes
 
-# --- 1. अपनी चाबियाँ यहाँ भरें ---
+# --- सिर्फ ये 3 चीज़ें भरें ---
 TOKEN = "7908449655:AAFU5S4qmv223fQ0ffK6g80acVxGX3SpO7A"
-GEMINI_KEY = "AQ.Ab8RN6In1gJ34mMQwtf42udm0EWVLWY0eACvCp2PXXfl5xl8IA"
 GITHUB_TOKEN = "ghp_WKcuNgj3oRbZvYSb0X4U3f6tuqc2MF2DXh5K"
 REPO_NAME = "12jaat24-wq/pankaj-bot"
 DB_FILE = "quiz_database.json"
@@ -31,53 +29,32 @@ def sync_db():
             return True
     except: return False
 
-# --- नया जेमिनी फंक्शन (Direct API Call - 'AQ' की के लिए स्पेशल) ---
-def ask_gemini_direct(prompt_text):
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={GEMINI_KEY}"
-    headers = {'Content-Type': 'application/json'}
-    payload = {
-        "contents": [{"parts": [{"text": prompt_text}]}],
-        "generationConfig": {"response_mime_type": "application/json"}
-    }
-    
-    response = requests.post(url, headers=headers, json=payload)
-    if response.status_code == 200:
-        res_json = response.json()
-        # AI का जवाब निकालना
-        return res_json['candidates'][0]['content']['parts'][0]['text']
-    else:
-        raise Exception(f"API Error {response.status_code}: {response.text}")
-
-async def handle_transcript(update: Update, context: ContextTypes.DEFAULT_TYPE):
+# --- यह फंक्शन सीधे JSON को GitHub पर चढ़ाएगा ---
+async def handle_json_input(update: Update, context: ContextTypes.DEFAULT_TYPE):
     text = update.message.text
-    if len(text) < 400: return 
-
-    msg = await update.message.reply_text("⏳ ट्रांसक्रिप्ट मिल गई है! 'AQ' की के साथ AI से बात कर रहा हूँ...")
-    
     try:
-        # AI को निर्देश
-        prompt = f"Make 10 MCQ quiz from this text. Output MUST be ONLY JSON. Format: {{ 'Class X: Topic': [ {{ 'variations': ['Q'], 'options': ['A','B','C','D'], 'answer': 0 }} ] }}. Text: {text[:15000]}"
+        # चेक करना कि क्या यह सही JSON है
+        new_data = json.loads(text.replace('```json', '').replace('```', '').strip())
         
-        ai_response = ask_gemini_direct(prompt)
-        new_quiz = json.loads(ai_response.replace('```json', '').replace('```', '').strip())
+        msg = await update.message.reply_text("⏳ JSON मिल गया है! गिटहब अपडेट कर रहा हूँ...")
 
         # GitHub अपडेट
         g = Github(GITHUB_TOKEN)
         repo = g.get_repo(REPO_NAME)
         file = repo.get_contents(DB_FILE)
         current_db = json.loads(file.decoded_content.decode())
-        current_db.update(new_quiz)
-        repo.update_file(file.path, "Direct API Update", json.dumps(current_db, indent=4, ensure_ascii=False), file.sha)
+        current_db.update(new_data)
+        repo.update_file(file.path, "Manual JSON Update", json.dumps(current_db, indent=4, ensure_ascii=False), file.sha)
 
         sync_db()
-        await msg.edit_text("✅ सफलता! 'AQ' की ने काम कर दिया। नया बटन जुड़ गया है। /start दबाएँ।")
+        await msg.edit_text("✅ सफलता! बिना किसी API के नया टॉपिक जुड़ गया है। /start दबाएँ।")
     except Exception as e:
-        await msg.edit_text(f"❌ गड़बड़ हुई: {str(e)}")
+        await update.message.reply_text(f"❌ गड़बड़: यह सही JSON नहीं है। कृपया जेमिनी वेब से मिला कोड ही भेजें।\nError: {str(e)}")
 
-# --- बाकी बॉट लॉजिक ---
+# --- बॉट लॉजिक ---
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     sync_db()
-    if not DB_CACHE: return await update.message.reply_text("❌ डेटाबेस लोड नहीं हुआ।")
+    if not DB_CACHE: return await update.message.reply_text("❌ डेटाबेस खाली है।")
     keyboard = [[InlineKeyboardButton(t, callback_data=t)] for t in DB_CACHE.keys()]
     await update.message.reply_text("🎯 **विषय चुनें:**", reply_markup=InlineKeyboardMarkup(keyboard))
 
@@ -116,7 +93,8 @@ def main():
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CallbackQueryHandler(handle_topic))
     app.add_handler(PollAnswerHandler(handle_ans))
-    app.add_handler(MessageHandler(filters.TEXT & (~filters.COMMAND), handle_transcript))
+    # अब यह किसी भी टेक्स्ट मैसेज को JSON मानकर पढ़ेगा
+    app.add_handler(MessageHandler(filters.TEXT & (~filters.COMMAND), handle_json_input))
 
     port = int(os.environ.get("PORT", 10000))
     app.run_webhook(listen="0.0.0.0", port=port, url_path=TOKEN, webhook_url=f"https://pankaj-bot.onrender.com/{TOKEN}")
