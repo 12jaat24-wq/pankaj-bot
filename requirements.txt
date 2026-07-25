@@ -3,3 +3,4 @@ requests
 flask
 PyGithub
 google-generativeai
+httpx
