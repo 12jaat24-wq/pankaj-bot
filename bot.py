@@ -153,7 +153,7 @@ async def refresh_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await msg.edit_text(res, parse_mode="Markdown")
     else:
         await msg.edit_text("❌ Sync Failed!")
-
+        
 async def handle_input(update: Update, context: ContextTypes.DEFAULT_TYPE):
     json_text = ""
     if update.message.document:
@@ -165,21 +165,71 @@ async def handle_input(update: Update, context: ContextTypes.DEFAULT_TYPE):
     else:
         return
 
-    m = await update.message.reply_text("🌀 `Processing & Syncing...`", parse_mode="Markdown")
+    m = await update.message.reply_text("🌀 `Safely Merging Vault...`", parse_mode="Markdown")
+    
     try:
         clean_text = json_text.replace('```json', '').replace('```', '').strip()
         new_data = json.loads(clean_text)
         
-        # 1. Update In-Memory DB Immediately
-        DB_CACHE.update(new_data)
+        headers = {
+            "Authorization": f"token {GITHUB_TOKEN}",
+            "Accept": "application/vnd.github.v3+json"
+        }
         
-        # 2. Async GitHub Push
-        await update_github_file(DB_CACHE, "Fast Sync Update")
-        
-        await m.edit_text("╔════════════════════╗\n  ✅ **VAULT UPDATED (1-SEC)** 🚀  \n╚════════════════════╝\n👉 तुरंत देखें: /start", parse_mode="Markdown")
-    except Exception as e:
-        await m.edit_text(f"❌ `Error: {e}`", parse_mode="Markdown")
+        async with httpx.AsyncClient() as client:
+            # 1. GitHub से पूरा पुराना डेटा पढ़ें
+            res = await client.get(GITHUB_API_URL, headers=headers)
+            
+            existing_db = {}
+            sha = None
+            
+            if res.status_code == 200:
+                git_json = res.json()
+                sha = git_json["sha"]
+                import base64
+                decoded_bytes = base64.b64decode(git_json["content"])
+                existing_db = json.loads(decoded_bytes.decode('utf-8'))
+            
+            # 2. पुराने डेटा में नया डेटा सुरक्षित तरीके से जोड़ें (सुरक्षित Auto-Merge)
+            for topic, questions in new_data.items():
+                if topic in existing_db:
+                    existing_db[topic].extend(questions)
+                else:
+                    existing_db[topic] = questions
+            
+            # 3. इन-मेमोरी कैश अपडेट करें
+            global DB_CACHE
+            DB_CACHE = existing_db
+            
+            # 4. GitHub पर पूरा मिला हुआ डेटा सेव करें
+            import base64
+            content_str = json.dumps(existing_db, indent=4, ensure_ascii=False)
+            base64_content = base64.b64encode(content_str.encode('utf-8')).decode('utf-8')
 
+            put_data = {
+                "message": "Safe Merge Update",
+                "content": base64_content,
+            }
+            if sha:
+                put_data["sha"] = sha
+
+            put_res = await client.put(GITHUB_API_URL, headers=headers, json=put_data)
+            
+            if put_res.status_code in [200, 201]:
+                total_topics = len(DB_CACHE.keys())
+                await m.edit_text(
+                    "╔════════════════════╗\n"
+                    "  ✅ **SAFE MERGE SUCCESS** 🚀  \n"
+                    "╚════════════════════╝\n"
+                    f"📦 अब कुल विषय: **{total_topics}**\n\n"
+                    "👉 तुरंत देखें: /start", 
+                    parse_mode="Markdown"
+                )
+            else:
+                await m.edit_text(f"❌ GitHub Save Error: {put_res.text}")
+
+    except Exception as e:
+        await m.edit_text(f"❌ `Data Format Error: {e}`", parse_mode="Markdown")
 async def delete_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     t = " ".join(context.args).strip()
     if not t:
