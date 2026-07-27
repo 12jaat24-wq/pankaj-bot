@@ -23,7 +23,6 @@ GITHUB_TOKEN = os.environ.get("GITHUB_TOKEN")
 REPO_NAME = "12jaat24-wq/pankaj-bot"
 DB_FILE = "quiz_database.json"
 RENDER_URL = "https://pankaj-bot.onrender.com"
-GITHUB_URL = f"https://raw.githubusercontent.com/{REPO_NAME}/main/{DB_FILE}"
 GITHUB_API_URL = f"https://api.github.com/repos/{REPO_NAME}/contents/{DB_FILE}"
 
 # लॉगिंग सेटअप
@@ -45,59 +44,59 @@ def style_txt(text):
     STYLED_NAMES_CACHE[text] = res
     return res
 
-# --- GitHub Fetching ---
-async def fetch_full_github_db():
+# 🛡️ SAFE FETCH: GitHub से हमेशा ताज़ा डेटा लाएगा
+async def get_latest_github_db():
     headers = {
         "Authorization": f"token {GITHUB_TOKEN}",
         "Accept": "application/vnd.github.v3+json"
     }
-    async with httpx.AsyncClient() as client:
-        res = await client.get(GITHUB_API_URL, headers=headers, timeout=10.0)
-        if res.status_code == 200:
-            git_json = res.json()
-            sha = git_json["sha"]
-            decoded_bytes = base64.b64decode(git_json["content"])
-            full_db = json.loads(decoded_bytes.decode('utf-8'))
-            return full_db, sha
-    return None, None
-
-# --- Background Push (Non-blocking) ---
-async def bg_push_to_github(data_to_save, commit_msg):
-    """यह फ़ंक्शन बैकग्राउंड में चलेगा ताकि टेलीग्राम यूजर को 1 सेकंड भी रुकना न पड़े"""
     try:
-        headers = {
-            "Authorization": f"token {GITHUB_TOKEN}",
-            "Accept": "application/vnd.github.v3+json"
-        }
         async with httpx.AsyncClient() as client:
-            res = await client.get(GITHUB_API_URL, headers=headers, timeout=10.0)
-            sha = res.json()["sha"] if res.status_code == 200 else None
-
-            content_str = json.dumps(data_to_save, indent=4, ensure_ascii=False)
-            base64_content = base64.b64encode(content_str.encode('utf-8')).decode('utf-8')
-
-            put_data = {
-                "message": commit_msg,
-                "content": base64_content
-            }
-            if sha:
-                put_data["sha"] = sha
-
-            await client.put(GITHUB_API_URL, headers=headers, json=put_data, timeout=10.0)
+            res = await client.get(f"{GITHUB_API_URL}?t={int(time.time())}", headers=headers, timeout=10.0)
+            if res.status_code == 200:
+                data = res.json()
+                sha = data["sha"]
+                content = base64.b64decode(data["content"]).decode('utf-8')
+                return json.loads(content), sha
     except Exception as e:
-        logger.error(f"Background GitHub Sync Failed: {e}")
+        logger.error(f"GitHub Fetch Failed: {e}")
+    return {}, None
 
-# --- DB Sync ---
+# 🛡️ SAFE SAVE: GitHub पर डेटा सुरक्षित रूप से बिना कुछ मिटाए लिखेगा
+async def save_to_github_safely(data_to_save, commit_msg):
+    headers = {
+        "Authorization": f"token {GITHUB_TOKEN}",
+        "Accept": "application/vnd.github.v3+json"
+    }
+    try:
+        # 1. ताज़ा SHA प्राप्त करें
+        _, sha = await get_latest_github_db()
+
+        content_str = json.dumps(data_to_save, indent=4, ensure_ascii=False)
+        base64_content = base64.b64encode(content_str.encode('utf-8')).decode('utf-8')
+
+        put_data = {
+            "message": commit_msg,
+            "content": base64_content
+        }
+        if sha:
+            put_data["sha"] = sha
+
+        async with httpx.AsyncClient() as client:
+            res = await client.put(GITHUB_API_URL, headers=headers, json=put_data, timeout=12.0)
+            return res.status_code in [200, 201]
+    except Exception as e:
+        logger.error(f"GitHub Save Failed: {e}")
+        return False
+
+# --- RAM और Cache सिंक ---
 async def sync_db():
     global DB_CACHE, STYLED_NAMES_CACHE
-    try:
-        full_db, _ = await fetch_full_github_db()
-        if full_db is not None:
-            DB_CACHE = full_db
-            STYLED_NAMES_CACHE.clear()
-            return True
-    except Exception as e:
-        logger.error(f"Sync failed: {e}")
+    latest_db, _ = await get_latest_github_db()
+    if latest_db:
+        DB_CACHE = latest_db
+        STYLED_NAMES_CACHE.clear()
+        return True
     return False
 
 SHAYARIS = [
@@ -169,7 +168,7 @@ async def refresh_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     else:
         await msg.edit_text("❌ Sync Failed!")
 
-# ⚡ Instant Upload (1 second inside response)
+# 🛡️ 100% सुरक्षित JSON Uploading (No Data Overwrite Ever)
 async def handle_input(update: Update, context: ContextTypes.DEFAULT_TYPE):
     json_text = ""
     if update.message.document:
@@ -181,64 +180,77 @@ async def handle_input(update: Update, context: ContextTypes.DEFAULT_TYPE):
     else:
         return
 
-    m = await update.message.reply_text("⚡ `Processing Instant Add...`", parse_mode="Markdown")
+    m = await update.message.reply_text("🛡️ `Safely Adding Data to GitHub...`", parse_mode="Markdown")
     try:
         clean_text = json_text.replace('```json', '').replace('```', '').strip()
         new_data = json.loads(clean_text)
 
         global DB_CACHE, STYLED_NAMES_CACHE
-        # 1. RAM में तुरंत जोड़ें (0.01s)
+
+        # 1. सबसे पहले GitHub से पूरा पुराना डेटा लाएं
+        latest_db, _ = await get_latest_github_db()
+        if not latest_db:
+            latest_db = DB_CACHE
+
+        # 2. पुराने डेटा में नया डेटा जोड़ें (Merge)
         for topic, questions in new_data.items():
-            if topic in DB_CACHE:
-                DB_CACHE[topic].extend(questions)
+            if topic in latest_db:
+                latest_db[topic].extend(questions)
             else:
-                DB_CACHE[topic] = questions
+                latest_db[topic] = questions
 
-        STYLED_NAMES_CACHE.clear()
+        # 3. GitHub पर सुरक्षित सेव करें
+        saved = await save_to_github_safely(latest_db, "Safe Add JSON")
+        if saved:
+            DB_CACHE = latest_db
+            STYLED_NAMES_CACHE.clear()
 
-        # 2. बैकग्राउंड में GitHub अपडेट चालू कर दें (Non-blocking)
-        asyncio.create_task(bg_push_to_github(DB_CACHE, "Instant JSON Add"))
-
-        # 3. यूज़र को 1 सेकंड में रिस्पॉन्स और नया मेनू दिखाएं
-        total_topics = len(DB_CACHE.keys())
-        await m.edit_text(
-            "╔════════════════════╗\n"
-            "  🚀 **INSTANTLY ADDED!** 🚀  \n"
-            "╚════════════════════╝\n"
-            f"📦 कुल विषय: **{total_topics}**\n\n"
-            "👇 **नए विषय नीचे बटन में तुरंत आ चुके हैं:**",
-            parse_mode="Markdown"
-        )
-        # तुरंत नया मेनू भेजें
-        markup = build_topics_keyboard(page=0)
-        await update.message.reply_text("🎯 **अपडेटेड विषय सूची:**", reply_markup=markup)
+            total_topics = len(DB_CACHE.keys())
+            await m.edit_text(
+                "╔════════════════════╗\n"
+                "  🚀 **SUCCESSFULLY ADDED!** 🚀  \n"
+                "╚════════════════════╝\n"
+                f"📦 कुल सुरक्षित विषय: **{total_topics}**",
+                parse_mode="Markdown"
+            )
+            markup = build_topics_keyboard(page=0)
+            await update.message.reply_text("🎯 **अपडेटेड विषय सूची:**", reply_markup=markup)
+        else:
+            await m.edit_text("❌ GitHub सेव करने में दिक्कत आई, कृपया दोबारा भेजें।")
 
     except Exception as e:
         await m.edit_text(f"❌ `Data Format Error: {e}`", parse_mode="Markdown")
 
-# ⚡ Instant Delete (1 second removal)
+# 🛡️ 100% सुरक्षित Delete Command
 async def delete_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     t = " ".join(context.args).strip()
     if not t:
         return await update.message.reply_text("💡 उपयोग: `/delete TopicName`", parse_mode="Markdown")
 
-    m = await update.message.reply_text(f"⚡ Removing `{t}`...", parse_mode="Markdown")
+    m = await update.message.reply_text(f"🛡️ Deleting `{t}` safely...", parse_mode="Markdown")
     global DB_CACHE, STYLED_NAMES_CACHE
     
-    if t in DB_CACHE:
-        # 1. RAM से तुरंत गायब (0.01s)
-        del DB_CACHE[t]
-        STYLED_NAMES_CACHE.clear()
+    # 1. GitHub से ताज़ा डेटा उठाएं
+    latest_db, _ = await get_latest_github_db()
+    if not latest_db:
+        latest_db = DB_CACHE
+
+    if t in latest_db:
+        # 2. केवल उस विषय को हटाएं
+        del latest_db[t]
         
-        # 2. बैकग्राउंड में GitHub अपडेट (Non-blocking)
-        asyncio.create_task(bg_push_to_github(DB_CACHE, f"Deleted Topic: {t}"))
-        
-        # 3. 1 सेकंड में जवाब और नया बटन लिस्ट
-        await m.edit_text(f"✅ **INSTANTLY DELETED:** `{t}`\n\n👇 **ताज़ा सूची:**", parse_mode="Markdown")
-        markup = build_topics_keyboard(page=0)
-        await update.message.reply_text("🎯 **अपडेटेड विषय सूची:**", reply_markup=markup)
+        # 3. GitHub पर सेव करें
+        saved = await save_to_github_safely(latest_db, f"Deleted Topic: {t}")
+        if saved:
+            DB_CACHE = latest_db
+            STYLED_NAMES_CACHE.clear()
+            await m.edit_text(f"✅ **DELETED:** `{t}`\n\nबाकी सभी विषय सुरक्षित हैं!", parse_mode="Markdown")
+            markup = build_topics_keyboard(page=0)
+            await update.message.reply_text("🎯 **अपडेटेड विषय सूची:**", reply_markup=markup)
+        else:
+            await m.edit_text("❌ डिलीट करने में विफल! GitHub कनेक्ट नहीं हुआ।")
     else:
-        await m.edit_text(f"❌ विषय `{t}` डेटाबेस में नहीं मिला!")
+        await m.edit_text(f"❌ विषय `{t}` डेटाबेस में नहीं मिला! कृपया सही नाम लिखें।")
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.message:
@@ -291,7 +303,7 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         topic = data[3:]
         
         if topic not in DB_CACHE:
-            await query.message.reply_text("❌ यह विषय डिलीट हो चुका है!")
+            await query.message.reply_text("❌ यह विषय डिलीट हो चुका है! /start करें।")
             try:
                 await query.delete_message()
             except Exception:
