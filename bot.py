@@ -5,6 +5,7 @@ import logging
 import asyncio
 import httpx
 import time
+import base64
 from telegram import Update, Poll, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import (
     Application,
@@ -49,7 +50,7 @@ async def sync_db():
     global DB_CACHE, STYLED_NAMES_CACHE
     try:
         async with httpx.AsyncClient() as client:
-            r = await client.get(f"{GITHUB_URL}?t={int(time.time())}", timeout=10.0)
+            r = await client.get(f"{GITHUB_URL}?t={int(time.time())}", timeout=5.0)
             if r.status_code == 200:
                 DB_CACHE = r.json()
                 STYLED_NAMES_CACHE.clear()
@@ -59,32 +60,25 @@ async def sync_db():
     return False
 
 async def update_github_file(new_db, commit_msg):
-    """GitHub API का डायरेक्ट उपयोग करके Instant Fast Update"""
     headers = {
         "Authorization": f"token {GITHUB_TOKEN}",
         "Accept": "application/vnd.github.v3+json"
     }
     async with httpx.AsyncClient() as client:
-        # 1. Get current SHA
-        res = await client.get(GITHUB_API_URL, headers=headers)
-        if res.status_code != 200:
-            raise Exception("GitHub File Get Failed")
-        sha = res.json()["sha"]
+        res = await client.get(GITHUB_API_URL, headers=headers, timeout=10.0)
+        sha = res.json()["sha"] if res.status_code == 200 else None
 
-        # 2. Update File
-        import base64
         content_str = json.dumps(new_db, indent=4, ensure_ascii=False)
-        content_bytes = content_str.encode('utf-8')
-        base64_content = base64.b64encode(content_bytes).decode('utf-8')
+        base64_content = base64.b64encode(content_str.encode('utf-8')).decode('utf-8')
 
         data = {
             "message": commit_msg,
-            "content": base64_content,
-            "sha": sha
+            "content": base64_content
         }
-        put_res = await client.put(GITHUB_API_URL, headers=headers, json=data)
-        if put_res.status_code not in [200, 201]:
-            raise Exception(f"GitHub Update Failed: {put_res.text}")
+        if sha:
+            data["sha"] = sha
+
+        await client.put(GITHUB_API_URL, headers=headers, json=data, timeout=10.0)
 
 SHAYARIS = [
     "✨ मंज़िल उन्हीं को मिलती है, जिनके सपनों में जान होती है!",
@@ -92,37 +86,38 @@ SHAYARIS = [
     "💎 संघर्ष जितना कठिन होगा, जीत उतनी ही शानदार होगी!"
 ]
 
-# --- कीबोर्ड जेनरेशन (पेजिनेशन सपोर्ट) ---
+# --- कीबोर्ड जेनरेशन ---
 def build_topics_keyboard(page: int = 0):
     topics = sorted(list(DB_CACHE.keys()))
+    if not topics:
+        return InlineKeyboardMarkup([[InlineKeyboardButton("🔄 डेटाबेस खाली है - Refresh", callback_data="noop")]])
+
     total_topics = len(topics)
     total_pages = max(1, (total_topics + TOPICS_PER_PAGE - 1) // TOPICS_PER_PAGE)
-    
     page = max(0, min(page, total_pages - 1))
+
     start_idx = page * TOPICS_PER_PAGE
     end_idx = start_idx + TOPICS_PER_PAGE
-    
     current_topics = topics[start_idx:end_idx]
-    
+
     icons = ["🔴", "🔵", "🟢", "🟡", "🟣", "💎", "⚡", "🔥"]
     keyboard = []
-    
+
     for t in current_topics:
         q_count = len(DB_CACHE[t])
         btn_text = f"{random.choice(icons)} {style_txt(t)} [{q_count}Q]"
         keyboard.append([InlineKeyboardButton(btn_text, callback_data=f"tp_{t}")])
-    
-    # नेविगेशन बटन (Previous / Next)
+
     nav_buttons = []
     if page > 0:
         nav_buttons.append(InlineKeyboardButton("⬅️ Prev", callback_data=f"page_{page-1}"))
     nav_buttons.append(InlineKeyboardButton(f"📄 {page+1}/{total_pages}", callback_data="noop"))
     if page < total_pages - 1:
         nav_buttons.append(InlineKeyboardButton("Next ➡️", callback_data=f"page_{page+1}"))
-    
+
     if nav_buttons:
         keyboard.append(nav_buttons)
-        
+
     keyboard.append([InlineKeyboardButton("⚡ SUPER RESET ⚡", callback_data="super_reset")])
     return InlineKeyboardMarkup(keyboard)
 
@@ -132,7 +127,7 @@ async def reset_bot(update: Update, context: ContextTypes.DEFAULT_TYPE):
     m = await update.message.reply_text("🌀 Hard Rebooting...", parse_mode="Markdown")
     try:
         await context.bot.delete_webhook(drop_pending_updates=True)
-        await asyncio.sleep(0.5)
+        await asyncio.sleep(0.3)
         await context.bot.set_webhook(url=f"{RENDER_URL}/{TOKEN}", drop_pending_updates=True)
         await sync_db()
         context.user_data.clear()
@@ -153,7 +148,7 @@ async def refresh_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await msg.edit_text(res, parse_mode="Markdown")
     else:
         await msg.edit_text("❌ Sync Failed!")
-        
+
 async def handle_input(update: Update, context: ContextTypes.DEFAULT_TYPE):
     json_text = ""
     if update.message.document:
@@ -166,85 +161,49 @@ async def handle_input(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
     m = await update.message.reply_text("🌀 `Safely Merging Vault...`", parse_mode="Markdown")
-    
     try:
         clean_text = json_text.replace('```json', '').replace('```', '').strip()
         new_data = json.loads(clean_text)
-        
-        headers = {
-            "Authorization": f"token {GITHUB_TOKEN}",
-            "Accept": "application/vnd.github.v3+json"
-        }
-        
-        async with httpx.AsyncClient() as client:
-            # 1. GitHub से पूरा पुराना डेटा पढ़ें
-            res = await client.get(GITHUB_API_URL, headers=headers)
-            
-            existing_db = {}
-            sha = None
-            
-            if res.status_code == 200:
-                git_json = res.json()
-                sha = git_json["sha"]
-                import base64
-                decoded_bytes = base64.b64decode(git_json["content"])
-                existing_db = json.loads(decoded_bytes.decode('utf-8'))
-            
-            # 2. पुराने डेटा में नया डेटा सुरक्षित तरीके से जोड़ें (सुरक्षित Auto-Merge)
-            for topic, questions in new_data.items():
-                if topic in existing_db:
-                    existing_db[topic].extend(questions)
-                else:
-                    existing_db[topic] = questions
-            
-            # 3. इन-मेमोरी कैश अपडेट करें
-            global DB_CACHE
-            DB_CACHE = existing_db
-            
-            # 4. GitHub पर पूरा मिला हुआ डेटा सेव करें
-            import base64
-            content_str = json.dumps(existing_db, indent=4, ensure_ascii=False)
-            base64_content = base64.b64encode(content_str.encode('utf-8')).decode('utf-8')
 
-            put_data = {
-                "message": "Safe Merge Update",
-                "content": base64_content,
-            }
-            if sha:
-                put_data["sha"] = sha
-
-            put_res = await client.put(GITHUB_API_URL, headers=headers, json=put_data)
-            
-            if put_res.status_code in [200, 201]:
-                total_topics = len(DB_CACHE.keys())
-                await m.edit_text(
-                    "╔════════════════════╗\n"
-                    "  ✅ **SAFE MERGE SUCCESS** 🚀  \n"
-                    "╚════════════════════╝\n"
-                    f"📦 अब कुल विषय: **{total_topics}**\n\n"
-                    "👉 तुरंत देखें: /start", 
-                    parse_mode="Markdown"
-                )
+        global DB_CACHE
+        for topic, questions in new_data.items():
+            if topic in DB_CACHE:
+                DB_CACHE[topic].extend(questions)
             else:
-                await m.edit_text(f"❌ GitHub Save Error: {put_res.text}")
+                DB_CACHE[topic] = questions
 
+        # बैकग्राउंड में Async GitHub पुश
+        asyncio.create_task(update_github_file(DB_CACHE, "Safe Merge Update"))
+
+        total_topics = len(DB_CACHE.keys())
+        await m.edit_text(
+            "╔════════════════════╗\n"
+            "  ✅ **INSTANT UPLOAD SUCCESS** 🚀  \n"
+            "╚════════════════════╝\n"
+            f"📦 अब कुल विषय: **{total_topics}**\n\n"
+            "👉 तुरंत देखें: /start",
+            parse_mode="Markdown"
+        )
     except Exception as e:
         await m.edit_text(f"❌ `Data Format Error: {e}`", parse_mode="Markdown")
+
 async def delete_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     t = " ".join(context.args).strip()
     if not t:
         return await update.message.reply_text("💡 उपयोग: `/delete TopicName`", parse_mode="Markdown")
-    
+
     m = await update.message.reply_text(f"🗑️ Deleting `{t}`...", parse_mode="Markdown")
-    try:
-        if t in DB_CACHE:
-            del DB_CACHE[t]
-            await update_github_file(DB_CACHE, f"Deleted {t}")
-            await m.edit_text(f"✅ **REMOVED INSTANTLY:** `{t}`", parse_mode="Markdown")
-        else:
-            await m.edit_text(f"❌ विषय `{t}` डेटाबेस में नहीं मिला!", parse_mode="Markdown")
-    except Exception as e:
-        await m.edit_text(f"❌ Error: {e}")
+    global DB_CACHE
+    if t in DB_CACHE:
+        del DB_CACHE[t]  # तुरंत Memory से डिलीट
+        STYLED_NAMES_CACHE.clear()
+        
+        # बैकग्राउंड में GitHub से हटाना
+        asyncio.create_task(update_github_file(DB_CACHE, f"Deleted {t}"))
+        
+        await m.edit_text(f"✅ **INSTANTLY REMOVED:** `{t}`\n\n/start चलाकर बटन देखें।", parse_mode="Markdown")
+    else:
+        await m.edit_text(f"❌ विषय `{t}` डेटाबेस में नहीं मिला!", parse_mode="Markdown")
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.message:
@@ -268,9 +227,13 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
-    await query.answer()
-    data = query.data
+    # ⚡ 1. तुरंत Answer करना ताकि बटन का घूमना/अटकना बंद हो जाए
+    try:
+        await query.answer()
+    except Exception:
+        pass
 
+    data = query.data
     if data == "noop":
         return
 
@@ -284,23 +247,32 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if data.startswith("page_"):
         page = int(data.split("_")[1])
         markup = build_topics_keyboard(page=page)
-        await query.edit_message_reply_markup(reply_markup=markup)
+        try:
+            await query.edit_message_reply_markup(reply_markup=markup)
+        except Exception:
+            pass
         return
 
     if data.startswith("tp_"):
         topic = data[3:]
         qs = list(DB_CACHE.get(topic, []))
         if not qs:
+            await query.message.reply_text("❌ इस विषय में कोई सवाल नहीं हैं!")
             return
         random.shuffle(qs)
         context.user_data.update({'qs': qs, 'idx': 0, 'score': 0, 'busy': True, 'topic': topic})
-        await query.delete_message()
+        try:
+            await query.delete_message()
+        except Exception:
+            pass
         await send_q(context, query.message.chat_id)
 
 async def send_q(context, chat_id):
     ud = context.user_data
+    if not ud or not ud.get('busy'):
+        return
+
     idx, qs = ud.get('idx', 0), ud['qs']
-    
     if idx >= len(qs):
         score, total = ud['score'], len(qs)
         per = int((score / total) * 100) if total > 0 else 0
@@ -315,10 +287,8 @@ async def send_q(context, chat_id):
 
     q = qs[idx]
     bar = "🔹" * (idx + 1) + "▫️" * (len(qs) - idx - 1)
-    
-    # सवाल का पाठ प्रस्तुत करना
     q_text = q['variations'][0] if isinstance(q.get('variations'), list) and len(q['variations']) > 0 else q.get('question', '')
-    
+
     try:
         await context.bot.send_poll(
             chat_id=chat_id,
@@ -330,7 +300,8 @@ async def send_q(context, chat_id):
         )
         ud['idx'] = idx + 1
     except Exception as e:
-        logger.error(f"Poll Error: {e}")
+        logger.error(f"Poll Send Error: {e}")
+        # क्विज़ न रुके इसलिए 0.5 सेकंड बाद अगला प्रयास
         await asyncio.sleep(0.5)
         await send_q(context, chat_id)
 
@@ -343,7 +314,7 @@ async def handle_ans(update: Update, context: ContextTypes.DEFAULT_TYPE):
         if 0 <= current_idx < len(ud['qs']):
             if ans.option_ids[0] == ud['qs'][current_idx]['answer']:
                 ud['score'] += 1
-            await asyncio.sleep(0.3)
+            await asyncio.sleep(0.2)  # तेज़ रिस्पांस के लिए घटाया गया टाइमर
             await send_q(context, uid)
 
 def main():
