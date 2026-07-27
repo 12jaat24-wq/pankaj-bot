@@ -32,9 +32,9 @@ logger = logging.getLogger(__name__)
 
 DB_CACHE = {}
 STYLED_NAMES_CACHE = {}
-TOPICS_PER_PAGE = 10  # एक पेज पर कितने बटन दिखेंगे
+TOPICS_PER_PAGE = 10 
 
-# --- सुपर स्टाइलिश फॉन्ट ---
+# --- स्टाइलिश फॉन्ट ---
 def style_txt(text):
     if text in STYLED_NAMES_CACHE:
         return STYLED_NAMES_CACHE[text]
@@ -45,22 +45,25 @@ def style_txt(text):
     STYLED_NAMES_CACHE[text] = res
     return res
 
-# --- फास्ट गिटहब और डेटाबेस सिंक ---
-async def sync_db():
-    global DB_CACHE, STYLED_NAMES_CACHE
-    try:
-        async with httpx.AsyncClient() as client:
-            r = await client.get(f"{GITHUB_URL}?t={int(time.time())}", timeout=8.0)
-            if r.status_code == 200:
-                DB_CACHE = r.json()
-                STYLED_NAMES_CACHE.clear()
-                return True
-    except Exception as e:
-        logger.error(f"Sync failed: {e}")
-    return False
+# --- GitHub Fetching ---
+async def fetch_full_github_db():
+    headers = {
+        "Authorization": f"token {GITHUB_TOKEN}",
+        "Accept": "application/vnd.github.v3+json"
+    }
+    async with httpx.AsyncClient() as client:
+        res = await client.get(GITHUB_API_URL, headers=headers, timeout=10.0)
+        if res.status_code == 200:
+            git_json = res.json()
+            sha = git_json["sha"]
+            decoded_bytes = base64.b64decode(git_json["content"])
+            full_db = json.loads(decoded_bytes.decode('utf-8'))
+            return full_db, sha
+    return None, None
 
-async def push_to_github():
-    """बैकग्राउंड में बिना बॉट को रोके GitHub पर सुरक्षित सेव करना"""
+# --- Background Push (Non-blocking) ---
+async def bg_push_to_github(data_to_save, commit_msg):
+    """यह फ़ंक्शन बैकग्राउंड में चलेगा ताकि टेलीग्राम यूजर को 1 सेकंड भी रुकना न पड़े"""
     try:
         headers = {
             "Authorization": f"token {GITHUB_TOKEN}",
@@ -70,19 +73,32 @@ async def push_to_github():
             res = await client.get(GITHUB_API_URL, headers=headers, timeout=10.0)
             sha = res.json()["sha"] if res.status_code == 200 else None
 
-            content_str = json.dumps(DB_CACHE, indent=4, ensure_ascii=False)
+            content_str = json.dumps(data_to_save, indent=4, ensure_ascii=False)
             base64_content = base64.b64encode(content_str.encode('utf-8')).decode('utf-8')
 
-            data = {
-                "message": "Instant Cache Sync",
+            put_data = {
+                "message": commit_msg,
                 "content": base64_content
             }
             if sha:
-                data["sha"] = sha
+                put_data["sha"] = sha
 
-            await client.put(GITHUB_API_URL, headers=headers, json=data, timeout=10.0)
+            await client.put(GITHUB_API_URL, headers=headers, json=put_data, timeout=10.0)
     except Exception as e:
-        logger.error(f"GitHub Push Error: {e}")
+        logger.error(f"Background GitHub Sync Failed: {e}")
+
+# --- DB Sync ---
+async def sync_db():
+    global DB_CACHE, STYLED_NAMES_CACHE
+    try:
+        full_db, _ = await fetch_full_github_db()
+        if full_db is not None:
+            DB_CACHE = full_db
+            STYLED_NAMES_CACHE.clear()
+            return True
+    except Exception as e:
+        logger.error(f"Sync failed: {e}")
+    return False
 
 SHAYARIS = [
     "✨ मंज़िल उन्हीं को मिलती है, जिनके सपनों में जान होती है!",
@@ -90,7 +106,7 @@ SHAYARIS = [
     "💎 संघर्ष जितना कठिन होगा, जीत उतनी ही शानदार होगी!"
 ]
 
-# --- कीबोर्ड जेनरेशन ---
+# --- Keyboards ---
 def build_topics_keyboard(page: int = 0):
     topics = sorted(list(DB_CACHE.keys()))
     if not topics:
@@ -125,7 +141,7 @@ def build_topics_keyboard(page: int = 0):
     keyboard.append([InlineKeyboardButton("⚡ SUPER RESET ⚡", callback_data="super_reset")])
     return InlineKeyboardMarkup(keyboard)
 
-# --- कमांड्स ---
+# --- Commands ---
 
 async def reset_bot(update: Update, context: ContextTypes.DEFAULT_TYPE):
     m = await update.message.reply_text("🌀 Hard Rebooting...", parse_mode="Markdown")
@@ -153,6 +169,7 @@ async def refresh_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     else:
         await msg.edit_text("❌ Sync Failed!")
 
+# ⚡ Instant Upload (1 second inside response)
 async def handle_input(update: Update, context: ContextTypes.DEFAULT_TYPE):
     json_text = ""
     if update.message.document:
@@ -164,53 +181,64 @@ async def handle_input(update: Update, context: ContextTypes.DEFAULT_TYPE):
     else:
         return
 
-    m = await update.message.reply_text("🌀 `Safely Merging Vault...`", parse_mode="Markdown")
+    m = await update.message.reply_text("⚡ `Processing Instant Add...`", parse_mode="Markdown")
     try:
         clean_text = json_text.replace('```json', '').replace('```', '').strip()
         new_data = json.loads(clean_text)
 
-        global DB_CACHE
-        # 1. तुरंत RAM में Safe Merge
+        global DB_CACHE, STYLED_NAMES_CACHE
+        # 1. RAM में तुरंत जोड़ें (0.01s)
         for topic, questions in new_data.items():
             if topic in DB_CACHE:
                 DB_CACHE[topic].extend(questions)
             else:
                 DB_CACHE[topic] = questions
 
-        # 2. बैकग्राउंड में GitHub अपडेट
-        asyncio.create_task(push_to_github())
+        STYLED_NAMES_CACHE.clear()
 
+        # 2. बैकग्राउंड में GitHub अपडेट चालू कर दें (Non-blocking)
+        asyncio.create_task(bg_push_to_github(DB_CACHE, "Instant JSON Add"))
+
+        # 3. यूज़र को 1 सेकंड में रिस्पॉन्स और नया मेनू दिखाएं
         total_topics = len(DB_CACHE.keys())
         await m.edit_text(
             "╔════════════════════╗\n"
-            "  ✅ **INSTANT MERGE SUCCESS** 🚀  \n"
+            "  🚀 **INSTANTLY ADDED!** 🚀  \n"
             "╚════════════════════╝\n"
-            f"📦 अब कुल विषय: **{total_topics}**\n\n"
-            "👉 तुरंत देखें: /start",
+            f"📦 कुल विषय: **{total_topics}**\n\n"
+            "👇 **नए विषय नीचे बटन में तुरंत आ चुके हैं:**",
             parse_mode="Markdown"
         )
+        # तुरंत नया मेनू भेजें
+        markup = build_topics_keyboard(page=0)
+        await update.message.reply_text("🎯 **अपडेटेड विषय सूची:**", reply_markup=markup)
+
     except Exception as e:
         await m.edit_text(f"❌ `Data Format Error: {e}`", parse_mode="Markdown")
 
+# ⚡ Instant Delete (1 second removal)
 async def delete_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     t = " ".join(context.args).strip()
     if not t:
         return await update.message.reply_text("💡 उपयोग: `/delete TopicName`", parse_mode="Markdown")
 
-    m = await update.message.reply_text(f"🗑️ Deleting `{t}`...", parse_mode="Markdown")
+    m = await update.message.reply_text(f"⚡ Removing `{t}`...", parse_mode="Markdown")
     global DB_CACHE, STYLED_NAMES_CACHE
     
     if t in DB_CACHE:
-        # 1. तुरंत RAM और Cache से डिलीट
+        # 1. RAM से तुरंत गायब (0.01s)
         del DB_CACHE[t]
         STYLED_NAMES_CACHE.clear()
         
-        # 2. बैकग्राउंड में GitHub से हटाना
-        asyncio.create_task(push_to_github())
+        # 2. बैकग्राउंड में GitHub अपडेट (Non-blocking)
+        asyncio.create_task(bg_push_to_github(DB_CACHE, f"Deleted Topic: {t}"))
         
-        await m.edit_text(f"✅ **INSTANTLY REMOVED:** `{t}`\n\nअब /start दबाकर चेक करें।", parse_mode="Markdown")
+        # 3. 1 सेकंड में जवाब और नया बटन लिस्ट
+        await m.edit_text(f"✅ **INSTANTLY DELETED:** `{t}`\n\n👇 **ताज़ा सूची:**", parse_mode="Markdown")
+        markup = build_topics_keyboard(page=0)
+        await update.message.reply_text("🎯 **अपडेटेड विषय सूची:**", reply_markup=markup)
     else:
-        await m.edit_text(f"❌ विषय `{t}` डेटाबेस में नहीं मिला!", parse_mode="Markdown")
+        await m.edit_text(f"❌ विषय `{t}` डेटाबेस में नहीं मिला!")
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.message:
@@ -234,8 +262,6 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
-    
-    # ⚡ तुरंत आंसर ताकि बटन का चक्कर (Spinning) हटे
     try:
         await query.answer()
     except Exception:
@@ -264,9 +290,8 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if data.startswith("tp_"):
         topic = data[3:]
         
-        # ⚡ चेक करें कि कहीं यह डिलीट तो नहीं हो चुका
         if topic not in DB_CACHE:
-            await query.message.reply_text("❌ यह विषय डिलीट कर दिया गया है! कृपया /start करें।")
+            await query.message.reply_text("❌ यह विषय डिलीट हो चुका है!")
             try:
                 await query.delete_message()
             except Exception:
