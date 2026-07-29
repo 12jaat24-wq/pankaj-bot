@@ -44,6 +44,47 @@ def style_txt(text):
     STYLED_NAMES_CACHE[text] = res
     return res
 
+# 🎲 AUTO QUESTION VARIATION GENERATOR (ऑटोमैटिक भाषा बदलने की लॉजिक)
+PREFIX_PATTERNS = [
+    "बताइए, ",
+    "निम्नलिखित में से ",
+    "ध्यानपूर्वक पढ़कर उत्तर दें: ",
+    "नीचे दिए गए विकल्पों में से चुनें — ",
+    "सही उत्तर पहचानिए: ",
+    "प्रश्न: ",
+    "सोच-समझकर उत्तर दें: ",
+    "निम्न में से "
+]
+
+SUFFIX_PATTERNS = [
+    "",
+    " (सही उत्तर का चयन करें)",
+    " — इसका सही उत्तर क्या होगा?",
+    " (विकल्पों को ध्यान से पढ़ें)",
+    " ?"
+]
+
+def generate_auto_variation(q_obj):
+    """बिना JSON बदले किसी भी सवाल को ऑटोमैटिकली अलग भाषा में बदलने का फंक्शन"""
+    # 1. यदि JSON में variations मौजूद हैं तो उसमें से रैंडम लें
+    if isinstance(q_obj.get('variations'), list) and len(q_obj['variations']) > 0:
+        base_q = random.choice(q_obj['variations'])
+    else:
+        base_q = q_obj.get('question', '')
+
+    base_q = base_q.strip()
+
+    # 2. अगर सवाल में पहले से "निम्नलिखित" या "बताइए" जैसे शब्द हैं तो बिना डुप्लीकेट किए बदलें
+    starts_with_prefix = any(base_q.startswith(p.strip()) for p in ["निम्नलिखित", "बताइए", "निम्न में से", "ध्यानपूर्वक"])
+
+    if starts_with_prefix:
+        suffix = random.choice(SUFFIX_PATTERNS)
+        return f"{base_q}{suffix}"
+    else:
+        prefix = random.choice(PREFIX_PATTERNS)
+        suffix = random.choice(SUFFIX_PATTERNS)
+        return f"{prefix}{base_q}{suffix}"
+
 # 🛡️ SAFE FETCH: GitHub से हमेशा ताज़ा डेटा लाएगा
 async def get_latest_github_db():
     headers = {
@@ -62,14 +103,13 @@ async def get_latest_github_db():
         logger.error(f"GitHub Fetch Failed: {e}")
     return {}, None
 
-# 🛡️ SAFE SAVE: GitHub पर डेटा सुरक्षित रूप से बिना कुछ मिटाए लिखेगा
+# 🛡️ SAFE SAVE: GitHub पर डेटा सुरक्षित रूप से लिखेगा
 async def save_to_github_safely(data_to_save, commit_msg):
     headers = {
         "Authorization": f"token {GITHUB_TOKEN}",
         "Accept": "application/vnd.github.v3+json"
     }
     try:
-        # 1. ताज़ा SHA प्राप्त करें
         _, sha = await get_latest_github_db()
 
         content_str = json.dumps(data_to_save, indent=4, ensure_ascii=False)
@@ -168,14 +208,14 @@ async def refresh_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     else:
         await msg.edit_text("❌ Sync Failed!")
 
-# 🛡️ 100% सुरक्षित JSON Uploading (No Data Overwrite Ever)
+# 🛡️ 100% सुरक्षित JSON Uploading
 async def handle_input(update: Update, context: ContextTypes.DEFAULT_TYPE):
     json_text = ""
     if update.message.document:
         f = await context.bot.get_file(update.message.document.file_id)
         c = await f.download_as_bytearray()
         json_text = c.decode('utf-8')
-    elif update.message.text and ("variations" in update.message.text or "options" in update.message.text):
+    elif update.message.text and ("variations" in update.message.text or "options" in update.message.text or "question" in update.message.text):
         json_text = update.message.text
     else:
         return
@@ -187,19 +227,16 @@ async def handle_input(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         global DB_CACHE, STYLED_NAMES_CACHE
 
-        # 1. सबसे पहले GitHub से पूरा पुराना डेटा लाएं
         latest_db, _ = await get_latest_github_db()
         if not latest_db:
             latest_db = DB_CACHE
 
-        # 2. पुराने डेटा में नया डेटा जोड़ें (Merge)
         for topic, questions in new_data.items():
             if topic in latest_db:
                 latest_db[topic].extend(questions)
             else:
                 latest_db[topic] = questions
 
-        # 3. GitHub पर सुरक्षित सेव करें
         saved = await save_to_github_safely(latest_db, "Safe Add JSON")
         if saved:
             DB_CACHE = latest_db
@@ -230,16 +267,13 @@ async def delete_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     m = await update.message.reply_text(f"🛡️ Deleting `{t}` safely...", parse_mode="Markdown")
     global DB_CACHE, STYLED_NAMES_CACHE
     
-    # 1. GitHub से ताज़ा डेटा उठाएं
     latest_db, _ = await get_latest_github_db()
     if not latest_db:
         latest_db = DB_CACHE
 
     if t in latest_db:
-        # 2. केवल उस विषय को हटाएं
         del latest_db[t]
         
-        # 3. GitHub पर सेव करें
         saved = await save_to_github_safely(latest_db, f"Deleted Topic: {t}")
         if saved:
             DB_CACHE = latest_db
@@ -343,7 +377,9 @@ async def send_q(context, chat_id):
 
     q = qs[idx]
     bar = "🔹" * (idx + 1) + "▫️" * (len(qs) - idx - 1)
-    q_text = q['variations'][0] if isinstance(q.get('variations'), list) and len(q['variations']) > 0 else q.get('question', '')
+    
+    # 🎯 ऑटोमैटिक सवाल का रूप/भाषा बदलना (Zero JSON modification required)
+    q_text = generate_auto_variation(q)
 
     try:
         await context.bot.send_poll(
