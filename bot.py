@@ -6,7 +6,6 @@ import asyncio
 import httpx
 import time
 import base64
-import re
 from telegram import Update, Poll, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import (
     Application,
@@ -44,60 +43,6 @@ def style_txt(text):
     res = str(text).translate(trans)
     STYLED_NAMES_CACHE[text] = res
     return res
-
-# 🧠 ADVANCED DEEP REPHRASER (सवालों की भाषा बदलने की लॉजिक)
-def deep_rephrase_question(q_text):
-    q_text = q_text.strip()
-
-    pattern_1 = [
-        lambda t: re.sub(r'कौन सा|कौन सी|कौनसे|किस', 'निम्नलिखित में से कौन-सा', t),
-        lambda t: re.sub(r'कौन सा|कौन सी', 'किस विकल्प को', t) + " माना जाता है?",
-        lambda t: "नीचे दिए गए विकल्पों में से पहचानिए कि " + t,
-        lambda t: "क्या आप बता सकते हैं कि " + t + "?",
-        lambda t: re.sub(r'कौन सा|कौन सी', 'वह कौन-सा विकल्प है जो', t)
-    ]
-
-    pattern_loc = [
-        lambda t: t.replace("कहाँ स्थित है", "किस स्थान/जिले में स्थित है"),
-        lambda t: t.replace("स्थित है", "की मौजूदगी किस जगह पर है"),
-        lambda t: "स्थान से संबंधित प्रश्न: " + t,
-        lambda t: t.replace("कहाँ है", "की सही लोकेशन/स्थान क्या है")
-    ]
-
-    pattern_person = [
-        lambda t: t.replace("किसने की", "किस शासक/व्यक्ति द्वारा की गई"),
-        lambda t: t.replace("किसने बनवाया", "के निर्माणकर्ता/संस्थापक कौन हैं"),
-        lambda t: "इतिहास/व्यक्तित्व आधारित: " + t
-    ]
-
-    if "कहाँ" in q_text or "स्थित" in q_text:
-        fn = random.choice(pattern_loc)
-        q_text = fn(q_text)
-    elif "किसने" in q_text or "बनवाया" in q_text:
-        fn = random.choice(pattern_person)
-        q_text = fn(q_text)
-    elif "कौन" in q_text or "किस" in q_text:
-        fn = random.choice(pattern_1)
-        q_text = fn(q_text)
-    else:
-        gen_styles = [
-            f"ध्यानपूर्वक पढ़ें और उत्तर दें ➔ {q_text}",
-            f"प्रश्न का सही उत्तर चुनें: {q_text}",
-            f"विकल्पों के आधार पर बताइए — {q_text}",
-            f"{q_text} (सही उत्तर पहचाने)",
-            f"सोच-समझकर टिक करें: {q_text}"
-        ]
-        q_text = random.choice(gen_styles)
-
-    q_text = re.sub(r'\?+', '?', q_text)
-    return q_text
-
-def get_final_dynamic_question(q_obj):
-    if isinstance(q_obj.get('variations'), list) and len(q_obj['variations']) > 0:
-        base_q = random.choice(q_obj['variations'])
-    else:
-        base_q = q_obj.get('question', '')
-    return deep_rephrase_question(base_q)
 
 # 🛡️ SAFE FETCH & SAVE FOR GITHUB
 async def get_latest_github_db():
@@ -220,7 +165,7 @@ async def handle_input(update: Update, context: ContextTypes.DEFAULT_TYPE):
         f = await context.bot.get_file(update.message.document.file_id)
         c = await f.download_as_bytearray()
         json_text = c.decode('utf-8')
-    elif update.message.text and ("variations" in update.message.text or "options" in update.message.text or "question" in update.message.text):
+    elif update.message.text and ("options" in update.message.text or "question" in update.message.text):
         json_text = update.message.text
     else:
         return
@@ -368,24 +313,24 @@ async def send_q(context, chat_id):
     q = qs[idx]
     bar = "🔹" * (idx + 1) + "▫️" * (len(qs) - idx - 1)
     
-    # 🎯 1. मुख्य सवाल की भाषा को डायनामिकली बदलना
-    q_text = get_final_dynamic_question(q)
+    # 📌 1. मूल प्रश्न (Original Question Text)
+    q_text = q.get('question', '').strip()
 
-    # 🎲 2. स्मार्ट ऑप्शन शफलिंग (ऑप्शन्स की जगह बदलना और सही जवाब ट्रैक करना)
+    # 🎲 2. स्मार्ट ऑप्शन शफलिंग (हर बार ऑप्शन्स की जगह बदलना)
     original_options = q['options'].copy()
-    correct_option_text = original_options[q['answer']] # असली सही जवाब का टेक्स्ट निकाल लिया
+    correct_option_text = original_options[q['answer']] # सही उत्तर का टेक्स्ट निकाल लिया
 
-    # ऑप्शन्स को ऊपर-नीचे (Shuffle) कर दिया
+    # ऑप्शन्स को रैंडम शफल करना
     shuffled_options = original_options.copy()
     random.shuffle(shuffled_options)
 
-    # अब शफल होने के बाद सही जवाब किस नंबर पर गया, वो पता लगा लिया
+    # नया सही उत्तर किस इंडेक्स पर गया, वो ट्रैक करना
     new_correct_index = shuffled_options.index(correct_option_text)
     
-    # ऑप्शन्स के आगे थोड़ा स्टाइल (बुलेट पॉइंट) जोड़ दें ताकि नया लगे
+    # ऑप्शन्स के आगे डिज़ाइन जोड़ना
     styled_options = [f"▪️ {opt}" for opt in shuffled_options]
 
-    # यूज़र डेटा में सेव कर लें ताकि आंसर चेक करते समय दिक्कत न हो
+    # यूज़र डेटा में नया सही इंडेक्स सेव करना
     ud['current_correct_index'] = new_correct_index
 
     try:
@@ -394,7 +339,7 @@ async def send_q(context, chat_id):
             question=f"✨ ({idx+1}/{len(qs)}) {q_text}\n{bar}",
             options=styled_options,
             type=Poll.QUIZ,
-            correct_option_id=new_correct_index, # यहाँ डायनामिक नया इंडेक्स दे दिया
+            correct_option_id=new_correct_index,
             is_anonymous=False
         )
         ud['idx'] = idx + 1
@@ -411,7 +356,6 @@ async def handle_ans(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if ud and ud.get('busy'):
         current_idx = ud['idx'] - 1
         if 0 <= current_idx < len(ud['qs']):
-            # अब हम फिक्स्ड JSON आंसर की जगह, शफल किया हुआ 'current_correct_index' चेक करेंगे
             correct_ans = ud.get('current_correct_index')
             if ans.option_ids[0] == correct_ans:
                 ud['score'] += 1
