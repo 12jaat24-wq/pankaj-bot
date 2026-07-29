@@ -45,12 +45,10 @@ def style_txt(text):
     STYLED_NAMES_CACHE[text] = res
     return res
 
-# 🧠 ADVANCED DEEP REPHRASER (मुख्य सवाल की भाषा को गहराई से बदलने की लॉजिक)
+# 🧠 ADVANCED DEEP REPHRASER (सवालों की भाषा बदलने की लॉजिक)
 def deep_rephrase_question(q_text):
     q_text = q_text.strip()
 
-    # यदि variations/question में पहले से लिस्ट हो तो
-    # 1. "कौन सा / कौन सी" वाले सवालों को बदलना
     pattern_1 = [
         lambda t: re.sub(r'कौन सा|कौन सी|कौनसे|किस', 'निम्नलिखित में से कौन-सा', t),
         lambda t: re.sub(r'कौन सा|कौन सी', 'किस विकल्प को', t) + " माना जाता है?",
@@ -59,7 +57,6 @@ def deep_rephrase_question(q_text):
         lambda t: re.sub(r'कौन सा|कौन सी', 'वह कौन-सा विकल्प है जो', t)
     ]
 
-    # 2. "कहाँ स्थित है / स्थित है" वाले सवालों को बदलना
     pattern_loc = [
         lambda t: t.replace("कहाँ स्थित है", "किस स्थान/जिले में स्थित है"),
         lambda t: t.replace("स्थित है", "की मौजूदगी किस जगह पर है"),
@@ -67,14 +64,12 @@ def deep_rephrase_question(q_text):
         lambda t: t.replace("कहाँ है", "की सही लोकेशन/स्थान क्या है")
     ]
 
-    # 3. "किसने किया / स्थापना की" वाले सवालों को बदलना
     pattern_person = [
         lambda t: t.replace("किसने की", "किस शासक/व्यक्ति द्वारा की गई"),
         lambda t: t.replace("किसने बनवाया", "के निर्माणकर्ता/संस्थापक कौन हैं"),
         lambda t: "इतिहास/व्यक्तित्व आधारित: " + t
     ]
 
-    # स्मार्ट पैटर्न मैचिंग
     if "कहाँ" in q_text or "स्थित" in q_text:
         fn = random.choice(pattern_loc)
         q_text = fn(q_text)
@@ -85,7 +80,6 @@ def deep_rephrase_question(q_text):
         fn = random.choice(pattern_1)
         q_text = fn(q_text)
     else:
-        # सामान्य सवालों के लिए विविध शैलियाँ
         gen_styles = [
             f"ध्यानपूर्वक पढ़ें और उत्तर दें ➔ {q_text}",
             f"प्रश्न का सही उत्तर चुनें: {q_text}",
@@ -95,21 +89,17 @@ def deep_rephrase_question(q_text):
         ]
         q_text = random.choice(gen_styles)
 
-    # डुप्लीकेट प्रश्नवाचक चिन्ह हटाएं
     q_text = re.sub(r'\?+', '?', q_text)
     return q_text
 
 def get_final_dynamic_question(q_obj):
-    # 1. यदि JSON में पहले से variations की array है तो उसमें से एक लें
     if isinstance(q_obj.get('variations'), list) and len(q_obj['variations']) > 0:
         base_q = random.choice(q_obj['variations'])
     else:
         base_q = q_obj.get('question', '')
-
-    # 2. अब मुख्य सवाल की भाषा को गहराई से बदलें
     return deep_rephrase_question(base_q)
 
-# 🛡️ SAFE FETCH: GitHub से हमेशा ताज़ा डेटा लाएगा
+# 🛡️ SAFE FETCH & SAVE FOR GITHUB
 async def get_latest_github_db():
     headers = {
         "Authorization": f"token {GITHUB_TOKEN}",
@@ -127,7 +117,6 @@ async def get_latest_github_db():
         logger.error(f"GitHub Fetch Failed: {e}")
     return {}, None
 
-# 🛡️ SAFE SAVE: GitHub पर डेटा सुरक्षित रूप से लिखेगा
 async def save_to_github_safely(data_to_save, commit_msg):
     headers = {
         "Authorization": f"token {GITHUB_TOKEN}",
@@ -135,14 +124,10 @@ async def save_to_github_safely(data_to_save, commit_msg):
     }
     try:
         _, sha = await get_latest_github_db()
-
         content_str = json.dumps(data_to_save, indent=4, ensure_ascii=False)
         base64_content = base64.b64encode(content_str.encode('utf-8')).decode('utf-8')
 
-        put_data = {
-            "message": commit_msg,
-            "content": base64_content
-        }
+        put_data = {"message": commit_msg, "content": base64_content}
         if sha:
             put_data["sha"] = sha
 
@@ -153,7 +138,6 @@ async def save_to_github_safely(data_to_save, commit_msg):
         logger.error(f"GitHub Save Failed: {e}")
         return False
 
-# --- RAM और Cache सिंक ---
 async def sync_db():
     global DB_CACHE, STYLED_NAMES_CACHE
     latest_db, _ = await get_latest_github_db()
@@ -169,7 +153,6 @@ SHAYARIS = [
     "💎 संघर्ष जितना कठिन होगा, जीत उतनी ही शानदार होगी!"
 ]
 
-# --- Keyboards ---
 def build_topics_keyboard(page: int = 0):
     topics = sorted(list(DB_CACHE.keys()))
     if not topics:
@@ -205,7 +188,6 @@ def build_topics_keyboard(page: int = 0):
     return InlineKeyboardMarkup(keyboard)
 
 # --- Commands ---
-
 async def reset_bot(update: Update, context: ContextTypes.DEFAULT_TYPE):
     m = await update.message.reply_text("🌀 Hard Rebooting...", parse_mode="Markdown")
     try:
@@ -232,7 +214,6 @@ async def refresh_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     else:
         await msg.edit_text("❌ Sync Failed!")
 
-# 🛡️ 100% सुरक्षित JSON Uploading
 async def handle_input(update: Update, context: ContextTypes.DEFAULT_TYPE):
     json_text = ""
     if update.message.document:
@@ -250,7 +231,6 @@ async def handle_input(update: Update, context: ContextTypes.DEFAULT_TYPE):
         new_data = json.loads(clean_text)
 
         global DB_CACHE, STYLED_NAMES_CACHE
-
         latest_db, _ = await get_latest_github_db()
         if not latest_db:
             latest_db = DB_CACHE
@@ -265,14 +245,10 @@ async def handle_input(update: Update, context: ContextTypes.DEFAULT_TYPE):
         if saved:
             DB_CACHE = latest_db
             STYLED_NAMES_CACHE.clear()
-
             total_topics = len(DB_CACHE.keys())
             await m.edit_text(
-                "╔════════════════════╗\n"
-                "  🚀 **SUCCESSFULLY ADDED!** 🚀  \n"
-                "╚════════════════════╝\n"
-                f"📦 कुल सुरक्षित विषय: **{total_topics}**",
-                parse_mode="Markdown"
+                "╔════════════════════╗\n  🚀 **SUCCESSFULLY ADDED!** 🚀  \n╚════════════════════╝\n"
+                f"📦 कुल सुरक्षित विषय: **{total_topics}**", parse_mode="Markdown"
             )
             markup = build_topics_keyboard(page=0)
             await update.message.reply_text("🎯 **अपडेटेड विषय सूची:**", reply_markup=markup)
@@ -282,7 +258,6 @@ async def handle_input(update: Update, context: ContextTypes.DEFAULT_TYPE):
     except Exception as e:
         await m.edit_text(f"❌ `Data Format Error: {e}`", parse_mode="Markdown")
 
-# 🛡️ 100% सुरक्षित Delete Command
 async def delete_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     t = " ".join(context.args).strip()
     if not t:
@@ -290,14 +265,12 @@ async def delete_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     m = await update.message.reply_text(f"🛡️ Deleting `{t}` safely...", parse_mode="Markdown")
     global DB_CACHE, STYLED_NAMES_CACHE
-    
     latest_db, _ = await get_latest_github_db()
     if not latest_db:
         latest_db = DB_CACHE
 
     if t in latest_db:
         del latest_db[t]
-        
         saved = await save_to_github_safely(latest_db, f"Deleted Topic: {t}")
         if saved:
             DB_CACHE = latest_db
@@ -338,13 +311,11 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         pass
 
     data = query.data
-    if data == "noop":
-        return
+    if data == "noop": return
 
     if data == "super_reset":
         class TU:
-            def __init__(self, m):
-                self.message = m
+            def __init__(self, m): self.message = m
         await reset_bot(TU(query.message), context)
         return
 
@@ -359,13 +330,8 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     if data.startswith("tp_"):
         topic = data[3:]
-        
         if topic not in DB_CACHE:
             await query.message.reply_text("❌ यह विषय डिलीट हो चुका है! /start करें।")
-            try:
-                await query.delete_message()
-            except Exception:
-                pass
             return
 
         qs = list(DB_CACHE.get(topic, []))
@@ -402,16 +368,33 @@ async def send_q(context, chat_id):
     q = qs[idx]
     bar = "🔹" * (idx + 1) + "▫️" * (len(qs) - idx - 1)
     
-    # 🎯 मुख्य सवाल की भाषा को ही डायनामिकली री-फ्रेज करना
+    # 🎯 1. मुख्य सवाल की भाषा को डायनामिकली बदलना
     q_text = get_final_dynamic_question(q)
+
+    # 🎲 2. स्मार्ट ऑप्शन शफलिंग (ऑप्शन्स की जगह बदलना और सही जवाब ट्रैक करना)
+    original_options = q['options'].copy()
+    correct_option_text = original_options[q['answer']] # असली सही जवाब का टेक्स्ट निकाल लिया
+
+    # ऑप्शन्स को ऊपर-नीचे (Shuffle) कर दिया
+    shuffled_options = original_options.copy()
+    random.shuffle(shuffled_options)
+
+    # अब शफल होने के बाद सही जवाब किस नंबर पर गया, वो पता लगा लिया
+    new_correct_index = shuffled_options.index(correct_option_text)
+    
+    # ऑप्शन्स के आगे थोड़ा स्टाइल (बुलेट पॉइंट) जोड़ दें ताकि नया लगे
+    styled_options = [f"▪️ {opt}" for opt in shuffled_options]
+
+    # यूज़र डेटा में सेव कर लें ताकि आंसर चेक करते समय दिक्कत न हो
+    ud['current_correct_index'] = new_correct_index
 
     try:
         await context.bot.send_poll(
             chat_id=chat_id,
             question=f"✨ ({idx+1}/{len(qs)}) {q_text}\n{bar}",
-            options=q['options'],
+            options=styled_options,
             type=Poll.QUIZ,
-            correct_option_id=q['answer'],
+            correct_option_id=new_correct_index, # यहाँ डायनामिक नया इंडेक्स दे दिया
             is_anonymous=False
         )
         ud['idx'] = idx + 1
@@ -424,10 +407,13 @@ async def handle_ans(update: Update, context: ContextTypes.DEFAULT_TYPE):
     ans = update.poll_answer
     uid = ans.user.id
     ud = context.application.user_data.get(uid)
+    
     if ud and ud.get('busy'):
         current_idx = ud['idx'] - 1
         if 0 <= current_idx < len(ud['qs']):
-            if ans.option_ids[0] == ud['qs'][current_idx]['answer']:
+            # अब हम फिक्स्ड JSON आंसर की जगह, शफल किया हुआ 'current_correct_index' चेक करेंगे
+            correct_ans = ud.get('current_correct_index')
+            if ans.option_ids[0] == correct_ans:
                 ud['score'] += 1
             await asyncio.sleep(0.2)
             await send_q(context, uid)
