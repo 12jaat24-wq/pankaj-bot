@@ -6,6 +6,7 @@ import asyncio
 import httpx
 import time
 import base64
+import re
 from telegram import Update, Poll, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import (
     Application,
@@ -44,46 +45,69 @@ def style_txt(text):
     STYLED_NAMES_CACHE[text] = res
     return res
 
-# 🎲 AUTO QUESTION VARIATION GENERATOR (ऑटोमैटिक भाषा बदलने की लॉजिक)
-PREFIX_PATTERNS = [
-    "बताइए, ",
-    "निम्नलिखित में से ",
-    "ध्यानपूर्वक पढ़कर उत्तर दें: ",
-    "नीचे दिए गए विकल्पों में से चुनें — ",
-    "सही उत्तर पहचानिए: ",
-    "प्रश्न: ",
-    "सोच-समझकर उत्तर दें: ",
-    "निम्न में से "
-]
+# 🧠 ADVANCED DEEP REPHRASER (मुख्य सवाल की भाषा को गहराई से बदलने की लॉजिक)
+def deep_rephrase_question(q_text):
+    q_text = q_text.strip()
 
-SUFFIX_PATTERNS = [
-    "",
-    " (सही उत्तर का चयन करें)",
-    " — इसका सही उत्तर क्या होगा?",
-    " (विकल्पों को ध्यान से पढ़ें)",
-    " ?"
-]
+    # यदि variations/question में पहले से लिस्ट हो तो
+    # 1. "कौन सा / कौन सी" वाले सवालों को बदलना
+    pattern_1 = [
+        lambda t: re.sub(r'कौन सा|कौन सी|कौनसे|किस', 'निम्नलिखित में से कौन-सा', t),
+        lambda t: re.sub(r'कौन सा|कौन सी', 'किस विकल्प को', t) + " माना जाता है?",
+        lambda t: "नीचे दिए गए विकल्पों में से पहचानिए कि " + t,
+        lambda t: "क्या आप बता सकते हैं कि " + t + "?",
+        lambda t: re.sub(r'कौन सा|कौन सी', 'वह कौन-सा विकल्प है जो', t)
+    ]
 
-def generate_auto_variation(q_obj):
-    """बिना JSON बदले किसी भी सवाल को ऑटोमैटिकली अलग भाषा में बदलने का फंक्शन"""
-    # 1. यदि JSON में variations मौजूद हैं तो उसमें से रैंडम लें
+    # 2. "कहाँ स्थित है / स्थित है" वाले सवालों को बदलना
+    pattern_loc = [
+        lambda t: t.replace("कहाँ स्थित है", "किस स्थान/जिले में स्थित है"),
+        lambda t: t.replace("स्थित है", "की मौजूदगी किस जगह पर है"),
+        lambda t: "स्थान से संबंधित प्रश्न: " + t,
+        lambda t: t.replace("कहाँ है", "की सही लोकेशन/स्थान क्या है")
+    ]
+
+    # 3. "किसने किया / स्थापना की" वाले सवालों को बदलना
+    pattern_person = [
+        lambda t: t.replace("किसने की", "किस शासक/व्यक्ति द्वारा की गई"),
+        lambda t: t.replace("किसने बनवाया", "के निर्माणकर्ता/संस्थापक कौन हैं"),
+        lambda t: "इतिहास/व्यक्तित्व आधारित: " + t
+    ]
+
+    # स्मार्ट पैटर्न मैचिंग
+    if "कहाँ" in q_text or "स्थित" in q_text:
+        fn = random.choice(pattern_loc)
+        q_text = fn(q_text)
+    elif "किसने" in q_text or "बनवाया" in q_text:
+        fn = random.choice(pattern_person)
+        q_text = fn(q_text)
+    elif "कौन" in q_text or "किस" in q_text:
+        fn = random.choice(pattern_1)
+        q_text = fn(q_text)
+    else:
+        # सामान्य सवालों के लिए विविध शैलियाँ
+        gen_styles = [
+            f"ध्यानपूर्वक पढ़ें और उत्तर दें ➔ {q_text}",
+            f"प्रश्न का सही उत्तर चुनें: {q_text}",
+            f"विकल्पों के आधार पर बताइए — {q_text}",
+            f"{q_text} (सही उत्तर पहचाने)",
+            f"सोच-समझकर टिक करें: {q_text}"
+        ]
+        q_text = random.choice(gen_styles)
+
+    # डुप्लीकेट प्रश्नवाचक चिन्ह हटाएं
+    q_text = re.sub(r'\?+', '?', q_text)
+    return q_text
+
+def get_final_dynamic_question(q_obj):
+    # 1. यदि JSON में पहले से variations की array है तो उसमें से एक लें
     if isinstance(q_obj.get('variations'), list) and len(q_obj['variations']) > 0:
         base_q = random.choice(q_obj['variations'])
     else:
         base_q = q_obj.get('question', '')
 
-    base_q = base_q.strip()
-
-    # 2. अगर सवाल में पहले से "निम्नलिखित" या "बताइए" जैसे शब्द हैं तो बिना डुप्लीकेट किए बदलें
-    starts_with_prefix = any(base_q.startswith(p.strip()) for p in ["निम्नलिखित", "बताइए", "निम्न में से", "ध्यानपूर्वक"])
-
-    if starts_with_prefix:
-        suffix = random.choice(SUFFIX_PATTERNS)
-        return f"{base_q}{suffix}"
-    else:
-        prefix = random.choice(PREFIX_PATTERNS)
-        suffix = random.choice(SUFFIX_PATTERNS)
-        return f"{prefix}{base_q}{suffix}"
+    # 2. अब मुख्य सवाल की भाषा को गहराई से बदलें
+    return deep_rephrase_question(base_q)
 
 # 🛡️ SAFE FETCH: GitHub से हमेशा ताज़ा डेटा लाएगा
 async def get_latest_github_db():
@@ -378,8 +402,8 @@ async def send_q(context, chat_id):
     q = qs[idx]
     bar = "🔹" * (idx + 1) + "▫️" * (len(qs) - idx - 1)
     
-    # 🎯 ऑटोमैटिक सवाल का रूप/भाषा बदलना (Zero JSON modification required)
-    q_text = generate_auto_variation(q)
+    # 🎯 मुख्य सवाल की भाषा को ही डायनामिकली री-फ्रेज करना
+    q_text = get_final_dynamic_question(q)
 
     try:
         await context.bot.send_poll(
