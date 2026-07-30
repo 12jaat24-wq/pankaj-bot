@@ -323,11 +323,9 @@ async def send_q(context, chat_id):
 
     ud['current_correct_index'] = new_correct_index
 
-    # 🛡️ Flood Control Preventer & Robust Retry Loop
+    # ⚡ Instant Mode (Zero Delay)
     for attempt in range(5):
         try:
-            # 1.2 सेकंड का सेफ गैप ताकि टेलीग्राम सवाल रोके नहीं
-            await asyncio.sleep(1.2)
             await context.bot.send_poll(
                 chat_id=chat_id,
                 question=f"✨ ({idx+1}/{len(qs)}) {q_text}\n{bar}",
@@ -335,15 +333,15 @@ async def send_q(context, chat_id):
                 type=Poll.QUIZ,
                 correct_option_id=new_correct_index,
                 is_anonymous=False,
-                read_timeout=15,
-                write_timeout=15,
-                connect_timeout=15
+                read_timeout=8,
+                write_timeout=8,
+                connect_timeout=8
             )
             ud['idx'] = idx + 1
             break
         except Exception as e:
             logger.error(f"Poll Send Attempt {attempt+1} Error: {e}")
-            await asyncio.sleep(2)
+            await asyncio.sleep(0.5)
 
 async def handle_ans(update: Update, context: ContextTypes.DEFAULT_TYPE):
     ans = update.poll_answer
@@ -357,7 +355,7 @@ async def handle_ans(update: Update, context: ContextTypes.DEFAULT_TYPE):
             if ans.option_ids[0] == correct_ans:
                 ud['score'] += 1
             
-            # अगले सवाल को सेफ बैकग्राउंड टास्क के साथ भेजें
+            # हाथों-हाथ (Instant) अगला सवाल भेजें
             asyncio.create_task(send_q(context, uid))
 
 # 🛡️ एरर हैंडलर
