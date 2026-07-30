@@ -6,7 +6,7 @@ import asyncio
 import httpx
 import time
 import base64
-from telegram import Update, Poll, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram import Update, Poll
 from telegram.ext import (
     Application,
     CommandHandler,
@@ -97,6 +97,7 @@ SHAYARIS = [
 ]
 
 def build_topics_keyboard(page: int = 0):
+    from telegram import InlineKeyboardButton, InlineKeyboardMarkup
     topics = sorted(list(DB_CACHE.keys()))
     if not topics:
         return InlineKeyboardMarkup([[InlineKeyboardButton("❌ कोई विषय नहीं मिला", callback_data="noop")]])
@@ -262,15 +263,6 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await reset_bot(TU(query.message), context)
         return
 
-    # ⏩ मैन्युअल Next बटन दबाने पर:
-    if data == "force_next_q":
-        try:
-            await query.message.delete()
-        except Exception:
-            pass
-        await send_q(context, query.message.chat_id)
-        return
-
     if data.startswith("page_"):
         page = int(data.split("_")[1])
         markup = build_topics_keyboard(page=page)
@@ -305,15 +297,6 @@ async def send_q(context, chat_id):
     if not ud or not ud.get('busy'):
         return
 
-    # पुराना बचा हुआ बटन साफ़ करें
-    old_btn_id = ud.get('last_btn_id')
-    if old_btn_id:
-        try:
-            await context.bot.delete_message(chat_id=chat_id, message_id=old_btn_id)
-            ud['last_btn_id'] = None
-        except Exception:
-            pass
-
     idx, qs = ud.get('idx', 0), ud['qs']
     if idx >= len(qs):
         score, total = ud['score'], len(qs)
@@ -341,37 +324,26 @@ async def send_q(context, chat_id):
     styled_options = [f"▪️ {opt}" for opt in shuffled_options]
 
     ud['current_correct_index'] = new_correct_index
+    ud['idx'] = idx + 1
 
-    # 🎨 सुंदर और स्टाइलिश बटन (दिखने में साफ़)
-    short_btn = InlineKeyboardMarkup([
-        [InlineKeyboardButton("⚡ 𝗡𝗲𝘅𝘁 ➔", callback_data="force_next_q")]
-    ])
-
-    try:
-        # 1. पोल भेजें
-        await context.bot.send_poll(
-            chat_id=chat_id,
-            question=f"✨ ({idx+1}/{len(qs)}) {q_text}\n{bar}",
-            options=styled_options,
-            type=Poll.QUIZ,
-            correct_option_id=new_correct_index,
-            is_anonymous=False,
-            read_timeout=8,
-            write_timeout=8,
-            connect_timeout=8
-        )
-        
-        # 2. बटन मैसेज भेजें
-        btn_msg = await context.bot.send_message(
-            chat_id=chat_id,
-            text="➔",
-            reply_markup=short_btn
-        )
-        ud['last_btn_id'] = btn_msg.message_id
-        ud['idx'] = idx + 1
-
-    except Exception as e:
-        logger.error(f"Poll Send Error: {e}")
+    # ⚡ FAST RETRY LOOP (बिना रुके तुरंत पोल भेजने के लिए)
+    for attempt in range(3):
+        try:
+            await context.bot.send_poll(
+                chat_id=chat_id,
+                question=f"✨ ({idx+1}/{len(qs)}) {q_text}\n{bar}",
+                options=styled_options,
+                type=Poll.QUIZ,
+                correct_option_id=new_correct_index,
+                is_anonymous=False,
+                read_timeout=5,
+                write_timeout=5,
+                connect_timeout=5
+            )
+            break
+        except Exception as e:
+            logger.error(f"Poll Send Attempt {attempt+1} Error: {e}")
+            await asyncio.sleep(0.2)
 
 async def handle_ans(update: Update, context: ContextTypes.DEFAULT_TYPE):
     ans = update.poll_answer
@@ -385,24 +357,15 @@ async def handle_ans(update: Update, context: ContextTypes.DEFAULT_TYPE):
             if ans.option_ids[0] == correct_ans:
                 ud['score'] += 1
             
-            # पिछला बटन तुरंत हटाएँ
-            last_btn_id = ud.get('last_btn_id')
-            if last_btn_id:
-                try:
-                    await context.bot.delete_message(chat_id=uid, message_id=last_btn_id)
-                    ud['last_btn_id'] = None
-                except Exception:
-                    pass
-
-            # ⚡ ऑप्शन्स पर टिक करते ही बिना बटन दबाए तुरंत अगला सवाल भेजें
-            await send_q(context, uid)
+            # 🚀 तुरंत बिना देरी के अगला सवाल
+            asyncio.create_task(send_q(context, uid))
 
 # 🛡️ एरर हैंडलर
 async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE):
     logger.error(f"Update {update} caused error {context.error}")
 
 def main():
-    app = Application.builder().token(TOKEN).concurrent_updates(False).build()
+    app = Application.builder().token(TOKEN).concurrent_updates(True).build()
 
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CommandHandler("refresh", refresh_cmd))
