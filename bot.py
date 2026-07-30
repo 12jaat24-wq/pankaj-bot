@@ -285,7 +285,7 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         random.shuffle(qs)
         context.user_data.clear()
-        context.user_data.update({'qs': qs, 'idx': 0, 'score': 0, 'busy': True, 'topic': topic})
+        context.user_data.update({'qs': qs, 'idx': 0, 'score': 0, 'busy': True, 'topic': topic, 'processing': False})
         try:
             await query.delete_message()
         except Exception:
@@ -326,29 +326,26 @@ async def send_q(context, chat_id):
     ud['current_correct_index'] = new_correct_index
     ud['idx'] = idx + 1
 
-    # 🛡️ RATE LIMIT SAFE POLL SENDER (स्मार्ट ऑटो-रीट्राई के साथ)
-    for attempt in range(4):
-        try:
-            await context.bot.send_poll(
-                chat_id=chat_id,
-                question=f"✨ ({idx+1}/{len(qs)}) {q_text}\n{bar}",
-                options=styled_options,
-                type=Poll.QUIZ,
-                correct_option_id=new_correct_index,
-                is_anonymous=False,
-                read_timeout=10,
-                write_timeout=10,
-                connect_timeout=10
-            )
-            break
-        except Exception as e:
-            err_msg = str(e).lower()
-            logger.error(f"Poll Send Attempt {attempt+1} Error: {e}")
-            if "retry after" in err_msg or "429" in err_msg:
-                # अगर Telegram ने रेट लिमिट लगाई तो 1 सेकंड रुककर खुद फिर कोशिश करेगा
-                await asyncio.sleep(1.2)
-            else:
-                await asyncio.sleep(0.3)
+    try:
+        # ⚡ INSTANT POLL SENDER
+        await context.bot.send_poll(
+            chat_id=chat_id,
+            question=f"✨ ({idx+1}/{len(qs)}) {q_text}\n{bar}",
+            options=styled_options,
+            type=Poll.QUIZ,
+            correct_option_id=new_correct_index,
+            is_anonymous=False,
+            read_timeout=15,
+            write_timeout=15,
+            connect_timeout=15
+        )
+    except Exception as e:
+        logger.error(f"Poll Send Error: {e}")
+        # अगर टेलीग्राम सर्वर ड्रॉप करे, तो बिना रुके तुरंत 0.1s में दोबारा ट्राई करेगा
+        await asyncio.sleep(0.1)
+        await send_q(context, chat_id)
+    finally:
+        ud['processing'] = False
 
 async def handle_ans(update: Update, context: ContextTypes.DEFAULT_TYPE):
     ans = update.poll_answer
@@ -356,16 +353,18 @@ async def handle_ans(update: Update, context: ContextTypes.DEFAULT_TYPE):
     ud = context.application.user_data.get(uid)
     
     if ud and ud.get('busy'):
+        # 🛡️ रेस कंडीशन रोकने के लिए सुरक्षा ताला (Locking)
+        if ud.get('processing', False):
+            return
+        ud['processing'] = True
+
         current_idx = ud['idx'] - 1
         if 0 <= current_idx < len(ud['qs']):
             correct_ans = ud.get('current_correct_index')
             if ans.option_ids[0] == correct_ans:
                 ud['score'] += 1
             
-            # ⏱️ 0.3 सेकंड का सेफ बफर ताकि टेलीग्राम Rate Limit न लगाए
-            await asyncio.sleep(0.3)
-            
-            # 🚀 बिना किसी बाधा के अगला सवाल भेजें
+            # 🚀 बिना 1 सेकंड भी रुके (TURANT) अगला सवाल
             await send_q(context, uid)
 
 # 🛡️ एरर हैंडलर
@@ -373,7 +372,8 @@ async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE):
     logger.error(f"Update {update} caused error {context.error}")
 
 def main():
-    app = Application.builder().token(TOKEN).concurrent_updates(True).build()
+    # ⚡ Single Threaded Execution (ताकि क्रैश या सवाल अटकना बंद हो जाए)
+    app = Application.builder().token(TOKEN).concurrent_updates(False).build()
 
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CommandHandler("refresh", refresh_cmd))
