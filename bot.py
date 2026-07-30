@@ -262,7 +262,7 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await reset_bot(TU(query.message), context)
         return
 
-    # ⏩ मैन्युअल Next बटन (डिज़ाइनर Lock के साथ)
+    # ⏩ मैन्युअल Next बटन दबाने पर:
     if data == "force_next_q":
         try:
             await query.message.delete()
@@ -293,7 +293,7 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         random.shuffle(qs)
         context.user_data.clear()
-        context.user_data.update({'qs': qs, 'idx': 0, 'score': 0, 'busy': True, 'topic': topic, 'sending': False})
+        context.user_data.update({'qs': qs, 'idx': 0, 'score': 0, 'busy': True, 'topic': topic})
         try:
             await query.delete_message()
         except Exception:
@@ -305,52 +305,49 @@ async def send_q(context, chat_id):
     if not ud or not ud.get('busy'):
         return
 
-    # 🛑 1. DUPLICATE PREVENTER LOCK (ताकि एक साथ 4 मैसेज न आएं)
-    if ud.get('sending', False):
+    # पुराना बचा हुआ बटन साफ़ करें
+    old_btn_id = ud.get('last_btn_id')
+    if old_btn_id:
+        try:
+            await context.bot.delete_message(chat_id=chat_id, message_id=old_btn_id)
+            ud['last_btn_id'] = None
+        except Exception:
+            pass
+
+    idx, qs = ud.get('idx', 0), ud['qs']
+    if idx >= len(qs):
+        score, total = ud['score'], len(qs)
+        per = int((score / total) * 100) if total > 0 else 0
+        medal = "🏆" if per >= 80 else "🥇"
+        res = (
+            f"╔══════════════════╗\n  📊 {style_txt('REPORT CARD')} {medal} \n╚══════════════════╝\n"
+            f"📝 विषय: {ud['topic']}\n✅ सही: {score} | ❌ गलत: {total - score}\n🏆 स्कोर: {per}%\n━━━━━━━━━━━━━━━━━━━━\n🔥 /start - फिर से खेलें"
+        )
+        await context.bot.send_message(chat_id, res, parse_mode="Markdown")
+        ud.clear()
         return
-    ud['sending'] = True # लॉक चालू
+
+    q = qs[idx]
+    bar = "🔹" * (idx + 1) + "▫️" * (len(qs) - idx - 1)
+    
+    q_text = q.get('question', '').strip()
+    original_options = q['options'].copy()
+    correct_option_text = original_options[q['answer']]
+
+    shuffled_options = original_options.copy()
+    random.shuffle(shuffled_options)
+
+    new_correct_index = shuffled_options.index(correct_option_text)
+    styled_options = [f"▪️ {opt}" for opt in shuffled_options]
+
+    ud['current_correct_index'] = new_correct_index
+
+    # 🎨 सुंदर और स्टाइलिश बटन (दिखने में साफ़)
+    short_btn = InlineKeyboardMarkup([
+        [InlineKeyboardButton("⚡ 𝗡𝗲𝘅𝘁 ➔", callback_data="force_next_q")]
+    ])
 
     try:
-        # पुराना बचा हुआ बटन साफ़ करें
-        old_btn_id = ud.get('last_btn_id')
-        if old_btn_id:
-            try:
-                await context.bot.delete_message(chat_id=chat_id, message_id=old_btn_id)
-            except Exception:
-                pass
-
-        idx, qs = ud.get('idx', 0), ud['qs']
-        if idx >= len(qs):
-            score, total = ud['score'], len(qs)
-            per = int((score / total) * 100) if total > 0 else 0
-            medal = "🏆" if per >= 80 else "🥇"
-            res = (
-                f"╔══════════════════╗\n  📊 {style_txt('REPORT CARD')} {medal} \n╚══════════════════╝\n"
-                f"📝 विषय: {ud['topic']}\n✅ सही: {score} | ❌ गलत: {total - score}\n🏆 स्कोर: {per}%\n━━━━━━━━━━━━━━━━━━━━\n🔥 /start - फिर से खेलें"
-            )
-            await context.bot.send_message(chat_id, res, parse_mode="Markdown")
-            ud.clear()
-            return
-
-        q = qs[idx]
-        bar = "🔹" * (idx + 1) + "▫️" * (len(qs) - idx - 1)
-        
-        q_text = q.get('question', '').strip()
-        original_options = q['options'].copy()
-        correct_option_text = original_options[q['answer']]
-
-        shuffled_options = original_options.copy()
-        random.shuffle(shuffled_options)
-
-        new_correct_index = shuffled_options.index(correct_option_text)
-        styled_options = [f"▪️ {opt}" for opt in shuffled_options]
-
-        ud['current_correct_index'] = new_correct_index
-
-        short_btn = InlineKeyboardMarkup([
-            [InlineKeyboardButton("⚡ 𝗡𝗲𝘅𝘁 ➔", callback_data="force_next_q")]
-        ])
-
         # 1. पोल भेजें
         await context.bot.send_poll(
             chat_id=chat_id,
@@ -364,10 +361,10 @@ async def send_q(context, chat_id):
             connect_timeout=8
         )
         
-        # 2. बटन भेजें
+        # 2. बटन मैसेज भेजें
         btn_msg = await context.bot.send_message(
             chat_id=chat_id,
-            text="⠀",
+            text="➔",
             reply_markup=short_btn
         )
         ud['last_btn_id'] = btn_msg.message_id
@@ -375,8 +372,6 @@ async def send_q(context, chat_id):
 
     except Exception as e:
         logger.error(f"Poll Send Error: {e}")
-    finally:
-        ud['sending'] = False # 🔓 अनलोक करें
 
 async def handle_ans(update: Update, context: ContextTypes.DEFAULT_TYPE):
     ans = update.poll_answer
@@ -390,7 +385,7 @@ async def handle_ans(update: Update, context: ContextTypes.DEFAULT_TYPE):
             if ans.option_ids[0] == correct_ans:
                 ud['score'] += 1
             
-            # पिछला बटन तुरंत डिलीट
+            # पिछला बटन तुरंत हटाएँ
             last_btn_id = ud.get('last_btn_id')
             if last_btn_id:
                 try:
@@ -399,7 +394,7 @@ async def handle_ans(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 except Exception:
                     pass
 
-            # अगला सवाल भेजें
+            # ⚡ ऑप्शन्स पर टिक करते ही बिना बटन दबाए तुरंत अगला सवाल भेजें
             await send_q(context, uid)
 
 # 🛡️ एरर हैंडलर
