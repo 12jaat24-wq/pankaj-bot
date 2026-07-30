@@ -262,6 +262,11 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await reset_bot(TU(query.message), context)
         return
 
+    # ⏩ मैन्युअल अगला सवाल बटन हैंडलर
+    if data == "force_next_q":
+        await send_q(context, query.message.chat_id)
+        return
+
     if data.startswith("page_"):
         page = int(data.split("_")[1])
         markup = build_topics_keyboard(page=page)
@@ -323,9 +328,14 @@ async def send_q(context, chat_id):
 
     ud['current_correct_index'] = new_correct_index
 
-    # ⚡ Instant Mode (Zero Delay)
+    # ⏩ बैकअप Next बटन (Stylish Arrow Button)
+    next_btn = InlineKeyboardMarkup([
+        [InlineKeyboardButton("⏭️ Next Question / अगला सवाल ➔", callback_data="force_next_q")]
+    ])
+
     for attempt in range(5):
         try:
+            # 1. पोल भेजें
             await context.bot.send_poll(
                 chat_id=chat_id,
                 question=f"✨ ({idx+1}/{len(qs)}) {q_text}\n{bar}",
@@ -337,6 +347,15 @@ async def send_q(context, chat_id):
                 write_timeout=8,
                 connect_timeout=8
             )
+            
+            # 2. साथ ही तुरंत नीचे बैकअप Arrow बटन भेजें (अगर बॉट कभी अटके तो)
+            await context.bot.send_message(
+                chat_id=chat_id,
+                text="➔ *अगर सवाल आने में देर हो तो नीचे क्लिक करें:*",
+                reply_markup=next_btn,
+                parse_mode="Markdown"
+            )
+
             ud['idx'] = idx + 1
             break
         except Exception as e:
@@ -355,7 +374,7 @@ async def handle_ans(update: Update, context: ContextTypes.DEFAULT_TYPE):
             if ans.option_ids[0] == correct_ans:
                 ud['score'] += 1
             
-            # हाथों-हाथ (Instant) अगला सवाल भेजें
+            # हाथों-हाथ अगला सवाल भेजें
             asyncio.create_task(send_q(context, uid))
 
 # 🛡️ एरर हैंडलर
