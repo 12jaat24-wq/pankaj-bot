@@ -139,7 +139,7 @@ async def reset_bot(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await context.bot.set_webhook(url=f"{RENDER_URL}/{TOKEN}", drop_pending_updates=True)
         await sync_db()
         context.user_data.clear()
-        res = "╔════════════════════╗\n  ⚡ BOT IS ALIVE NOW ⚡ \n╚════════════════════╝\n✅ पुराने सभी रिक्वेस्ट साफ़ हो गए हैं!"
+        res = "╔════════════════════╗\n  ⚡ BOT IS ALIVE NOW ⚡ \n╚════════════════════╝\n✅ सारे जाम साफ़ हो गए हैं!"
         await m.edit_text(res, parse_mode="Markdown")
     except Exception as e:
         await m.edit_text(f"❌ Failed: {e}")
@@ -262,7 +262,7 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await reset_bot(TU(query.message), context)
         return
 
-    # ⏩ मैन्युअल Next बटन
+    # ⏩ मैन्युअल Next बटन (डिज़ाइनर Lock के साथ)
     if data == "force_next_q":
         try:
             await query.message.delete()
@@ -292,9 +292,8 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             return
 
         random.shuffle(qs)
-        # विषय शुरू होते ही पुराना सेशन एकदम फ्रेश करें
         context.user_data.clear()
-        context.user_data.update({'qs': qs, 'idx': 0, 'score': 0, 'busy': True, 'topic': topic})
+        context.user_data.update({'qs': qs, 'idx': 0, 'score': 0, 'busy': True, 'topic': topic, 'sending': False})
         try:
             await query.delete_message()
         except Exception:
@@ -306,75 +305,78 @@ async def send_q(context, chat_id):
     if not ud or not ud.get('busy'):
         return
 
-    # पुराना बचा हुआ बटन साफ़ करें
-    old_btn_id = ud.get('last_btn_id')
-    if old_btn_id:
-        try:
-            await context.bot.delete_message(chat_id=chat_id, message_id=old_btn_id)
-        except Exception:
-            pass
-
-    idx, qs = ud.get('idx', 0), ud['qs']
-    if idx >= len(qs):
-        score, total = ud['score'], len(qs)
-        per = int((score / total) * 100) if total > 0 else 0
-        medal = "🏆" if per >= 80 else "🥇"
-        res = (
-            f"╔══════════════════╗\n  📊 {style_txt('REPORT CARD')} {medal} \n╚══════════════════╝\n"
-            f"📝 विषय: {ud['topic']}\n✅ सही: {score} | ❌ गलत: {total - score}\n🏆 स्कोर: {per}%\n━━━━━━━━━━━━━━━━━━━━\n🔥 /start - फिर से खेलें"
-        )
-        await context.bot.send_message(chat_id, res, parse_mode="Markdown")
-        ud.clear()
+    # 🛑 1. DUPLICATE PREVENTER LOCK (ताकि एक साथ 4 मैसेज न आएं)
+    if ud.get('sending', False):
         return
+    ud['sending'] = True # लॉक चालू
 
-    q = qs[idx]
-    bar = "🔹" * (idx + 1) + "▫️" * (len(qs) - idx - 1)
-    
-    q_text = q.get('question', '').strip()
-    original_options = q['options'].copy()
-    correct_option_text = original_options[q['answer']]
+    try:
+        # पुराना बचा हुआ बटन साफ़ करें
+        old_btn_id = ud.get('last_btn_id')
+        if old_btn_id:
+            try:
+                await context.bot.delete_message(chat_id=chat_id, message_id=old_btn_id)
+            except Exception:
+                pass
 
-    shuffled_options = original_options.copy()
-    random.shuffle(shuffled_options)
-
-    new_correct_index = shuffled_options.index(correct_option_text)
-    styled_options = [f"▪️ {opt}" for opt in shuffled_options]
-
-    ud['current_correct_index'] = new_correct_index
-
-    # 🎨 छोटा और स्टाइलिश बटन
-    short_btn = InlineKeyboardMarkup([
-        [InlineKeyboardButton("⚡ 𝗡𝗲𝘅𝘁 ➔", callback_data="force_next_q")]
-    ])
-
-    for attempt in range(5):
-        try:
-            # 1. पोल भेजें
-            await context.bot.send_poll(
-                chat_id=chat_id,
-                question=f"✨ ({idx+1}/{len(qs)}) {q_text}\n{bar}",
-                options=styled_options,
-                type=Poll.QUIZ,
-                correct_option_id=new_correct_index,
-                is_anonymous=False,
-                read_timeout=8,
-                write_timeout=8,
-                connect_timeout=8
+        idx, qs = ud.get('idx', 0), ud['qs']
+        if idx >= len(qs):
+            score, total = ud['score'], len(qs)
+            per = int((score / total) * 100) if total > 0 else 0
+            medal = "🏆" if per >= 80 else "🥇"
+            res = (
+                f"╔══════════════════╗\n  📊 {style_txt('REPORT CARD')} {medal} \n╚══════════════════╝\n"
+                f"📝 विषय: {ud['topic']}\n✅ सही: {score} | ❌ गलत: {total - score}\n🏆 स्कोर: {per}%\n━━━━━━━━━━━━━━━━━━━━\n🔥 /start - फिर से खेलें"
             )
-            
-            # 2. बटन भेजें
-            btn_msg = await context.bot.send_message(
-                chat_id=chat_id,
-                text="⠀",
-                reply_markup=short_btn
-            )
-            ud['last_btn_id'] = btn_msg.message_id
+            await context.bot.send_message(chat_id, res, parse_mode="Markdown")
+            ud.clear()
+            return
 
-            ud['idx'] = idx + 1
-            break
-        except Exception as e:
-            logger.error(f"Poll Send Attempt {attempt+1} Error: {e}")
-            await asyncio.sleep(0.5)
+        q = qs[idx]
+        bar = "🔹" * (idx + 1) + "▫️" * (len(qs) - idx - 1)
+        
+        q_text = q.get('question', '').strip()
+        original_options = q['options'].copy()
+        correct_option_text = original_options[q['answer']]
+
+        shuffled_options = original_options.copy()
+        random.shuffle(shuffled_options)
+
+        new_correct_index = shuffled_options.index(correct_option_text)
+        styled_options = [f"▪️ {opt}" for opt in shuffled_options]
+
+        ud['current_correct_index'] = new_correct_index
+
+        short_btn = InlineKeyboardMarkup([
+            [InlineKeyboardButton("⚡ 𝗡𝗲𝘅𝘁 ➔", callback_data="force_next_q")]
+        ])
+
+        # 1. पोल भेजें
+        await context.bot.send_poll(
+            chat_id=chat_id,
+            question=f"✨ ({idx+1}/{len(qs)}) {q_text}\n{bar}",
+            options=styled_options,
+            type=Poll.QUIZ,
+            correct_option_id=new_correct_index,
+            is_anonymous=False,
+            read_timeout=8,
+            write_timeout=8,
+            connect_timeout=8
+        )
+        
+        # 2. बटन भेजें
+        btn_msg = await context.bot.send_message(
+            chat_id=chat_id,
+            text="⠀",
+            reply_markup=short_btn
+        )
+        ud['last_btn_id'] = btn_msg.message_id
+        ud['idx'] = idx + 1
+
+    except Exception as e:
+        logger.error(f"Poll Send Error: {e}")
+    finally:
+        ud['sending'] = False # 🔓 अनलोक करें
 
 async def handle_ans(update: Update, context: ContextTypes.DEFAULT_TYPE):
     ans = update.poll_answer
@@ -405,7 +407,6 @@ async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE):
     logger.error(f"Update {update} caused error {context.error}")
 
 def main():
-    # concurrent_updates=False किया गया है ताकि सवाल एक-एक करके ही आएं
     app = Application.builder().token(TOKEN).concurrent_updates(False).build()
 
     app.add_handler(CommandHandler("start", start))
