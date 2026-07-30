@@ -326,8 +326,8 @@ async def send_q(context, chat_id):
     ud['current_correct_index'] = new_correct_index
     ud['idx'] = idx + 1
 
-    # ⚡ FAST RETRY LOOP (बिना रुके तुरंत पोल भेजने के लिए)
-    for attempt in range(3):
+    # 🛡️ RATE LIMIT SAFE POLL SENDER (स्मार्ट ऑटो-रीट्राई के साथ)
+    for attempt in range(4):
         try:
             await context.bot.send_poll(
                 chat_id=chat_id,
@@ -336,14 +336,19 @@ async def send_q(context, chat_id):
                 type=Poll.QUIZ,
                 correct_option_id=new_correct_index,
                 is_anonymous=False,
-                read_timeout=5,
-                write_timeout=5,
-                connect_timeout=5
+                read_timeout=10,
+                write_timeout=10,
+                connect_timeout=10
             )
             break
         except Exception as e:
+            err_msg = str(e).lower()
             logger.error(f"Poll Send Attempt {attempt+1} Error: {e}")
-            await asyncio.sleep(0.2)
+            if "retry after" in err_msg or "429" in err_msg:
+                # अगर Telegram ने रेट लिमिट लगाई तो 1 सेकंड रुककर खुद फिर कोशिश करेगा
+                await asyncio.sleep(1.2)
+            else:
+                await asyncio.sleep(0.3)
 
 async def handle_ans(update: Update, context: ContextTypes.DEFAULT_TYPE):
     ans = update.poll_answer
@@ -357,8 +362,11 @@ async def handle_ans(update: Update, context: ContextTypes.DEFAULT_TYPE):
             if ans.option_ids[0] == correct_ans:
                 ud['score'] += 1
             
-            # 🚀 तुरंत बिना देरी के अगला सवाल
-            asyncio.create_task(send_q(context, uid))
+            # ⏱️ 0.3 सेकंड का सेफ बफर ताकि टेलीग्राम Rate Limit न लगाए
+            await asyncio.sleep(0.3)
+            
+            # 🚀 बिना किसी बाधा के अगला सवाल भेजें
+            await send_q(context, uid)
 
 # 🛡️ एरर हैंडलर
 async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE):
