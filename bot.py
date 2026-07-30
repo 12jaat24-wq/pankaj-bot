@@ -33,7 +33,6 @@ DB_CACHE = {}
 STYLED_NAMES_CACHE = {}
 TOPICS_PER_PAGE = 10 
 
-# --- स्टाइलिश फॉन्ट ---
 def style_txt(text):
     if text in STYLED_NAMES_CACHE:
         return STYLED_NAMES_CACHE[text]
@@ -44,7 +43,6 @@ def style_txt(text):
     STYLED_NAMES_CACHE[text] = res
     return res
 
-# 🛡️ SAFE FETCH & SAVE FOR GITHUB
 async def get_latest_github_db():
     headers = {
         "Authorization": f"token {GITHUB_TOKEN}",
@@ -313,40 +311,38 @@ async def send_q(context, chat_id):
     q = qs[idx]
     bar = "🔹" * (idx + 1) + "▫️" * (len(qs) - idx - 1)
     
-    # 📌 1. मूल प्रश्न (Original Question Text)
     q_text = q.get('question', '').strip()
 
-    # 🎲 2. स्मार्ट ऑप्शन शफलिंग (हर बार ऑप्शन्स की जगह बदलना)
     original_options = q['options'].copy()
-    correct_option_text = original_options[q['answer']] # सही उत्तर का टेक्स्ट निकाल लिया
+    correct_option_text = original_options[q['answer']]
 
-    # ऑप्शन्स को रैंडम शफल करना
     shuffled_options = original_options.copy()
     random.shuffle(shuffled_options)
 
-    # नया सही उत्तर किस इंडेक्स पर गया, वो ट्रैक करना
     new_correct_index = shuffled_options.index(correct_option_text)
-    
-    # ऑप्शन्स के आगे डिज़ाइन जोड़ना
     styled_options = [f"▪️ {opt}" for opt in shuffled_options]
 
-    # यूज़र डेटा में नया सही इंडेक्स सेव करना
     ud['current_correct_index'] = new_correct_index
 
-    try:
-        await context.bot.send_poll(
-            chat_id=chat_id,
-            question=f"✨ ({idx+1}/{len(qs)}) {q_text}\n{bar}",
-            options=styled_options,
-            type=Poll.QUIZ,
-            correct_option_id=new_correct_index,
-            is_anonymous=False
-        )
-        ud['idx'] = idx + 1
-    except Exception as e:
-        logger.error(f"Poll Send Error: {e}")
-        await asyncio.sleep(0.5)
-        await send_q(context, chat_id)
+    # 🛡️ Network Retry Loop (सवाल बीच में न रुके)
+    for attempt in range(3):
+        try:
+            await context.bot.send_poll(
+                chat_id=chat_id,
+                question=f"✨ ({idx+1}/{len(qs)}) {q_text}\n{bar}",
+                options=styled_options,
+                type=Poll.QUIZ,
+                correct_option_id=new_correct_index,
+                is_anonymous=False,
+                read_timeout=10,
+                write_timeout=10,
+                connect_timeout=10
+            )
+            ud['idx'] = idx + 1
+            break
+        except Exception as e:
+            logger.error(f"Poll Send Attempt {attempt+1} Error: {e}")
+            await asyncio.sleep(0.5)
 
 async def handle_ans(update: Update, context: ContextTypes.DEFAULT_TYPE):
     ans = update.poll_answer
@@ -359,8 +355,12 @@ async def handle_ans(update: Update, context: ContextTypes.DEFAULT_TYPE):
             correct_ans = ud.get('current_correct_index')
             if ans.option_ids[0] == correct_ans:
                 ud['score'] += 1
-            await asyncio.sleep(0.2)
+            await asyncio.sleep(0.1)
             await send_q(context, uid)
+
+# 🛡️ एरर हैंडलर
+async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE):
+    logger.error(f"Update {update} caused error {context.error}")
 
 def main():
     app = Application.builder().token(TOKEN).concurrent_updates(True).build()
@@ -373,6 +373,8 @@ def main():
     app.add_handler(PollAnswerHandler(handle_ans))
     app.add_handler(MessageHandler(filters.TEXT & (~filters.COMMAND), handle_input))
     app.add_handler(MessageHandler(filters.Document.ALL, handle_input))
+    
+    app.add_error_handler(error_handler)
 
     p = int(os.environ.get("PORT", 10000))
     app.run_webhook(
