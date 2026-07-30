@@ -139,7 +139,7 @@ async def reset_bot(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await context.bot.set_webhook(url=f"{RENDER_URL}/{TOKEN}", drop_pending_updates=True)
         await sync_db()
         context.user_data.clear()
-        res = "╔════════════════════╗\n  ⚡ BOT IS ALIVE NOW ⚡ \n╚════════════════════╝\n✅ सारे जाम साफ़ हो गए हैं!"
+        res = "╔════════════════════╗\n  ⚡ BOT IS ALIVE NOW ⚡ \n╚════════════════════╝\n✅ पुराने सभी रिक्वेस्ट साफ़ हो गए हैं!"
         await m.edit_text(res, parse_mode="Markdown")
     except Exception as e:
         await m.edit_text(f"❌ Failed: {e}")
@@ -262,10 +262,10 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await reset_bot(TU(query.message), context)
         return
 
-    # ⏩ शॉर्ट Next बटन दबाने पर:
+    # ⏩ मैन्युअल Next बटन
     if data == "force_next_q":
         try:
-            await query.message.delete() # पिछला बटन तुरंत डिलीट
+            await query.message.delete()
         except Exception:
             pass
         await send_q(context, query.message.chat_id)
@@ -292,6 +292,8 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             return
 
         random.shuffle(qs)
+        # विषय शुरू होते ही पुराना सेशन एकदम फ्रेश करें
+        context.user_data.clear()
         context.user_data.update({'qs': qs, 'idx': 0, 'score': 0, 'busy': True, 'topic': topic})
         try:
             await query.delete_message()
@@ -304,7 +306,7 @@ async def send_q(context, chat_id):
     if not ud or not ud.get('busy'):
         return
 
-    # पुराने बटन को साफ़ करें अगर बचा हो
+    # पुराना बचा हुआ बटन साफ़ करें
     old_btn_id = ud.get('last_btn_id')
     if old_btn_id:
         try:
@@ -340,7 +342,7 @@ async def send_q(context, chat_id):
 
     ud['current_correct_index'] = new_correct_index
 
-    # 🎨 शॉर्ट, कलरफुल और स्टाइलिश नेक्स्ट बटन
+    # 🎨 छोटा और स्टाइलिश बटन
     short_btn = InlineKeyboardMarkup([
         [InlineKeyboardButton("⚡ 𝗡𝗲𝘅𝘁 ➔", callback_data="force_next_q")]
     ])
@@ -360,13 +362,13 @@ async def send_q(context, chat_id):
                 connect_timeout=8
             )
             
-            # 2. ठीक नीचे छोटा और सुंदर बटन भेजें
+            # 2. बटन भेजें
             btn_msg = await context.bot.send_message(
                 chat_id=chat_id,
-                text="⠀", # खाली/क्लीन स्पेस
+                text="⠀",
                 reply_markup=short_btn
             )
-            ud['last_btn_id'] = btn_msg.message_id # बटन ID सेव करें
+            ud['last_btn_id'] = btn_msg.message_id
 
             ud['idx'] = idx + 1
             break
@@ -386,7 +388,7 @@ async def handle_ans(update: Update, context: ContextTypes.DEFAULT_TYPE):
             if ans.option_ids[0] == correct_ans:
                 ud['score'] += 1
             
-            # 🗑️ उत्तर चुनते ही पिछला '⚡ Next ➔' बटन तुरंत हटाएँ (Delete)
+            # पिछला बटन तुरंत डिलीट
             last_btn_id = ud.get('last_btn_id')
             if last_btn_id:
                 try:
@@ -395,15 +397,16 @@ async def handle_ans(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 except Exception:
                     pass
 
-            # हाथों-हाथ Instant अगला सवाल भेजें
-            asyncio.create_task(send_q(context, uid))
+            # अगला सवाल भेजें
+            await send_q(context, uid)
 
 # 🛡️ एरर हैंडलर
 async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE):
     logger.error(f"Update {update} caused error {context.error}")
 
 def main():
-    app = Application.builder().token(TOKEN).concurrent_updates(True).build()
+    # concurrent_updates=False किया गया है ताकि सवाल एक-एक करके ही आएं
+    app = Application.builder().token(TOKEN).concurrent_updates(False).build()
 
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CommandHandler("refresh", refresh_cmd))
