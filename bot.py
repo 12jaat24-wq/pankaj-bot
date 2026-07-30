@@ -262,8 +262,12 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await reset_bot(TU(query.message), context)
         return
 
-    # ⏩ मैन्युअल अगला सवाल बटन हैंडलर
+    # ⏩ शॉर्ट Next बटन दबाने पर:
     if data == "force_next_q":
+        try:
+            await query.message.delete() # पिछला बटन तुरंत डिलीट
+        except Exception:
+            pass
         await send_q(context, query.message.chat_id)
         return
 
@@ -300,6 +304,14 @@ async def send_q(context, chat_id):
     if not ud or not ud.get('busy'):
         return
 
+    # पुराने बटन को साफ़ करें अगर बचा हो
+    old_btn_id = ud.get('last_btn_id')
+    if old_btn_id:
+        try:
+            await context.bot.delete_message(chat_id=chat_id, message_id=old_btn_id)
+        except Exception:
+            pass
+
     idx, qs = ud.get('idx', 0), ud['qs']
     if idx >= len(qs):
         score, total = ud['score'], len(qs)
@@ -328,9 +340,9 @@ async def send_q(context, chat_id):
 
     ud['current_correct_index'] = new_correct_index
 
-    # ⏩ बैकअप Next बटन (Stylish Arrow Button)
-    next_btn = InlineKeyboardMarkup([
-        [InlineKeyboardButton("⏭️ Next Question / अगला सवाल ➔", callback_data="force_next_q")]
+    # 🎨 शॉर्ट, कलरफुल और स्टाइलिश नेक्स्ट बटन
+    short_btn = InlineKeyboardMarkup([
+        [InlineKeyboardButton("⚡ 𝗡𝗲𝘅𝘁 ➔", callback_data="force_next_q")]
     ])
 
     for attempt in range(5):
@@ -348,13 +360,13 @@ async def send_q(context, chat_id):
                 connect_timeout=8
             )
             
-            # 2. साथ ही तुरंत नीचे बैकअप Arrow बटन भेजें (अगर बॉट कभी अटके तो)
-            await context.bot.send_message(
+            # 2. ठीक नीचे छोटा और सुंदर बटन भेजें
+            btn_msg = await context.bot.send_message(
                 chat_id=chat_id,
-                text="➔ *अगर सवाल आने में देर हो तो नीचे क्लिक करें:*",
-                reply_markup=next_btn,
-                parse_mode="Markdown"
+                text="⠀", # खाली/क्लीन स्पेस
+                reply_markup=short_btn
             )
+            ud['last_btn_id'] = btn_msg.message_id # बटन ID सेव करें
 
             ud['idx'] = idx + 1
             break
@@ -374,7 +386,16 @@ async def handle_ans(update: Update, context: ContextTypes.DEFAULT_TYPE):
             if ans.option_ids[0] == correct_ans:
                 ud['score'] += 1
             
-            # हाथों-हाथ अगला सवाल भेजें
+            # 🗑️ उत्तर चुनते ही पिछला '⚡ Next ➔' बटन तुरंत हटाएँ (Delete)
+            last_btn_id = ud.get('last_btn_id')
+            if last_btn_id:
+                try:
+                    await context.bot.delete_message(chat_id=uid, message_id=last_btn_id)
+                    ud['last_btn_id'] = None
+                except Exception:
+                    pass
+
+            # हाथों-हाथ Instant अगला सवाल भेजें
             asyncio.create_task(send_q(context, uid))
 
 # 🛡️ एरर हैंडलर
