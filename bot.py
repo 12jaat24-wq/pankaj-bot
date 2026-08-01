@@ -6,11 +6,12 @@ import asyncio
 import httpx
 import time
 import base64
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram import Update, Poll, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import (
     Application,
     CommandHandler,
     CallbackQueryHandler,
+    PollAnswerHandler,
     MessageHandler,
     filters,
     ContextTypes
@@ -245,15 +246,85 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     markup = build_topics_keyboard(page=0)
     await update.message.reply_text(welcome, reply_markup=markup, parse_mode="Markdown")
 
-# --- सुपर फ़ास्ट प्रश्न भेजने का फ़ंक्शन (Inline Buttons आधारित) ---
-async def send_fast_q(update_or_context, chat_id, is_edit=False):
-    if isinstance(update_or_context, ContextTypes.DEFAULT_TYPE):
-        context = update_or_context
-        query = None
-    else:
-        query = update_or_context.callback_query
-        context = update_or_context
+async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    try:
+        await query.answer()
+    except Exception:
+        pass
 
+    data = query.data
+    if data == "noop": return
+
+    if data == "super_reset":
+        class TU:
+            def __init__(self, m): self.message = m
+        await reset_bot(TU(query.message), context)
+        return
+
+    if data.startswith("page_"):
+        page = int(data.split("_")[1])
+        markup = build_topics_keyboard(page=page)
+        try:
+            await query.edit_message_reply_markup(reply_markup=markup)
+        except Exception:
+            pass
+        return
+
+    if data.startswith("tp_"):
+        topic = data[3:]
+        if topic not in DB_CACHE:
+            await query.message.reply_text("❌ यह विषय डिलीट हो चुका है! /start करें।")
+            return
+
+        qs = list(DB_CACHE.get(topic, []))
+        if not qs:
+            await query.message.reply_text("❌ इस विषय में कोई सवाल नहीं हैं!")
+            return
+
+        random.shuffle(qs)
+        context.user_data.clear()
+        context.user_data.update({
+            'qs': qs, 
+            'idx': 0, 
+            'score': 0, 
+            'busy': True, 
+            'topic': topic, 
+            'processing': False,
+            'wrong_qs': []
+        })
+        try:
+            await query.delete_message()
+        except Exception:
+            pass
+        await send_q(context, query.message.chat_id)
+
+    if data == "retry_wrong":
+        wrong_qs = context.user_data.get('wrong_qs', [])
+        topic = context.user_data.get('topic', 'रिवीजन')
+        if not wrong_qs:
+            await query.message.reply_text("❌ कोई गलत सवाल बाकी नहीं है!")
+            return
+
+        qs = list(wrong_qs)
+        random.shuffle(qs)
+        context.user_data.clear()
+        context.user_data.update({
+            'qs': qs, 
+            'idx': 0, 
+            'score': 0, 
+            'busy': True, 
+            'topic': f"{topic} (गलत सवाल)", 
+            'processing': False,
+            'wrong_qs': []
+        })
+        try:
+            await query.delete_message()
+        except Exception:
+            pass
+        await send_q(context, query.message.chat_id)
+
+async def send_q(context, chat_id):
     ud = context.user_data
     if not ud or not ud.get('busy'):
         return
@@ -276,15 +347,13 @@ async def send_fast_q(update_or_context, chat_id, is_edit=False):
         
         reply_markup = InlineKeyboardMarkup(keyboard) if keyboard else None
         
-        if query and is_edit:
-            await query.edit_message_text(res, reply_markup=reply_markup, parse_mode="Markdown")
-        else:
-            await context.bot.send_message(chat_id, res, reply_markup=reply_markup, parse_mode="Markdown")
+        await context.bot.send_message(chat_id, res, reply_markup=reply_markup, parse_mode="Markdown")
         ud['busy'] = False
         return
 
     q = qs[idx]
     bar = "🔹" * (idx + 1) + "▫️" * (len(qs) - idx - 1)
+    
     q_text = q.get('question', '').strip()
     original_options = q['options'].copy()
     correct_option_text = original_options[q['answer']]
@@ -293,130 +362,70 @@ async def send_fast_q(update_or_context, chat_id, is_edit=False):
     random.shuffle(shuffled_options)
 
     new_correct_index = shuffled_options.index(correct_option_text)
-    
-    keyboard = []
-    for opt_idx, opt_text in enumerate(shuffled_options):
-        # callback_data: ans_<selected_index>_<correct_index>
-        keyboard.append([InlineKeyboardButton(f"▪️ {opt_text}", callback_data=f"ans_{opt_idx}_{new_correct_index}")])
+    styled_options = [f"▪️ {opt}" for opt in shuffled_options]
 
-    reply_markup = InlineKeyboardMarkup(keyboard)
-    msg_text = f"✨ ({idx+1}/{len(qs)}) **{q_text}**\n\n{bar}"
-
+    ud['current_correct_index'] = new_correct_index
     ud['current_q_data'] = q
     ud['idx'] = idx + 1
 
-    if query and is_edit:
-        # पलक झपकते ही मौजूदा मैसेज अपडेट हो जाएगा
-        await query.edit_message_text(msg_text, reply_markup=reply_markup, parse_mode="Markdown")
-    else:
-        await context.bot.send_message(chat_id, msg_text, reply_markup=reply_markup, parse_mode="Markdown")
+    try:
+        await context.bot.send_poll(
+            chat_id=chat_id,
+            question=f"✨ ({idx+1}/{len(qs)}) {q_text}\n{bar}",
+            options=styled_options,
+            type=Poll.QUIZ,
+            correct_option_id=new_correct_index,
+            is_anonymous=False,
+            read_timeout=15,
+            write_timeout=15,
+            connect_timeout=15
+        )
+    except Exception as e:
+        logger.error(f"Poll Send Error: {e}")
+        await asyncio.sleep(0.1)
+        await send_q(context, chat_id)
+    finally:
+        ud['processing'] = False
 
-async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    query = update.callback_query
-    data = query.data
-
-    if data == "noop":
-        await query.answer()
-        return
-
-    if data == "super_reset":
-        await query.answer()
-        class TU:
-            def __init__(self, m): self.message = m
-        await reset_bot(TU(query.message), context)
-        return
-
-    if data.startswith("page_"):
-        await query.answer()
-        page = int(data.split("_")[1])
-        markup = build_topics_keyboard(page=page)
-        try:
-            await query.edit_message_reply_markup(reply_markup=markup)
-        except Exception:
-            pass
-        return
-
-    if data.startswith("tp_"):
-        await query.answer()
-        topic = data[3:]
-        if topic not in DB_CACHE:
-            await query.message.reply_text("❌ यह विषय डिलीट हो चुका है! /start करें।")
+async def handle_ans(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    ans = update.poll_answer
+    uid = ans.user.id
+    ud = context.application.user_data.get(uid)
+    
+    if ud and ud.get('busy'):
+        if ud.get('processing', False):
             return
+        ud['processing'] = True
 
-        qs = list(DB_CACHE.get(topic, []))
-        if not qs:
-            await query.message.reply_text("❌ इस विषय में कोई सवाल नहीं हैं!")
-            return
-
-        random.shuffle(qs)
-        context.user_data.clear()
-        context.user_data.update({
-            'qs': qs, 
-            'idx': 0, 
-            'score': 0, 
-            'busy': True, 
-            'topic': topic, 
-            'wrong_qs': []
-        })
-        # बटन से नया मैसेज एडिट करके पहला सवाल भेजें
-        await send_fast_q(context, query.message.chat_id, is_edit=False)
-        return
-
-    if data == "retry_wrong":
-        await query.answer()
-        wrong_qs = context.user_data.get('wrong_qs', [])
-        topic = context.user_data.get('topic', 'रिवीजन')
-        if not wrong_qs:
-            await query.message.reply_text("❌ कोई गलत सवाल बाकी नहीं है!")
-            return
-
-        qs = list(wrong_qs)
-        random.shuffle(qs)
-        context.user_data.clear()
-        context.user_data.update({
-            'qs': qs, 
-            'idx': 0, 
-            'score': 0, 
-            'busy': True, 
-            'topic': f"{topic} (गलत सवाल)", 
-            'wrong_qs': []
-        })
-        await send_fast_q(context, query.message.chat_id, is_edit=False)
-        return
-
-    # --- उत्तर चुनने (Answer Click) का हैंडलर ---
-    if data.startswith("ans_"):
-        parts = data.split("_")
-        selected_idx = int(parts[1])
-        correct_idx = int(parts[2])
-
-        ud = context.user_data
-        if ud and ud.get('busy'):
-            if selected_idx == correct_idx:
+        current_idx = ud['idx'] - 1
+        if 0 <= current_idx < len(ud['qs']):
+            correct_ans = ud.get('current_correct_index')
+            user_selected = ans.option_ids[0]
+            
+            if user_selected == correct_ans:
                 ud['score'] += 1
-                await query.answer("✅ सही जवाब!", show_alert=False)
             else:
+                # ❌ अगर जवाब गलत है, तो उस सवाल को 'wrong_qs' लिस्ट में सेव करें
                 if 'wrong_qs' not in ud:
                     ud['wrong_qs'] = []
-                ud['wrong_qs'].append(ud.get('current_q_data'))
-                await query.answer("❌ गलत जवाब!", show_alert=False)
-
-            # बिना किसी देरी के तुरंत उसी स्थान पर अगला सवाल लोड करें
-            await send_fast_q(context, query.message.chat_id, is_edit=True)
+                ud['wrong_qs'].append(ud['current_q_data'])
+            
+            # 🚀 बिना रुके तुरंत अगला सवाल
+            await send_q(context, uid)
 
 # 🛡️ एरर हैंडलर
 async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE):
     logger.error(f"Update {update} caused error {context.error}")
 
 def main():
-    # concurrent_updates=True से नेटवर्क रिक्वेस्ट पैरेलल चलती हैं और डिले खत्म हो जाता है
-    app = Application.builder().token(TOKEN).concurrent_updates(True).build()
+    app = Application.builder().token(TOKEN).concurrent_updates(False).build()
 
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CommandHandler("refresh", refresh_cmd))
     app.add_handler(CommandHandler("reset", reset_bot))
     app.add_handler(CommandHandler("delete", delete_cmd))
     app.add_handler(CallbackQueryHandler(handle_callback))
+    app.add_handler(PollAnswerHandler(handle_ans))
     app.add_handler(MessageHandler(filters.TEXT & (~filters.COMMAND), handle_input))
     app.add_handler(MessageHandler(filters.Document.ALL, handle_input))
     
