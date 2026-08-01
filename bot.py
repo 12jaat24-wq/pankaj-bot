@@ -20,9 +20,9 @@ from telegram.ext import (
 # --- कॉन्फ़िगरेशन ---
 TOKEN = os.environ.get("BOT_TOKEN")
 GITHUB_TOKEN = os.environ.get("GITHUB_TOKEN")
-REPO_NAME = "12jaat24-wq/pankaj-bot"
+REPO_NAME = "jaatpankaj610/paid-quiz-app"
 DB_FILE = "quiz_database.json"
-RENDER_URL = "https://pankaj-bot.onrender.com"
+RENDER_URL = "https://bankerbot-mdzw.onrender.com"
 GITHUB_API_URL = f"https://api.github.com/repos/{REPO_NAME}/contents/{DB_FILE}"
 
 # लॉगिंग सेटअप
@@ -31,7 +31,7 @@ logger = logging.getLogger(__name__)
 
 DB_CACHE = {}
 STYLED_NAMES_CACHE = {}
-TOPICS_PER_PAGE = 10 
+TOPICS_PER_PAGE = 8
 
 def style_txt(text):
     if text in STYLED_NAMES_CACHE:
@@ -112,10 +112,12 @@ def build_topics_keyboard(page: int = 0):
     icons = ["🔴", "🔵", "🟢", "🟡", "🟣", "💎", "⚡", "🔥"]
     keyboard = []
 
-    for t in current_topics:
+    for idx, t in enumerate(current_topics):
         q_count = len(DB_CACHE[t])
+        # Safe callback data truncation for large topic names
+        cb_data = f"tp_{start_idx + idx}"
         btn_text = f"{random.choice(icons)} {style_txt(t)} [{q_count}Q]"
-        keyboard.append([InlineKeyboardButton(btn_text, callback_data=f"tp_{t}")])
+        keyboard.append([InlineKeyboardButton(btn_text, callback_data=cb_data)])
 
     nav_buttons = []
     if page > 0:
@@ -132,14 +134,13 @@ def build_topics_keyboard(page: int = 0):
 
 # --- Commands ---
 async def reset_bot(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    m = await update.message.reply_text("🌀 Hard Rebooting...", parse_mode="Markdown")
+    m = await update.message.reply_text("🌀 Rebooting...", parse_mode="Markdown")
     try:
         await context.bot.delete_webhook(drop_pending_updates=True)
-        await asyncio.sleep(0.3)
         await context.bot.set_webhook(url=f"{RENDER_URL}/{TOKEN}", drop_pending_updates=True)
         await sync_db()
         context.user_data.clear()
-        res = "╔════════════════════╗\n  ⚡ BOT IS ALIVE NOW ⚡ \n╚════════════════════╝\n✅ सारे जाम साफ़ हो गए हैं!"
+        res = "╔════════════════════╗\n  ⚡ BOT IS ALIVE NOW ⚡ \n╚════════════════════╝\n✅ सिस्टम पूरी तरह साफ़ हो गया है!"
         await m.edit_text(res, parse_mode="Markdown")
     except Exception as e:
         await m.edit_text(f"❌ Failed: {e}")
@@ -227,8 +228,6 @@ async def delete_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await m.edit_text(f"❌ विषय `{t}` डेटाबेस में नहीं मिला! कृपया सही नाम लिखें।")
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if update.message:
-        await update.message.reply_chat_action("typing")
     context.user_data.clear()
 
     if not DB_CACHE:
@@ -272,9 +271,12 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
     if data.startswith("tp_"):
-        topic = data[3:]
-        if topic not in DB_CACHE:
-            await query.message.reply_text("❌ यह विषय डिलीट हो चुका है! /start करें।")
+        try:
+            topic_idx = int(data.split("_")[1])
+            topics_list = sorted(list(DB_CACHE.keys()))
+            topic = topics_list[topic_idx]
+        except Exception:
+            await query.message.reply_text("❌ विषय नहीं मिला, कृपया /start करें।")
             return
 
         qs = list(DB_CACHE.get(topic, []))
@@ -290,7 +292,6 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             'score': 0, 
             'busy': True, 
             'topic': topic, 
-            'processing': False,
             'wrong_qs': []
         })
         try:
@@ -315,7 +316,6 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             'score': 0, 
             'busy': True, 
             'topic': f"{topic} (गलत सवाल)", 
-            'processing': False,
             'wrong_qs': []
         })
         try:
@@ -330,6 +330,8 @@ async def send_q(context, chat_id):
         return
 
     idx, qs = ud.get('idx', 0), ud['qs']
+    
+    # 🎯 सवाल खत्म होने पर रिपोर्ट कार्ड (Fix applied)
     if idx >= len(qs):
         score, total = ud['score'], len(qs)
         wrong_count = total - score
@@ -375,17 +377,13 @@ async def send_q(context, chat_id):
             options=styled_options,
             type=Poll.QUIZ,
             correct_option_id=new_correct_index,
-            is_anonymous=False,
-            read_timeout=15,
-            write_timeout=15,
-            connect_timeout=15
+            is_anonymous=False
         )
     except Exception as e:
         logger.error(f"Poll Send Error: {e}")
-        await asyncio.sleep(0.1)
+        # एग्रेशन से बचने के लिए छोटा सा डिले
+        await asyncio.sleep(0.05)
         await send_q(context, chat_id)
-    finally:
-        ud['processing'] = False
 
 async def handle_ans(update: Update, context: ContextTypes.DEFAULT_TYPE):
     ans = update.poll_answer
@@ -393,10 +391,6 @@ async def handle_ans(update: Update, context: ContextTypes.DEFAULT_TYPE):
     ud = context.application.user_data.get(uid)
     
     if ud and ud.get('busy'):
-        if ud.get('processing', False):
-            return
-        ud['processing'] = True
-
         current_idx = ud['idx'] - 1
         if 0 <= current_idx < len(ud['qs']):
             correct_ans = ud.get('current_correct_index')
@@ -405,20 +399,19 @@ async def handle_ans(update: Update, context: ContextTypes.DEFAULT_TYPE):
             if user_selected == correct_ans:
                 ud['score'] += 1
             else:
-                # ❌ अगर जवाब गलत है, तो उस सवाल को 'wrong_qs' लिस्ट में सेव करें
                 if 'wrong_qs' not in ud:
                     ud['wrong_qs'] = []
                 ud['wrong_qs'].append(ud['current_q_data'])
             
-            # 🚀 बिना रुके तुरंत अगला सवाल
-            await send_q(context, uid)
+            # 🚀 इंस्टेंट बैकग्राउंड टास्क - सवालों के बीच का अटकाव ख़त्म
+            asyncio.create_task(send_q(context, uid))
 
 # 🛡️ एरर हैंडलर
 async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE):
     logger.error(f"Update {update} caused error {context.error}")
 
 def main():
-    app = Application.builder().token(TOKEN).concurrent_updates(False).build()
+    app = Application.builder().token(TOKEN).concurrent_updates(True).build()
 
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CommandHandler("refresh", refresh_cmd))
