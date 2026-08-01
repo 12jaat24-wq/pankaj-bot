@@ -20,9 +20,9 @@ from telegram.ext import (
 # --- कॉन्फ़िगरेशन ---
 TOKEN = os.environ.get("BOT_TOKEN")
 GITHUB_TOKEN = os.environ.get("GITHUB_TOKEN")
-REPO_NAME = "12jaat24-wq/pankaj-bot"
+REPO_NAME = "jaatpankaj610/paid-quiz-app"
 DB_FILE = "quiz_database.json"
-RENDER_URL = "https://pankaj-bot.onrender.com"
+RENDER_URL = "https://bankerbot-mdzw.onrender.com"
 GITHUB_API_URL = f"https://api.github.com/repos/{REPO_NAME}/contents/{DB_FILE}"
 
 # लॉगिंग सेटअप
@@ -135,7 +135,6 @@ async def reset_bot(update: Update, context: ContextTypes.DEFAULT_TYPE):
     m = await update.message.reply_text("🌀 Hard Rebooting...", parse_mode="Markdown")
     try:
         await context.bot.delete_webhook(drop_pending_updates=True)
-        await asyncio.sleep(0.1)
         await context.bot.set_webhook(url=f"{RENDER_URL}/{TOKEN}", drop_pending_updates=True)
         await sync_db()
         context.user_data.clear()
@@ -227,8 +226,6 @@ async def delete_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await m.edit_text(f"❌ विषय `{t}` डेटाबेस में नहीं मिला! कृपया सही नाम लिखें।")
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if update.message:
-        await update.message.reply_chat_action("typing")
     context.user_data.clear()
 
     if not DB_CACHE:
@@ -290,7 +287,6 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             'score': 0, 
             'busy': True, 
             'topic': topic, 
-            'processing': False,
             'wrong_qs': []
         })
         try:
@@ -315,7 +311,6 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             'score': 0, 
             'busy': True, 
             'topic': f"{topic} (गलत सवाल)", 
-            'processing': False,
             'wrong_qs': []
         })
         try:
@@ -375,16 +370,11 @@ async def send_q(context, chat_id):
             options=styled_options,
             type=Poll.QUIZ,
             correct_option_id=new_correct_index,
-            is_anonymous=False,
-            read_timeout=10,
-            write_timeout=10,
-            connect_timeout=10
+            is_anonymous=False
         )
     except Exception as e:
         logger.error(f"Poll Send Error: {e}")
         await send_q(context, chat_id)
-    finally:
-        ud['processing'] = False
 
 async def handle_ans(update: Update, context: ContextTypes.DEFAULT_TYPE):
     ans = update.poll_answer
@@ -392,10 +382,6 @@ async def handle_ans(update: Update, context: ContextTypes.DEFAULT_TYPE):
     ud = context.application.user_data.get(uid)
     
     if ud and ud.get('busy'):
-        if ud.get('processing', False):
-            return
-        ud['processing'] = True
-
         current_idx = ud['idx'] - 1
         if 0 <= current_idx < len(ud['qs']):
             correct_ans = ud.get('current_correct_index')
@@ -408,15 +394,15 @@ async def handle_ans(update: Update, context: ContextTypes.DEFAULT_TYPE):
                     ud['wrong_qs'] = []
                 ud['wrong_qs'].append(ud['current_q_data'])
             
-            # 🚀 बिना किसी डिले के इंस्टेंट अगला सवाल
-            await send_q(context, uid)
+            # 🚀 INSTANT FIRE: बिना किसी रिस्पॉन्स या सर्वर डिले का वेट किए बैकग्राउंड में तुरंत अगला पोल भेजो
+            asyncio.create_task(send_q(context, uid))
 
 # 🛡️ एरर हैंडलर
 async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE):
     logger.error(f"Update {update} caused error {context.error}")
 
 def main():
-    app = Application.builder().token(TOKEN).concurrent_updates(False).build()
+    app = Application.builder().token(TOKEN).concurrent_updates(True).build()
 
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CommandHandler("refresh", refresh_cmd))
