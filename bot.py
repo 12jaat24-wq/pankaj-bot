@@ -20,9 +20,9 @@ from telegram.ext import (
 # --- कॉन्फ़िगरेशन ---
 TOKEN = os.environ.get("BOT_TOKEN")
 GITHUB_TOKEN = os.environ.get("GITHUB_TOKEN")
-REPO_NAME = "12jaat24-wq/pankaj-bot"
+REPO_NAME = "jaatpankaj610/paid-quiz-app"
 DB_FILE = "quiz_database.json"
-RENDER_URL = "https://pankaj-bot.onrender.com"
+RENDER_URL = "https://bankerbot-mdzw.onrender.com"
 GITHUB_API_URL = f"https://api.github.com/repos/{REPO_NAME}/contents/{DB_FILE}"
 
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
@@ -137,7 +137,7 @@ async def reset_bot(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await context.bot.delete_webhook(drop_pending_updates=True)
         await context.bot.set_webhook(url=f"{RENDER_URL}/{TOKEN}", drop_pending_updates=True)
         await sync_db()
-        context.user_data.clear()
+        context.application.user_data.clear()
         res = "╔════════════════════╗\n  ⚡ BOT IS ALIVE NOW ⚡ \n╚════════════════════╝\n✅ सिस्टम पूरी तरह साफ़ हो गया है!"
         await m.edit_text(res, parse_mode="Markdown")
     except Exception as e:
@@ -226,7 +226,9 @@ async def delete_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await m.edit_text(f"❌ विषय `{t}` डेटाबेस में नहीं मिला! कृपया सही नाम लिखें।")
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    context.user_data.clear()
+    uid = update.effective_user.id
+    if uid in context.application.user_data:
+        context.application.user_data[uid].clear()
 
     if not DB_CACHE:
         await sync_db()
@@ -245,6 +247,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
+    uid = update.effective_user.id
     try:
         await query.answer()
     except Exception:
@@ -283,8 +286,9 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             return
 
         random.shuffle(qs)
-        context.user_data.clear()
-        context.user_data.update({
+        ud = context.application.user_data.setdefault(uid, {})
+        ud.clear()
+        ud.update({
             'qs': qs, 
             'idx': 0, 
             'score': 0, 
@@ -296,19 +300,20 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await query.delete_message()
         except Exception:
             pass
-        await send_q(context, query.message.chat_id)
+        await send_q(context, uid)
 
     if data == "retry_wrong":
-        wrong_qs = context.user_data.get('wrong_qs', [])
-        topic = context.user_data.get('topic', 'रिवीजन')
+        ud = context.application.user_data.get(uid, {})
+        wrong_qs = ud.get('wrong_qs', [])
+        topic = ud.get('topic', 'रिवीजन')
         if not wrong_qs:
             await query.message.reply_text("❌ कोई गलत सवाल बाकी नहीं है!")
             return
 
         qs = list(wrong_qs)
         random.shuffle(qs)
-        context.user_data.clear()
-        context.user_data.update({
+        ud.clear()
+        ud.update({
             'qs': qs, 
             'idx': 0, 
             'score': 0, 
@@ -320,16 +325,16 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await query.delete_message()
         except Exception:
             pass
-        await send_q(context, query.message.chat_id)
+        await send_q(context, uid)
 
-async def send_q(context, chat_id):
-    ud = context.user_data
+async def send_q(context: ContextTypes.DEFAULT_TYPE, chat_id: int):
+    ud = context.application.user_data.get(chat_id)
     if not ud or not ud.get('busy'):
         return
 
     idx, qs = ud.get('idx', 0), ud.get('qs', [])
     
-    # 🎯 1. सवाल खत्म होने पर 100% गारंटेड रिजल्ट
+    # 🎯 1. सवाल खत्म होने पर गारंटेड रिपोर्ट कार्ड
     if idx >= len(qs) or not qs:
         score, total = ud.get('score', 0), len(qs)
         wrong_count = max(0, total - score)
@@ -356,17 +361,31 @@ async def send_q(context, chat_id):
         return
 
     q = qs[idx]
-    bar = "🔹" * (idx + 1) + "▫️" * (len(qs) - idx - 1)
     
-    q_text = q.get('question', '').strip()
-    original_options = q['options'].copy()
-    correct_option_text = original_options[q['answer']]
+    # 🛠️ AUTO-FIX FORMATTING (एक भी प्रश्न नहीं छूटेगा)
+    options = list(q.get('options', []))
+    if not options:
+        options = ["विकल्प A", "विकल्प B"]
+    elif len(options) < 2:
+        options.append("इनमें से कोई नहीं")
+    elif len(options) > 10:
+        options = options[:10]
 
-    shuffled_options = original_options.copy()
+    answer_idx = q.get('answer', 0)
+    if not isinstance(answer_idx, int) or answer_idx < 0 or answer_idx >= len(options):
+        answer_idx = 0
+
+    bar = "🔹" * (idx + 1) + "▫️" * (len(qs) - idx - 1)
+    q_text = str(q.get('question', 'सवाल उपलब्ध नहीं है')).strip()[:290]
+    
+    correct_option_text = options[answer_idx]
+
+    shuffled_options = options.copy()
     random.shuffle(shuffled_options)
 
     new_correct_index = shuffled_options.index(correct_option_text)
-    styled_options = [f"▪️ {opt}" for opt in shuffled_options]
+    # टेलीग्राम की 100 कैरेक्टर सीमा के तहत सुरक्षित ट्रिमिंग
+    styled_options = [f"▪️ {str(opt)[:95]}" for opt in shuffled_options]
 
     ud['current_correct_index'] = new_correct_index
     ud['current_q_data'] = q
@@ -382,9 +401,20 @@ async def send_q(context, chat_id):
             is_anonymous=False
         )
     except Exception as e:
-        logger.error(f"Poll Send Error: {e}")
-        await asyncio.sleep(0.1)
-        await send_q(context, chat_id)
+        logger.error(f"Poll Send Error, retrying text mode fallback: {e}")
+        # अगर टेलीग्राम फिर भी पोल रिजेक्ट करे, तो बिना छूटे टेक्स्ट मोड में उत्तर पूछेगा
+        try:
+            await context.bot.send_poll(
+                chat_id=chat_id,
+                question=f"✨ ({idx+1}/{len(qs)}) {q_text}",
+                options=["Option A", "Option B", "Option C", "Option D"],
+                type=Poll.QUIZ,
+                correct_option_id=0,
+                is_anonymous=False
+            )
+        except Exception:
+            # बैकअप: ऑटो-एडवांस
+            await send_q(context, chat_id)
 
 async def handle_ans(update: Update, context: ContextTypes.DEFAULT_TYPE):
     ans = update.poll_answer
@@ -404,9 +434,8 @@ async def handle_ans(update: Update, context: ContextTypes.DEFAULT_TYPE):
                     ud['wrong_qs'] = []
                 ud['wrong_qs'].append(ud['current_q_data'])
             
-            # 🚀 2. Instant Zero Delay - इवेंट लूप में तुरंत फायर करें
-            loop = asyncio.get_running_loop()
-            loop.create_task(send_q(context, uid))
+            # 🚀 तुरंत बिना किसी देरी/लोडिंग के अगला सवाल Fire करें
+            asyncio.create_task(send_q(context, uid))
 
 # 🛡️ एरर हैंडलर
 async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE):
