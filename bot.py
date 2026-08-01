@@ -20,7 +20,7 @@ from telegram.ext import (
 # --- कॉन्फ़िगरेशन ---
 TOKEN = os.environ.get("BOT_TOKEN")
 GITHUB_TOKEN = os.environ.get("GITHUB_TOKEN")
-REPO_NAME = "jaatpankaj610/paid-quiz-app"
+REPO_NAME = "12jaat24-wq/pankaj-bot"
 DB_FILE = "quiz_database.json"
 RENDER_URL = "https://bankerbot-mdzw.onrender.com"
 GITHUB_API_URL = f"https://api.github.com/repos/{REPO_NAME}/contents/{DB_FILE}"
