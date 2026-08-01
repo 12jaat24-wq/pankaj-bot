@@ -25,12 +25,13 @@ DB_FILE = "quiz_database.json"
 RENDER_URL = "https://pankaj-bot.onrender.com"
 GITHUB_API_URL = f"https://api.github.com/repos/{REPO_NAME}/contents/{DB_FILE}"
 
+# लॉगिंग सेटअप
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 DB_CACHE = {}
 STYLED_NAMES_CACHE = {}
-TOPICS_PER_PAGE = 8
+TOPICS_PER_PAGE = 10 
 
 def style_txt(text):
     if text in STYLED_NAMES_CACHE:
@@ -111,11 +112,10 @@ def build_topics_keyboard(page: int = 0):
     icons = ["🔴", "🔵", "🟢", "🟡", "🟣", "💎", "⚡", "🔥"]
     keyboard = []
 
-    for idx, t in enumerate(current_topics):
+    for t in current_topics:
         q_count = len(DB_CACHE[t])
-        cb_data = f"tp_{start_idx + idx}"
         btn_text = f"{random.choice(icons)} {style_txt(t)} [{q_count}Q]"
-        keyboard.append([InlineKeyboardButton(btn_text, callback_data=cb_data)])
+        keyboard.append([InlineKeyboardButton(btn_text, callback_data=f"tp_{t}")])
 
     nav_buttons = []
     if page > 0:
@@ -132,14 +132,17 @@ def build_topics_keyboard(page: int = 0):
 
 # --- Commands ---
 async def reset_bot(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    m = await update.message.reply_text("🌀 Rebooting System...", parse_mode="Markdown")
+    m = await update.message.reply_text("🌀 Hard Rebooting...", parse_mode="Markdown")
     try:
+        await context.bot.delete_webhook(drop_pending_updates=True)
+        await asyncio.sleep(0.3)
+        await context.bot.set_webhook(url=f"{RENDER_URL}/{TOKEN}", drop_pending_updates=True)
         await sync_db()
-        context.application.user_data.clear()
-        res = "╔════════════════════╗\n  ⚡ BOT IS ALIVE NOW ⚡ \n╚════════════════════╝\n✅ सिस्टम रीसेट हो गया है!\n\n/start दबाएं।"
+        context.user_data.clear()
+        res = "╔════════════════════╗\n  ⚡ BOT IS ALIVE NOW ⚡ \n╚════════════════════╝\n✅ सारे जाम साफ़ हो गए हैं!"
         await m.edit_text(res, parse_mode="Markdown")
     except Exception as e:
-        await m.edit_text(f"❌ Reset Error: {e}")
+        await m.edit_text(f"❌ Failed: {e}")
 
 async def refresh_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     msg = await update.message.reply_text("📡 Syncing Database...", parse_mode="Markdown")
@@ -224,12 +227,9 @@ async def delete_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await m.edit_text(f"❌ विषय `{t}` डेटाबेस में नहीं मिला! कृपया सही नाम लिखें।")
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    uid = update.effective_user.id
-    if uid in context.application.user_data:
-        try:
-            context.application.user_data[uid].clear()
-        except Exception:
-            pass
+    if update.message:
+        await update.message.reply_chat_action("typing")
+    context.user_data.clear()
 
     if not DB_CACHE:
         await sync_db()
@@ -248,16 +248,13 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
-    uid = update.effective_user.id
-    
     try:
         await query.answer()
     except Exception:
         pass
 
     data = query.data
-    if data == "noop": 
-        return
+    if data == "noop": return
 
     if data == "super_reset":
         class TU:
@@ -275,121 +272,97 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
     if data.startswith("tp_"):
-        try:
-            topic_idx = int(data.split("_")[1])
-            topics_list = sorted(list(DB_CACHE.keys()))
-            topic = topics_list[topic_idx]
-        except Exception as e:
-            logger.error(f"Topic Parse Error: {e}")
-            await query.message.reply_text("❌ विषय नहीं मिला, कृपया /start करें।")
+        topic = data[3:]
+        if topic not in DB_CACHE:
+            await query.message.reply_text("❌ यह विषय डिलीट हो चुका है! /start करें।")
             return
 
-        qs = DB_CACHE.get(topic, [])
+        qs = list(DB_CACHE.get(topic, []))
         if not qs:
             await query.message.reply_text("❌ इस विषय में कोई सवाल नहीं हैं!")
             return
 
-        qs_copy = json.loads(json.dumps(qs))
-        random.shuffle(qs_copy)
-        
-        # Fresh Unlocked User State
-        context.application.user_data[uid] = {
-            'qs': qs_copy, 
+        random.shuffle(qs)
+        context.user_data.clear()
+        context.user_data.update({
+            'qs': qs, 
             'idx': 0, 
             'score': 0, 
             'busy': True, 
             'topic': topic, 
+            'processing': False,
             'wrong_qs': []
-        }
-        
+        })
         try:
             await query.delete_message()
         except Exception:
             pass
-        
-        await send_q(context, uid)
+        await send_q(context, query.message.chat_id)
 
     if data == "retry_wrong":
-        ud = context.application.user_data.get(uid, {})
-        wrong_qs = ud.get('wrong_qs', [])
-        topic = ud.get('topic', 'रिवीजन')
+        wrong_qs = context.user_data.get('wrong_qs', [])
+        topic = context.user_data.get('topic', 'रिवीजन')
         if not wrong_qs:
             await query.message.reply_text("❌ कोई गलत सवाल बाकी नहीं है!")
             return
 
-        qs_copy = json.loads(json.dumps(wrong_qs))
-        random.shuffle(qs_copy)
-        
-        context.application.user_data[uid] = {
-            'qs': qs_copy, 
+        qs = list(wrong_qs)
+        random.shuffle(qs)
+        context.user_data.clear()
+        context.user_data.update({
+            'qs': qs, 
             'idx': 0, 
             'score': 0, 
             'busy': True, 
             'topic': f"{topic} (गलत सवाल)", 
+            'processing': False,
             'wrong_qs': []
-        }
+        })
         try:
             await query.delete_message()
         except Exception:
             pass
-        await send_q(context, uid)
+        await send_q(context, query.message.chat_id)
 
-async def send_q(context: ContextTypes.DEFAULT_TYPE, chat_id: int):
-    ud = context.application.user_data.get(chat_id)
+async def send_q(context, chat_id):
+    ud = context.user_data
     if not ud or not ud.get('busy'):
         return
 
-    idx = ud.get('idx', 0)
-    qs = ud.get('qs', [])
-    
-    # 🎯 रिपोर्ट कार्ड
-    if idx >= len(qs) or not qs:
-        score = ud.get('score', 0)
-        total = len(qs)
-        wrong_count = max(0, total - score)
+    idx, qs = ud.get('idx', 0), ud['qs']
+    if idx >= len(qs):
+        score, total = ud['score'], len(qs)
+        wrong_count = total - score
         per = int((score / total) * 100) if total > 0 else 0
         medal = "🏆" if per >= 80 else "🥇"
         
         res = (
             f"╔══════════════════╗\n  📊 {style_txt('REPORT CARD')} {medal} \n╚══════════════════╝\n"
-            f"📝 विषय: {ud.get('topic', 'Quiz')}\n✅ सही: {score} | ❌ गलत: {wrong_count}\n🏆 स्कोर: {per}%\n━━━━━━━━━━━━━━━━━━━━"
+            f"📝 विषय: {ud['topic']}\n✅ सही: {score} | ❌ गलत: {wrong_count}\n🏆 स्कोर: {per}%\n━━━━━━━━━━━━━━━━━━━━"
         )
         
         keyboard = []
         if wrong_count > 0 and ud.get('wrong_qs'):
             keyboard.append([InlineKeyboardButton(f"🔄 गलत सवाल फिर से हल करें ({wrong_count})", callback_data="retry_wrong")])
         
-        keyboard.append([InlineKeyboardButton("🏠 मुख्य मेनू (/start)", callback_data="page_0")])
-        reply_markup = InlineKeyboardMarkup(keyboard)
+        reply_markup = InlineKeyboardMarkup(keyboard) if keyboard else None
         
+        await context.bot.send_message(chat_id, res, reply_markup=reply_markup, parse_mode="Markdown")
         ud['busy'] = False
-        try:
-            await context.bot.send_message(chat_id, res, reply_markup=reply_markup, parse_mode="Markdown")
-        except Exception as e:
-            logger.error(f"Report Send Error: {e}")
         return
 
     q = qs[idx]
-    options = list(q.get('options', []))
-    if len(options) < 2:
-        options = ["Option A", "Option B"]
-    elif len(options) > 10:
-        options = options[:10]
-
-    answer_idx = q.get('answer', 0)
-    if not isinstance(answer_idx, int) or answer_idx < 0 or answer_idx >= len(options):
-        answer_idx = 0
-
     bar = "🔹" * (idx + 1) + "▫️" * (len(qs) - idx - 1)
-    q_text = str(q.get('question', 'सवाल उपलब्ध नहीं है')).strip()[:280]
     
-    correct_option_text = options[answer_idx]
+    q_text = q.get('question', '').strip()
+    original_options = q['options'].copy()
+    correct_option_text = original_options[q['answer']]
 
-    shuffled_options = options.copy()
+    shuffled_options = original_options.copy()
     random.shuffle(shuffled_options)
 
     new_correct_index = shuffled_options.index(correct_option_text)
-    styled_options = [f"▪️ {str(opt)[:95]}" for opt in shuffled_options]
+    styled_options = [f"▪️ {opt}" for opt in shuffled_options]
 
     ud['current_correct_index'] = new_correct_index
     ud['current_q_data'] = q
@@ -402,12 +375,17 @@ async def send_q(context: ContextTypes.DEFAULT_TYPE, chat_id: int):
             options=styled_options,
             type=Poll.QUIZ,
             correct_option_id=new_correct_index,
-            is_anonymous=False
+            is_anonymous=False,
+            read_timeout=15,
+            write_timeout=15,
+            connect_timeout=15
         )
     except Exception as e:
-        logger.error(f"Poll Error: {e}")
-        # Auto advance if any network glitch occurs
+        logger.error(f"Poll Send Error: {e}")
+        await asyncio.sleep(0.1)
         await send_q(context, chat_id)
+    finally:
+        ud['processing'] = False
 
 async def handle_ans(update: Update, context: ContextTypes.DEFAULT_TYPE):
     ans = update.poll_answer
@@ -415,6 +393,10 @@ async def handle_ans(update: Update, context: ContextTypes.DEFAULT_TYPE):
     ud = context.application.user_data.get(uid)
     
     if ud and ud.get('busy'):
+        if ud.get('processing', False):
+            return
+        ud['processing'] = True
+
         current_idx = ud['idx'] - 1
         if 0 <= current_idx < len(ud['qs']):
             correct_ans = ud.get('current_correct_index')
@@ -423,18 +405,20 @@ async def handle_ans(update: Update, context: ContextTypes.DEFAULT_TYPE):
             if user_selected == correct_ans:
                 ud['score'] += 1
             else:
+                # ❌ अगर जवाब गलत है, तो उस सवाल को 'wrong_qs' लिस्ट में सेव करें
                 if 'wrong_qs' not in ud:
                     ud['wrong_qs'] = []
                 ud['wrong_qs'].append(ud['current_q_data'])
             
-            await asyncio.sleep(0.1)
+            # 🚀 बिना रुके तुरंत अगला सवाल
             await send_q(context, uid)
 
+# 🛡️ एरर हैंडलर
 async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE):
     logger.error(f"Update {update} caused error {context.error}")
 
 def main():
-    app = Application.builder().token(TOKEN).concurrent_updates(True).build()
+    app = Application.builder().token(TOKEN).concurrent_updates(False).build()
 
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CommandHandler("refresh", refresh_cmd))
@@ -449,9 +433,7 @@ def main():
 
     p = int(os.environ.get("PORT", 10000))
     app.run_webhook(
-        listen="0.0.0.0",
-        port=p,
-        secret_token=None,
+        listen="0.0.0.0", port=p, url_path=TOKEN,
         webhook_url=f"{RENDER_URL}/{TOKEN}",
         drop_pending_updates=True
     )
