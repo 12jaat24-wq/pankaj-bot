@@ -20,9 +20,9 @@ from telegram.ext import (
 # --- कॉन्फ़िगरेशन ---
 TOKEN = os.environ.get("BOT_TOKEN")
 GITHUB_TOKEN = os.environ.get("GITHUB_TOKEN")
-REPO_NAME = "12jaat24-wq/pankaj-bot"
+REPO_NAME = "jaatpankaj610/paid-quiz-app"
 DB_FILE = "quiz_database.json"
-RENDER_URL = "https://pankaj-bot.onrender.com"
+RENDER_URL = "https://bankerbot-mdzw.onrender.com"
 GITHUB_API_URL = f"https://api.github.com/repos/{REPO_NAME}/contents/{DB_FILE}"
 
 # लॉगिंग सेटअप
@@ -135,7 +135,7 @@ async def reset_bot(update: Update, context: ContextTypes.DEFAULT_TYPE):
     m = await update.message.reply_text("🌀 Hard Rebooting...", parse_mode="Markdown")
     try:
         await context.bot.delete_webhook(drop_pending_updates=True)
-        await asyncio.sleep(0.3)
+        await asyncio.sleep(0.1)
         await context.bot.set_webhook(url=f"{RENDER_URL}/{TOKEN}", drop_pending_updates=True)
         await sync_db()
         context.user_data.clear()
@@ -376,13 +376,12 @@ async def send_q(context, chat_id):
             type=Poll.QUIZ,
             correct_option_id=new_correct_index,
             is_anonymous=False,
-            read_timeout=15,
-            write_timeout=15,
-            connect_timeout=15
+            read_timeout=10,
+            write_timeout=10,
+            connect_timeout=10
         )
     except Exception as e:
         logger.error(f"Poll Send Error: {e}")
-        await asyncio.sleep(0.1)
         await send_q(context, chat_id)
     finally:
         ud['processing'] = False
@@ -405,12 +404,11 @@ async def handle_ans(update: Update, context: ContextTypes.DEFAULT_TYPE):
             if user_selected == correct_ans:
                 ud['score'] += 1
             else:
-                # ❌ अगर जवाब गलत है, तो उस सवाल को 'wrong_qs' लिस्ट में सेव करें
                 if 'wrong_qs' not in ud:
                     ud['wrong_qs'] = []
                 ud['wrong_qs'].append(ud['current_q_data'])
             
-            # 🚀 बिना रुके तुरंत अगला सवाल
+            # 🚀 बिना किसी डिले के इंस्टेंट अगला सवाल
             await send_q(context, uid)
 
 # 🛡️ एरर हैंडलर
