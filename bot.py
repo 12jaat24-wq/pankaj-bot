@@ -134,16 +134,8 @@ def build_topics_keyboard(page: int = 0):
 async def reset_bot(update: Update, context: ContextTypes.DEFAULT_TYPE):
     m = await update.message.reply_text("🌀 Rebooting System...", parse_mode="Markdown")
     try:
-        await context.bot.delete_webhook(drop_pending_updates=True)
-        await context.bot.set_webhook(url=f"{RENDER_URL}/{TOKEN}", drop_pending_updates=True)
         await sync_db()
-        
-        for k in list(context.application.user_data.keys()):
-            try:
-                context.application.user_data[k].clear()
-            except Exception:
-                pass
-
+        context.application.user_data.clear()
         res = "╔════════════════════╗\n  ⚡ BOT IS ALIVE NOW ⚡ \n╚════════════════════╝\n✅ सिस्टम रीसेट हो गया है!\n\n/start दबाएं।"
         await m.edit_text(res, parse_mode="Markdown")
     except Exception as e:
@@ -257,13 +249,15 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     uid = update.effective_user.id
+    
     try:
         await query.answer()
     except Exception:
         pass
 
     data = query.data
-    if data == "noop": return
+    if data == "noop": 
+        return
 
     if data == "super_reset":
         class TU:
@@ -285,31 +279,34 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             topic_idx = int(data.split("_")[1])
             topics_list = sorted(list(DB_CACHE.keys()))
             topic = topics_list[topic_idx]
-        except Exception:
+        except Exception as e:
+            logger.error(f"Topic Parse Error: {e}")
             await query.message.reply_text("❌ विषय नहीं मिला, कृपया /start करें।")
             return
 
-        qs = list(DB_CACHE.get(topic, []))
+        qs = DB_CACHE.get(topic, [])
         if not qs:
             await query.message.reply_text("❌ इस विषय में कोई सवाल नहीं हैं!")
             return
 
-        random.shuffle(qs)
-        ud = context.application.user_data.setdefault(uid, {})
-        ud.clear()
-        ud.update({
-            'qs': qs, 
+        qs_copy = json.loads(json.dumps(qs))
+        random.shuffle(qs_copy)
+        
+        # Fresh Unlocked User State
+        context.application.user_data[uid] = {
+            'qs': qs_copy, 
             'idx': 0, 
             'score': 0, 
             'busy': True, 
             'topic': topic, 
             'wrong_qs': []
-        })
+        }
+        
         try:
             await query.delete_message()
         except Exception:
             pass
-        # 🟢 Direct call with small delay fix
+        
         await send_q(context, uid)
 
     if data == "retry_wrong":
@@ -320,17 +317,17 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await query.message.reply_text("❌ कोई गलत सवाल बाकी नहीं है!")
             return
 
-        qs = list(wrong_qs)
-        random.shuffle(qs)
-        ud.clear()
-        ud.update({
-            'qs': qs, 
+        qs_copy = json.loads(json.dumps(wrong_qs))
+        random.shuffle(qs_copy)
+        
+        context.application.user_data[uid] = {
+            'qs': qs_copy, 
             'idx': 0, 
             'score': 0, 
             'busy': True, 
             'topic': f"{topic} (गलत सवाल)", 
             'wrong_qs': []
-        })
+        }
         try:
             await query.delete_message()
         except Exception:
@@ -342,11 +339,13 @@ async def send_q(context: ContextTypes.DEFAULT_TYPE, chat_id: int):
     if not ud or not ud.get('busy'):
         return
 
-    idx, qs = ud.get('idx', 0), ud.get('qs', [])
+    idx = ud.get('idx', 0)
+    qs = ud.get('qs', [])
     
-    # 🎯 सवाल खत्म होने पर गारंटेड रिपोर्ट कार्ड
+    # 🎯 रिपोर्ट कार्ड
     if idx >= len(qs) or not qs:
-        score, total = ud.get('score', 0), len(qs)
+        score = ud.get('score', 0)
+        total = len(qs)
         wrong_count = max(0, total - score)
         per = int((score / total) * 100) if total > 0 else 0
         medal = "🏆" if per >= 80 else "🥇"
@@ -371,13 +370,9 @@ async def send_q(context: ContextTypes.DEFAULT_TYPE, chat_id: int):
         return
 
     q = qs[idx]
-    
-    # 🛠️ Safe Option Formatting
     options = list(q.get('options', []))
-    if not options:
-        options = ["विकल्प A", "विकल्प B"]
-    elif len(options) < 2:
-        options.append("इनमें से कोई नहीं")
+    if len(options) < 2:
+        options = ["Option A", "Option B"]
     elif len(options) > 10:
         options = options[:10]
 
@@ -386,7 +381,7 @@ async def send_q(context: ContextTypes.DEFAULT_TYPE, chat_id: int):
         answer_idx = 0
 
     bar = "🔹" * (idx + 1) + "▫️" * (len(qs) - idx - 1)
-    q_text = str(q.get('question', 'सवाल उपलब्ध नहीं है')).strip()[:290]
+    q_text = str(q.get('question', 'सवाल उपलब्ध नहीं है')).strip()[:280]
     
     correct_option_text = options[answer_idx]
 
@@ -410,8 +405,8 @@ async def send_q(context: ContextTypes.DEFAULT_TYPE, chat_id: int):
             is_anonymous=False
         )
     except Exception as e:
-        logger.error(f"Poll Send Error: {e}")
-        # अगर टेलीग्राम पोल रिजेक्ट करे तो तुरंत बिना अटके अगले पर बढ़ेगा
+        logger.error(f"Poll Error: {e}")
+        # Auto advance if any network glitch occurs
         await send_q(context, chat_id)
 
 async def handle_ans(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -432,11 +427,9 @@ async def handle_ans(update: Update, context: ContextTypes.DEFAULT_TYPE):
                     ud['wrong_qs'] = []
                 ud['wrong_qs'].append(ud['current_q_data'])
             
-            # 🚀 0.2 सेकेंड का स्मूथ गैप ताकि Telegram API ब्लॉक न करे
-            await asyncio.sleep(0.2)
+            await asyncio.sleep(0.1)
             await send_q(context, uid)
 
-# 🛡️ एरर हैंडलर
 async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE):
     logger.error(f"Update {update} caused error {context.error}")
 
@@ -456,7 +449,9 @@ def main():
 
     p = int(os.environ.get("PORT", 10000))
     app.run_webhook(
-        listen="0.0.0.0", port=p, url_path=TOKEN,
+        listen="0.0.0.0",
+        port=p,
+        secret_token=None,
         webhook_url=f"{RENDER_URL}/{TOKEN}",
         drop_pending_updates=True
     )
