@@ -138,15 +138,13 @@ async def reset_bot(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await context.bot.set_webhook(url=f"{RENDER_URL}/{TOKEN}", drop_pending_updates=True)
         await sync_db()
         
-        # Safe User Data Clear Fix (Solves mappingproxy Error)
-        keys_to_del = list(context.application.user_data.keys())
-        for k in keys_to_del:
+        for k in list(context.application.user_data.keys()):
             try:
                 context.application.user_data[k].clear()
             except Exception:
                 pass
 
-        res = "╔════════════════════╗\n  ⚡ BOT IS ALIVE NOW ⚡ \n╚════════════════════╝\n✅ सिस्टम पूरी तरह रिसेट हो गया है!\n\n/start दबाएं।"
+        res = "╔════════════════════╗\n  ⚡ BOT IS ALIVE NOW ⚡ \n╚════════════════════╝\n✅ सिस्टम रीसेट हो गया है!\n\n/start दबाएं।"
         await m.edit_text(res, parse_mode="Markdown")
     except Exception as e:
         await m.edit_text(f"❌ Reset Error: {e}")
@@ -311,6 +309,7 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await query.delete_message()
         except Exception:
             pass
+        # 🟢 Direct call with small delay fix
         await send_q(context, uid)
 
     if data == "retry_wrong":
@@ -345,7 +344,7 @@ async def send_q(context: ContextTypes.DEFAULT_TYPE, chat_id: int):
 
     idx, qs = ud.get('idx', 0), ud.get('qs', [])
     
-    # 🎯 1. सवाल खत्म होने पर गारंटेड रिपोर्ट कार्ड
+    # 🎯 सवाल खत्म होने पर गारंटेड रिपोर्ट कार्ड
     if idx >= len(qs) or not qs:
         score, total = ud.get('score', 0), len(qs)
         wrong_count = max(0, total - score)
@@ -412,6 +411,7 @@ async def send_q(context: ContextTypes.DEFAULT_TYPE, chat_id: int):
         )
     except Exception as e:
         logger.error(f"Poll Send Error: {e}")
+        # अगर टेलीग्राम पोल रिजेक्ट करे तो तुरंत बिना अटके अगले पर बढ़ेगा
         await send_q(context, chat_id)
 
 async def handle_ans(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -432,8 +432,9 @@ async def handle_ans(update: Update, context: ContextTypes.DEFAULT_TYPE):
                     ud['wrong_qs'] = []
                 ud['wrong_qs'].append(ud['current_q_data'])
             
-            # 🚀 Instant Transition
-            asyncio.create_task(send_q(context, uid))
+            # 🚀 0.2 सेकेंड का स्मूथ गैप ताकि Telegram API ब्लॉक न करे
+            await asyncio.sleep(0.2)
+            await send_q(context, uid)
 
 # 🛡️ एरर हैंडलर
 async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE):
