@@ -132,16 +132,24 @@ def build_topics_keyboard(page: int = 0):
 
 # --- Commands ---
 async def reset_bot(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    m = await update.message.reply_text("🌀 Rebooting...", parse_mode="Markdown")
+    m = await update.message.reply_text("🌀 Rebooting System...", parse_mode="Markdown")
     try:
         await context.bot.delete_webhook(drop_pending_updates=True)
         await context.bot.set_webhook(url=f"{RENDER_URL}/{TOKEN}", drop_pending_updates=True)
         await sync_db()
-        context.application.user_data.clear()
-        res = "╔════════════════════╗\n  ⚡ BOT IS ALIVE NOW ⚡ \n╚════════════════════╝\n✅ सिस्टम पूरी तरह साफ़ हो गया है!"
+        
+        # Safe User Data Clear Fix (Solves mappingproxy Error)
+        keys_to_del = list(context.application.user_data.keys())
+        for k in keys_to_del:
+            try:
+                context.application.user_data[k].clear()
+            except Exception:
+                pass
+
+        res = "╔════════════════════╗\n  ⚡ BOT IS ALIVE NOW ⚡ \n╚════════════════════╝\n✅ सिस्टम पूरी तरह रिसेट हो गया है!\n\n/start दबाएं।"
         await m.edit_text(res, parse_mode="Markdown")
     except Exception as e:
-        await m.edit_text(f"❌ Failed: {e}")
+        await m.edit_text(f"❌ Reset Error: {e}")
 
 async def refresh_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     msg = await update.message.reply_text("📡 Syncing Database...", parse_mode="Markdown")
@@ -228,7 +236,10 @@ async def delete_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     uid = update.effective_user.id
     if uid in context.application.user_data:
-        context.application.user_data[uid].clear()
+        try:
+            context.application.user_data[uid].clear()
+        except Exception:
+            pass
 
     if not DB_CACHE:
         await sync_db()
@@ -362,7 +373,7 @@ async def send_q(context: ContextTypes.DEFAULT_TYPE, chat_id: int):
 
     q = qs[idx]
     
-    # 🛠️ AUTO-FIX FORMATTING (एक भी प्रश्न नहीं छूटेगा)
+    # 🛠️ Safe Option Formatting
     options = list(q.get('options', []))
     if not options:
         options = ["विकल्प A", "विकल्प B"]
@@ -384,7 +395,6 @@ async def send_q(context: ContextTypes.DEFAULT_TYPE, chat_id: int):
     random.shuffle(shuffled_options)
 
     new_correct_index = shuffled_options.index(correct_option_text)
-    # टेलीग्राम की 100 कैरेक्टर सीमा के तहत सुरक्षित ट्रिमिंग
     styled_options = [f"▪️ {str(opt)[:95]}" for opt in shuffled_options]
 
     ud['current_correct_index'] = new_correct_index
@@ -401,20 +411,8 @@ async def send_q(context: ContextTypes.DEFAULT_TYPE, chat_id: int):
             is_anonymous=False
         )
     except Exception as e:
-        logger.error(f"Poll Send Error, retrying text mode fallback: {e}")
-        # अगर टेलीग्राम फिर भी पोल रिजेक्ट करे, तो बिना छूटे टेक्स्ट मोड में उत्तर पूछेगा
-        try:
-            await context.bot.send_poll(
-                chat_id=chat_id,
-                question=f"✨ ({idx+1}/{len(qs)}) {q_text}",
-                options=["Option A", "Option B", "Option C", "Option D"],
-                type=Poll.QUIZ,
-                correct_option_id=0,
-                is_anonymous=False
-            )
-        except Exception:
-            # बैकअप: ऑटो-एडवांस
-            await send_q(context, chat_id)
+        logger.error(f"Poll Send Error: {e}")
+        await send_q(context, chat_id)
 
 async def handle_ans(update: Update, context: ContextTypes.DEFAULT_TYPE):
     ans = update.poll_answer
@@ -434,7 +432,7 @@ async def handle_ans(update: Update, context: ContextTypes.DEFAULT_TYPE):
                     ud['wrong_qs'] = []
                 ud['wrong_qs'].append(ud['current_q_data'])
             
-            # 🚀 तुरंत बिना किसी देरी/लोडिंग के अगला सवाल Fire करें
+            # 🚀 Instant Transition
             asyncio.create_task(send_q(context, uid))
 
 # 🛡️ एरर हैंडलर
