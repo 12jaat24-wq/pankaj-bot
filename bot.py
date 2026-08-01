@@ -20,12 +20,11 @@ from telegram.ext import (
 # --- कॉन्फ़िगरेशन ---
 TOKEN = os.environ.get("BOT_TOKEN")
 GITHUB_TOKEN = os.environ.get("GITHUB_TOKEN")
-REPO_NAME = "12jaat24-wq/pankaj-bot"
+REPO_NAME = "jaatpankaj610/paid-quiz-app"
 DB_FILE = "quiz_database.json"
-RENDER_URL = "https://pankaj-bot.onrender.com"
+RENDER_URL = "https://bankerbot-mdzw.onrender.com"
 GITHUB_API_URL = f"https://api.github.com/repos/{REPO_NAME}/contents/{DB_FILE}"
 
-# लॉगिंग सेटअप
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
 logger = logging.getLogger(__name__)
 
@@ -114,7 +113,6 @@ def build_topics_keyboard(page: int = 0):
 
     for idx, t in enumerate(current_topics):
         q_count = len(DB_CACHE[t])
-        # Safe callback data truncation for large topic names
         cb_data = f"tp_{start_idx + idx}"
         btn_text = f"{random.choice(icons)} {style_txt(t)} [{q_count}Q]"
         keyboard.append([InlineKeyboardButton(btn_text, callback_data=cb_data)])
@@ -329,28 +327,32 @@ async def send_q(context, chat_id):
     if not ud or not ud.get('busy'):
         return
 
-    idx, qs = ud.get('idx', 0), ud['qs']
+    idx, qs = ud.get('idx', 0), ud.get('qs', [])
     
-    # 🎯 सवाल खत्म होने पर रिपोर्ट कार्ड (Fix applied)
-    if idx >= len(qs):
-        score, total = ud['score'], len(qs)
-        wrong_count = total - score
+    # 🎯 1. सवाल खत्म होने पर 100% गारंटेड रिजल्ट
+    if idx >= len(qs) or not qs:
+        score, total = ud.get('score', 0), len(qs)
+        wrong_count = max(0, total - score)
         per = int((score / total) * 100) if total > 0 else 0
         medal = "🏆" if per >= 80 else "🥇"
         
         res = (
             f"╔══════════════════╗\n  📊 {style_txt('REPORT CARD')} {medal} \n╚══════════════════╝\n"
-            f"📝 विषय: {ud['topic']}\n✅ सही: {score} | ❌ गलत: {wrong_count}\n🏆 स्कोर: {per}%\n━━━━━━━━━━━━━━━━━━━━"
+            f"📝 विषय: {ud.get('topic', 'Quiz')}\n✅ सही: {score} | ❌ गलत: {wrong_count}\n🏆 स्कोर: {per}%\n━━━━━━━━━━━━━━━━━━━━"
         )
         
         keyboard = []
         if wrong_count > 0 and ud.get('wrong_qs'):
             keyboard.append([InlineKeyboardButton(f"🔄 गलत सवाल फिर से हल करें ({wrong_count})", callback_data="retry_wrong")])
         
-        reply_markup = InlineKeyboardMarkup(keyboard) if keyboard else None
+        keyboard.append([InlineKeyboardButton("🏠 मुख्य मेनू (/start)", callback_data="page_0")])
+        reply_markup = InlineKeyboardMarkup(keyboard)
         
-        await context.bot.send_message(chat_id, res, reply_markup=reply_markup, parse_mode="Markdown")
         ud['busy'] = False
+        try:
+            await context.bot.send_message(chat_id, res, reply_markup=reply_markup, parse_mode="Markdown")
+        except Exception as e:
+            logger.error(f"Report Send Error: {e}")
         return
 
     q = qs[idx]
@@ -381,8 +383,7 @@ async def send_q(context, chat_id):
         )
     except Exception as e:
         logger.error(f"Poll Send Error: {e}")
-        # एग्रेशन से बचने के लिए छोटा सा डिले
-        await asyncio.sleep(0.05)
+        await asyncio.sleep(0.1)
         await send_q(context, chat_id)
 
 async def handle_ans(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -403,8 +404,9 @@ async def handle_ans(update: Update, context: ContextTypes.DEFAULT_TYPE):
                     ud['wrong_qs'] = []
                 ud['wrong_qs'].append(ud['current_q_data'])
             
-            # 🚀 इंस्टेंट बैकग्राउंड टास्क - सवालों के बीच का अटकाव ख़त्म
-            asyncio.create_task(send_q(context, uid))
+            # 🚀 2. Instant Zero Delay - इवेंट लूप में तुरंत फायर करें
+            loop = asyncio.get_running_loop()
+            loop.create_task(send_q(context, uid))
 
 # 🛡️ एरर हैंडलर
 async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE):
