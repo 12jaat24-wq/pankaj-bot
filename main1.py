@@ -6,7 +6,7 @@ import asyncio
 import httpx
 import time
 import base64
-from telegram import Update, Poll
+from telegram import Update, Poll, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import (
     Application,
     CommandHandler,
@@ -97,7 +97,6 @@ SHAYARIS = [
 ]
 
 def build_topics_keyboard(page: int = 0):
-    from telegram import InlineKeyboardButton, InlineKeyboardMarkup
     topics = sorted(list(DB_CACHE.keys()))
     if not topics:
         return InlineKeyboardMarkup([[InlineKeyboardButton("❌ कोई विषय नहीं मिला", callback_data="noop")]])
@@ -285,7 +284,40 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         random.shuffle(qs)
         context.user_data.clear()
-        context.user_data.update({'qs': qs, 'idx': 0, 'score': 0, 'busy': True, 'topic': topic, 'processing': False})
+        context.user_data.update({
+            'qs': qs, 
+            'idx': 0, 
+            'score': 0, 
+            'busy': True, 
+            'topic': topic, 
+            'processing': False,
+            'wrong_qs': []
+        })
+        try:
+            await query.delete_message()
+        except Exception:
+            pass
+        await send_q(context, query.message.chat_id)
+
+    if data == "retry_wrong":
+        wrong_qs = context.user_data.get('wrong_qs', [])
+        topic = context.user_data.get('topic', 'रिवीजन')
+        if not wrong_qs:
+            await query.message.reply_text("❌ कोई गलत सवाल बाकी नहीं है!")
+            return
+
+        qs = list(wrong_qs)
+        random.shuffle(qs)
+        context.user_data.clear()
+        context.user_data.update({
+            'qs': qs, 
+            'idx': 0, 
+            'score': 0, 
+            'busy': True, 
+            'topic': f"{topic} (गलत सवाल)", 
+            'processing': False,
+            'wrong_qs': []
+        })
         try:
             await query.delete_message()
         except Exception:
@@ -300,14 +332,23 @@ async def send_q(context, chat_id):
     idx, qs = ud.get('idx', 0), ud['qs']
     if idx >= len(qs):
         score, total = ud['score'], len(qs)
+        wrong_count = total - score
         per = int((score / total) * 100) if total > 0 else 0
         medal = "🏆" if per >= 80 else "🥇"
+        
         res = (
             f"╔══════════════════╗\n  📊 {style_txt('REPORT CARD')} {medal} \n╚══════════════════╝\n"
-            f"📝 विषय: {ud['topic']}\n✅ सही: {score} | ❌ गलत: {total - score}\n🏆 स्कोर: {per}%\n━━━━━━━━━━━━━━━━━━━━\n🔥 /start - फिर से खेलें"
+            f"📝 विषय: {ud['topic']}\n✅ सही: {score} | ❌ गलत: {wrong_count}\n🏆 स्कोर: {per}%\n━━━━━━━━━━━━━━━━━━━━"
         )
-        await context.bot.send_message(chat_id, res, parse_mode="Markdown")
-        ud.clear()
+        
+        keyboard = []
+        if wrong_count > 0 and ud.get('wrong_qs'):
+            keyboard.append([InlineKeyboardButton(f"🔄 गलत सवाल फिर से हल करें ({wrong_count})", callback_data="retry_wrong")])
+        
+        reply_markup = InlineKeyboardMarkup(keyboard) if keyboard else None
+        
+        await context.bot.send_message(chat_id, res, reply_markup=reply_markup, parse_mode="Markdown")
+        ud['busy'] = False
         return
 
     q = qs[idx]
@@ -324,10 +365,10 @@ async def send_q(context, chat_id):
     styled_options = [f"▪️ {opt}" for opt in shuffled_options]
 
     ud['current_correct_index'] = new_correct_index
+    ud['current_q_data'] = q
     ud['idx'] = idx + 1
 
     try:
-        # ⚡ INSTANT POLL SENDER
         await context.bot.send_poll(
             chat_id=chat_id,
             question=f"✨ ({idx+1}/{len(qs)}) {q_text}\n{bar}",
@@ -341,7 +382,6 @@ async def send_q(context, chat_id):
         )
     except Exception as e:
         logger.error(f"Poll Send Error: {e}")
-        # अगर टेलीग्राम सर्वर ड्रॉप करे, तो बिना रुके तुरंत 0.1s में दोबारा ट्राई करेगा
         await asyncio.sleep(0.1)
         await send_q(context, chat_id)
     finally:
@@ -353,7 +393,6 @@ async def handle_ans(update: Update, context: ContextTypes.DEFAULT_TYPE):
     ud = context.application.user_data.get(uid)
     
     if ud and ud.get('busy'):
-        # 🛡️ रेस कंडीशन रोकने के लिए सुरक्षा ताला (Locking)
         if ud.get('processing', False):
             return
         ud['processing'] = True
@@ -361,10 +400,17 @@ async def handle_ans(update: Update, context: ContextTypes.DEFAULT_TYPE):
         current_idx = ud['idx'] - 1
         if 0 <= current_idx < len(ud['qs']):
             correct_ans = ud.get('current_correct_index')
-            if ans.option_ids[0] == correct_ans:
-                ud['score'] += 1
+            user_selected = ans.option_ids[0]
             
-            # 🚀 बिना 1 सेकंड भी रुके (TURANT) अगला सवाल
+            if user_selected == correct_ans:
+                ud['score'] += 1
+            else:
+                # ❌ अगर जवाब गलत है, तो उस सवाल को 'wrong_qs' लिस्ट में सेव करें
+                if 'wrong_qs' not in ud:
+                    ud['wrong_qs'] = []
+                ud['wrong_qs'].append(ud['current_q_data'])
+            
+            # 🚀 बिना रुके तुरंत अगला सवाल
             await send_q(context, uid)
 
 # 🛡️ एरर हैंडलर
@@ -372,7 +418,6 @@ async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE):
     logger.error(f"Update {update} caused error {context.error}")
 
 def main():
-    # ⚡ Single Threaded Execution (ताकि क्रैश या सवाल अटकना बंद हो जाए)
     app = Application.builder().token(TOKEN).concurrent_updates(False).build()
 
     app.add_handler(CommandHandler("start", start))
