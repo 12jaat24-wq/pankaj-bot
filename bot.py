@@ -40,7 +40,6 @@ def style_txt(text):
     STYLED_NAMES_CACHE[text] = res
     return res
 
-# --- बिना किसी कैशिंग के डेटाबेस पढ़ने का फ़ंक्शन ---
 async def get_latest_github_db():
     headers = {
         "Authorization": f"Bearer {GITHUB_TOKEN}",
@@ -67,7 +66,6 @@ async def get_latest_github_db():
         logger.error(f"GitHub Direct Fetch Error: {e}")
     return {}
 
-# --- असीमित डेटा सुरक्षित सेव करने वाला फ़ंक्शन ---
 async def save_to_github_safely(data_to_save, commit_msg):
     headers = {
         "Authorization": f"Bearer {GITHUB_TOKEN}",
@@ -286,7 +284,6 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     markup = build_topics_keyboard(page=0)
     await update.message.reply_text(welcome, reply_markup=markup)
 
-# --- त्रुटिरहित (Error-proof) सवाल भेजने वाला फ़ंक्शन ---
 async def send_fast_q(context: ContextTypes.DEFAULT_TYPE, chat_id: int, query=None, is_edit=False):
     ud = context.user_data
     if not ud or not ud.get('busy'):
@@ -333,9 +330,10 @@ async def send_fast_q(context: ContextTypes.DEFAULT_TYPE, chat_id: int, query=No
 
     new_correct_index = shuffled_options.index(correct_option_text)
     
+    # 🟢🔘 आकर्षक विजुअल बटन्स
     keyboard = []
     for opt_idx, opt_text in enumerate(shuffled_options):
-        keyboard.append([InlineKeyboardButton(f"▪️ {opt_text}", callback_data=f"ans_{opt_idx}_{new_correct_index}")])
+        keyboard.append([InlineKeyboardButton(f"⚪️  {opt_text}", callback_data=f"ans_{opt_idx}_{new_correct_index}")])
 
     reply_markup = InlineKeyboardMarkup(keyboard)
     msg_text = f"✨ ({idx+1}/{len(qs)}) {q_text}\n\n{bar}"
@@ -433,12 +431,13 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         if ud and ud.get('busy'):
             if selected_idx == correct_idx:
                 ud['score'] += 1
-                await query.answer("✅ सही जवाब!", show_alert=False)
+                # show_alert=False: स्क्रीन पर ऊपर ग्रीन मैसेज पट्टी + फ़ोन में वाइब्रेशन देगा
+                await query.answer("🎉 बिलकुल सही जवाब! 🔥", show_alert=False)
             else:
                 if 'wrong_qs' not in ud:
                     ud['wrong_qs'] = []
                 ud['wrong_qs'].append(ud.get('current_q_data'))
-                await query.answer("❌ गलत जवाब!", show_alert=False)
+                await query.answer("❌ ओहो, गलत जवाब! 💔", show_alert=False)
 
             await send_fast_q(context, query.message.chat_id, query=query, is_edit=True)
 
