@@ -168,7 +168,7 @@ def build_topics_keyboard(page: int = 0):
     keyboard.append([InlineKeyboardButton("⚡ SUPER RESET ⚡", callback_data="super_reset")])
     return InlineKeyboardMarkup(keyboard)
 
-# --- LIGHTNING FAST QUIZ ENGINE ---
+# --- NO-DISTRACTION QUIZ ENGINE ---
 async def send_next_quiz(context: ContextTypes.DEFAULT_TYPE, chat_id: int, user_id: int):
     user_data = context.application.user_data.get(user_id)
     if not user_data or not user_data.get('busy'):
@@ -207,14 +207,17 @@ async def send_next_quiz(context: ContextTypes.DEFAULT_TYPE, chat_id: int, user_
     current_q_num = idx + 1
     remaining_qs = total_qs - current_q_num
 
-    completed_blocks = int((current_q_num / total_qs) * 10)
-    progress_bar = "🟦" * completed_blocks + "⬜" * (10 - completed_blocks)
+    # 🌀 एनिमेटेड आइकॉन + प्रोग्रेस नीचे
+    completed_blocks = int((current_q_num / total_qs) * 8)
+    progress_bar = "🟢" * completed_blocks + "⚪" * (8 - completed_blocks)
 
+    # 📌 प्रश्न को सबसे ऊपर रखा गया है ताकि पढ़ने में डिस्टर्बेंस न हो
+    q_question = str(q.get('question', '')).strip()
+    
     q_header = (
-        f"⚡ [{current_q_num}/{total_qs}]  | ⏳ बाकी: {remaining_qs} सवाल\n"
-        f" प्रगति: {progress_bar}\n"
+        f"Q{current_q_num}. {q_question}\n"
         f"━━━━━━━━━━━━━━━━━━━━\n"
-        f"❓ {str(q.get('question', '')).strip()}"
+        f"🌀 {progress_bar} | ⏳ शेष: {remaining_qs}"
     )
 
     original_options = list(q.get('options', []))
@@ -266,7 +269,7 @@ async def handle_poll_answer(update: Update, context: ContextTypes.DEFAULT_TYPE)
                 user_data['wrong_qs'] = []
             user_data['wrong_qs'].append(tracker["q_data"])
 
-        # Create Background Task to Fire Next Quiz Instantly (Non-blocking)
+        # Non-blocking instant task
         asyncio.create_task(send_next_quiz(context, chat_id, user_id))
 
 # --- Commands ---
