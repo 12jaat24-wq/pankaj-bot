@@ -4,14 +4,13 @@ import random
 import logging
 import asyncio
 import httpx
-import time
-import base64
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, Poll
 from telegram.ext import (
     Application,
     CommandHandler,
     CallbackQueryHandler,
     MessageHandler,
+    PollAnswerHandler,
     filters,
     ContextTypes
 )
@@ -28,6 +27,7 @@ logger = logging.getLogger(__name__)
 
 DB_CACHE = {}
 STYLED_NAMES_CACHE = {}
+POLL_TRACKER = {}  # poll_id -> {user_id, chat_id, correct_option_id, q_data}
 TOPICS_PER_PAGE = 10 
 
 def style_txt(text):
@@ -168,15 +168,101 @@ def build_topics_keyboard(page: int = 0):
     keyboard.append([InlineKeyboardButton("⚡ SUPER RESET ⚡", callback_data="super_reset")])
     return InlineKeyboardMarkup(keyboard)
 
-# --- Commands ---
+# --- Dynamic Native Quiz Engine ---
+async def send_next_quiz(context: ContextTypes.DEFAULT_TYPE, chat_id: int, user_id: int):
+    user_data = context.application.user_data.get(user_id)
+    if not user_data or not user_data.get('busy'):
+        return
+
+    idx = user_data.get('idx', 0)
+    qs = user_data.get('qs', [])
+
+    if idx >= len(qs):
+        score = user_data.get('score', 0)
+        total = len(qs)
+        wrong_count = total - score
+        per = int((score / total) * 100) if total > 0 else 0
+        medal = "🏆" if per >= 80 else "🥇"
+
+        res = (
+            f"╔══════════════════╗\n  📊 {style_txt('REPORT CARD')} {medal} \n╚══════════════════╝\n"
+            f"📝 विषय: {user_data['topic']}\n✅ सही: {score} | ❌ गलत: {wrong_count}\n🏆 स्कोर: {per}%\n━━━━━━━━━━━━━━━━━━━━"
+        )
+
+        keyboard = []
+        if wrong_count > 0 and user_data.get('wrong_qs'):
+            keyboard.append([InlineKeyboardButton(f"🔄 गलत सवाल फिर से हल करें ({wrong_count})", callback_data="retry_wrong")])
+
+        reply_markup = InlineKeyboardMarkup(keyboard) if keyboard else None
+        await context.bot.send_message(chat_id, res, reply_markup=reply_markup)
+        user_data['busy'] = False
+        return
+
+    q = qs[idx]
+    q_text = f"({idx+1}/{len(qs)}) {str(q.get('question', '')).strip()}"
+    original_options = list(q.get('options', []))
+    correct_option_text = original_options[q['answer']]
+
+    shuffled_options = original_options.copy()
+    random.shuffle(shuffled_options)
+    correct_option_id = shuffled_options.index(correct_option_text)
+
+    # 🎯 Telegram Native Quiz Poll भेजना
+    message = await context.bot.send_poll(
+        chat_id=chat_id,
+        question=q_text,
+        options=shuffled_options,
+        type=Poll.QUIZ,
+        correct_option_id=correct_option_id,
+        is_anonymous=False
+    )
+
+    POLL_TRACKER[message.poll.id] = {
+        "user_id": user_id,
+        "chat_id": chat_id,
+        "correct_option_id": correct_option_id,
+        "q_data": q
+    }
+
+    user_data['idx'] = idx + 1
+
+# --- Poll Handler ---
+async def handle_poll_answer(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    poll_answer = update.poll_answer
+    poll_id = poll_answer.poll_id
+
+    if poll_id not in POLL_TRACKER:
+        return
+
+    tracker = POLL_TRACKER.pop(poll_id)
+    user_id = tracker["user_id"]
+    chat_id = tracker["chat_id"]
+    correct_option_id = tracker["correct_option_id"]
+    selected_option = poll_answer.option_ids[0]
+
+    user_data = context.application.user_data.get(user_id)
+    if user_data and user_data.get('busy'):
+        if selected_option == correct_option_id:
+            user_data['score'] += 1
+        else:
+            if 'wrong_qs' not in user_data:
+                user_data['wrong_qs'] = []
+            user_data['wrong_qs'].append(tracker["q_data"])
+
+        # 0.8 सेकंड का गैप ताकि यूज़र टेलीग्राम का ग्रीन/रेड एनीमेशन देख सके
+        await asyncio.sleep(0.8)
+        await send_next_quiz(context, chat_id, user_id)
+
+# --- Command Handlers ---
 async def reset_bot(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    m = await update.message.reply_text("🌀 Hard Rebooting...")
+    m = await update.message.reply_text("🌀 Rebooting Bot...")
     try:
         await context.bot.delete_webhook(drop_pending_updates=True)
         await asyncio.sleep(0.3)
         await context.bot.set_webhook(url=f"{RENDER_URL}/{TOKEN}", drop_pending_updates=True)
         await sync_db()
         context.user_data.clear()
+        POLL_TRACKER.clear()
         res = "╔════════════════════╗\n  ⚡ BOT IS ALIVE NOW ⚡ \n╚════════════════════╝\n✅ सारे जाम साफ़ हो गए हैं!"
         await m.edit_text(res)
     except Exception as e:
@@ -284,75 +370,11 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     markup = build_topics_keyboard(page=0)
     await update.message.reply_text(welcome, reply_markup=markup)
 
-async def send_fast_q(context: ContextTypes.DEFAULT_TYPE, chat_id: int, query=None, is_edit=False):
-    ud = context.user_data
-    if not ud or not ud.get('busy'):
-        return
-
-    idx, qs = ud.get('idx', 0), ud['qs']
-    if idx >= len(qs):
-        score, total = ud['score'], len(qs)
-        wrong_count = total - score
-        per = int((score / total) * 100) if total > 0 else 0
-        medal = "🏆" if per >= 80 else "🥇"
-        
-        res = (
-            f"╔══════════════════╗\n  📊 {style_txt('REPORT CARD')} {medal} \n╚══════════════════╝\n"
-            f"📝 विषय: {ud['topic']}\n✅ सही: {score} | ❌ गलत: {wrong_count}\n🏆 स्कोर: {per}%\n━━━━━━━━━━━━━━━━━━━━"
-        )
-        
-        keyboard = []
-        if wrong_count > 0 and ud.get('wrong_qs'):
-            keyboard.append([InlineKeyboardButton(f"🔄 गलत सवाल फिर से हल करें ({wrong_count})", callback_data="retry_wrong")])
-        
-        reply_markup = InlineKeyboardMarkup(keyboard) if keyboard else None
-        
-        try:
-            if query and is_edit:
-                await query.edit_message_text(res, reply_markup=reply_markup)
-            else:
-                await context.bot.send_message(chat_id, res, reply_markup=reply_markup)
-        except Exception as e:
-            logger.error(f"Report card send error: {e}")
-            await context.bot.send_message(chat_id, res, reply_markup=reply_markup)
-            
-        ud['busy'] = False
-        return
-
-    q = qs[idx]
-    bar = "🔹" * (idx + 1) + "▫️" * (len(qs) - idx - 1)
-    q_text = str(q.get('question', '')).strip()
-    original_options = list(q.get('options', []))
-    correct_option_text = original_options[q['answer']]
-
-    shuffled_options = original_options.copy()
-    random.shuffle(shuffled_options)
-
-    new_correct_index = shuffled_options.index(correct_option_text)
-    
-    # 🟢🔘 आकर्षक विजुअल बटन्स
-    keyboard = []
-    for opt_idx, opt_text in enumerate(shuffled_options):
-        keyboard.append([InlineKeyboardButton(f"⚪️  {opt_text}", callback_data=f"ans_{opt_idx}_{new_correct_index}")])
-
-    reply_markup = InlineKeyboardMarkup(keyboard)
-    msg_text = f"✨ ({idx+1}/{len(qs)}) {q_text}\n\n{bar}"
-
-    ud['current_q_data'] = q
-    ud['idx'] = idx + 1
-
-    try:
-        if query and is_edit:
-            await query.edit_message_text(msg_text, reply_markup=reply_markup)
-        else:
-            await context.bot.send_message(chat_id, msg_text, reply_markup=reply_markup)
-    except Exception as e:
-        logger.error(f"Message Edit/Send failed, falling back to fresh message: {e}")
-        await context.bot.send_message(chat_id, msg_text, reply_markup=reply_markup)
-
 async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     data = query.data
+    user_id = query.from_user.id
+    chat_id = query.message.chat_id
 
     if data == "noop":
         await query.answer()
@@ -397,7 +419,7 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             'topic': topic, 
             'wrong_qs': []
         })
-        await send_fast_q(context, query.message.chat_id, query=query, is_edit=True)
+        await send_next_quiz(context, chat_id, user_id)
         return
 
     if data == "retry_wrong":
@@ -419,27 +441,8 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             'topic': f"{topic} (गलत सवाल)", 
             'wrong_qs': []
         })
-        await send_fast_q(context, query.message.chat_id, query=query, is_edit=True)
+        await send_next_quiz(context, chat_id, user_id)
         return
-
-    if data.startswith("ans_"):
-        parts = data.split("_")
-        selected_idx = int(parts[1])
-        correct_idx = int(parts[2])
-
-        ud = context.user_data
-        if ud and ud.get('busy'):
-            if selected_idx == correct_idx:
-                ud['score'] += 1
-                # show_alert=False: स्क्रीन पर ऊपर ग्रीन मैसेज पट्टी + फ़ोन में वाइब्रेशन देगा
-                await query.answer("🎉 बिलकुल सही जवाब! 🔥", show_alert=False)
-            else:
-                if 'wrong_qs' not in ud:
-                    ud['wrong_qs'] = []
-                ud['wrong_qs'].append(ud.get('current_q_data'))
-                await query.answer("❌ ओहो, गलत जवाब! 💔", show_alert=False)
-
-            await send_fast_q(context, query.message.chat_id, query=query, is_edit=True)
 
 async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE):
     logger.error(f"Update {update} caused error {context.error}")
@@ -452,6 +455,7 @@ def main():
     app.add_handler(CommandHandler("reset", reset_bot))
     app.add_handler(CommandHandler("delete", delete_cmd))
     app.add_handler(CallbackQueryHandler(handle_callback))
+    app.add_handler(PollAnswerHandler(handle_poll_answer))
     app.add_handler(MessageHandler(filters.TEXT & (~filters.COMMAND), handle_input))
     app.add_handler(MessageHandler(filters.Document.ALL, handle_input))
     
