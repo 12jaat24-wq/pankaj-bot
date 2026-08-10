@@ -23,7 +23,6 @@ REPO_NAME = "12jaat24-wq/pankaj-bot"
 DB_FILE = "quiz_database.json"
 RENDER_URL = "https://pankaj-bot.onrender.com"
 
-# लॉगिंग सेटअप
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
 logger = logging.getLogger(__name__)
 
@@ -41,26 +40,34 @@ def style_txt(text):
     STYLED_NAMES_CACHE[text] = res
     return res
 
-# --- अनलिमिटेड साइज सपोर्ट करने वाला GitHub Fetcher ---
+# --- बिना किसी कैशिंग के डेटाबेस पढ़ने का फ़ंक्शन ---
 async def get_latest_github_db():
     headers = {
         "Authorization": f"Bearer {GITHUB_TOKEN}",
         "Accept": "application/vnd.github.v3+json"
     }
     try:
-        # Raw Content URL बड़ी फाइलों को बिना किसी सीमा के डाउनलोड कर लेता है
-        raw_url = f"https://raw.githubusercontent.com/{REPO_NAME}/main/{DB_FILE}?t={int(time.time())}"
         async with httpx.AsyncClient() as client:
-            res = await client.get(raw_url, headers=headers, timeout=20.0)
-            if res.status_code == 200:
-                return res.json()
-            elif res.status_code == 404:
-                return {}
+            ref_res = await client.get(f"https://api.github.com/repos/{REPO_NAME}/git/trees/main?recursive=1", headers=headers, timeout=15.0)
+            if ref_res.status_code == 200:
+                tree = ref_res.json().get("tree", [])
+                file_blob_sha = None
+                for item in tree:
+                    if item.get("path") == DB_FILE:
+                        file_blob_sha = item.get("sha")
+                        break
+                
+                if file_blob_sha:
+                    blob_headers = headers.copy()
+                    blob_headers["Accept"] = "application/vnd.github.v3.raw"
+                    blob_res = await client.get(f"https://api.github.com/repos/{REPO_NAME}/git/blobs/{file_blob_sha}", headers=blob_headers, timeout=20.0)
+                    if blob_res.status_code == 200:
+                        return json.loads(blob_res.text)
     except Exception as e:
-        logger.error(f"GitHub Fetch Failed: {e}")
+        logger.error(f"GitHub Direct Fetch Error: {e}")
     return {}
 
-# --- अनलिमिटेड साइज (Large Files) के लिए सुरक्षित GitHub Saver ---
+# --- असीमित डेटा सुरक्षित सेव करने वाला फ़ंक्शन ---
 async def save_to_github_safely(data_to_save, commit_msg):
     headers = {
         "Authorization": f"Bearer {GITHUB_TOKEN}",
@@ -69,24 +76,19 @@ async def save_to_github_safely(data_to_save, commit_msg):
     try:
         content_str = json.dumps(data_to_save, indent=2, ensure_ascii=False)
         async with httpx.AsyncClient() as client:
-            # 1. Get Main Branch SHA
             ref_res = await client.get(f"https://api.github.com/repos/{REPO_NAME}/git/ref/heads/main", headers=headers, timeout=10.0)
-            if ref_res.status_code != 200:
-                return False
+            if ref_res.status_code != 200: return False
             latest_commit_sha = ref_res.json()["object"]["sha"]
 
-            # 2. Create Blob (No 1MB Limit)
             blob_res = await client.post(
                 f"https://api.github.com/repos/{REPO_NAME}/git/blobs",
                 headers=headers,
                 json={"content": content_str, "encoding": "utf-8"},
                 timeout=30.0
             )
-            if blob_res.status_code != 201:
-                return False
+            if blob_res.status_code != 201: return False
             blob_sha = blob_res.json()["sha"]
 
-            # 3. Create Tree
             tree_res = await client.post(
                 f"https://api.github.com/repos/{REPO_NAME}/git/trees",
                 headers=headers,
@@ -96,22 +98,18 @@ async def save_to_github_safely(data_to_save, commit_msg):
                 },
                 timeout=15.0
             )
-            if tree_res.status_code != 201:
-                return False
+            if tree_res.status_code != 201: return False
             new_tree_sha = tree_res.json()["sha"]
 
-            # 4. Create Commit
             commit_res = await client.post(
                 f"https://api.github.com/repos/{REPO_NAME}/git/commits",
                 headers=headers,
                 json={"message": commit_msg, "tree": new_tree_sha, "parents": [latest_commit_sha]},
                 timeout=15.0
             )
-            if commit_res.status_code != 201:
-                return False
+            if commit_res.status_code != 201: return False
             new_commit_sha = commit_res.json()["sha"]
 
-            # 5. Update Reference
             update_ref = await client.patch(
                 f"https://api.github.com/repos/{REPO_NAME}/git/refs/heads/main",
                 headers=headers,
@@ -174,7 +172,7 @@ def build_topics_keyboard(page: int = 0):
 
 # --- Commands ---
 async def reset_bot(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    m = await update.message.reply_text("🌀 Hard Rebooting...", parse_mode="Markdown")
+    m = await update.message.reply_text("🌀 Hard Rebooting...")
     try:
         await context.bot.delete_webhook(drop_pending_updates=True)
         await asyncio.sleep(0.3)
@@ -182,20 +180,20 @@ async def reset_bot(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await sync_db()
         context.user_data.clear()
         res = "╔════════════════════╗\n  ⚡ BOT IS ALIVE NOW ⚡ \n╚════════════════════╝\n✅ सारे जाम साफ़ हो गए हैं!"
-        await m.edit_text(res, parse_mode="Markdown")
+        await m.edit_text(res)
     except Exception as e:
         await m.edit_text(f"❌ Failed: {e}")
 
 async def refresh_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    msg = await update.message.reply_text("📡 Syncing Database...", parse_mode="Markdown")
+    msg = await update.message.reply_text("📡 Syncing Database...")
     if await sync_db():
         total_topics = len(DB_CACHE.keys())
         total_qs = sum(len(v) for v in DB_CACHE.values())
         res = (
             "╔════════════════════╗\n 🔄 REFRESH SUCCESS 🔄 \n╚════════════════════╝\n"
-            f"\n📂 विषय: {total_topics} | 📊 सवाल: {total_qs}\n\n/start पर क्लिक करें।"
+            f"\n📂 कुल विषय: {total_topics} | 📊 कुल सवाल: {total_qs}\n\n/start पर क्लिक करें।"
         )
-        await msg.edit_text(res, parse_mode="Markdown")
+        await msg.edit_text(res)
     else:
         await msg.edit_text("❌ Sync Failed!")
 
@@ -210,7 +208,7 @@ async def handle_input(update: Update, context: ContextTypes.DEFAULT_TYPE):
     else:
         return
 
-    m = await update.message.reply_text("🛡️ `Safely Adding Data to GitHub...`", parse_mode="Markdown")
+    m = await update.message.reply_text("🛡️ Safely Adding Data to GitHub...")
     try:
         clean_text = json_text.replace('```json', '').replace('```', '').strip()
         new_data = json.loads(clean_text)
@@ -232,23 +230,23 @@ async def handle_input(update: Update, context: ContextTypes.DEFAULT_TYPE):
             STYLED_NAMES_CACHE.clear()
             total_topics = len(DB_CACHE.keys())
             await m.edit_text(
-                "╔════════════════════╗\n  🚀 **SUCCESSFULLY ADDED!** 🚀  \n╚════════════════════╝\n"
-                f"📦 कुल सुरक्षित विषय: **{total_topics}**", parse_mode="Markdown"
+                "╔════════════════════╗\n  🚀 SUCCESSFULLY ADDED! 🚀  \n╚════════════════════╝\n"
+                f"📦 कुल सुरक्षित विषय: {total_topics}"
             )
             markup = build_topics_keyboard(page=0)
-            await update.message.reply_text("🎯 **अपडेटेड विषय सूची:**", reply_markup=markup)
+            await update.message.reply_text("🎯 अपडेटेड विषय सूची:", reply_markup=markup)
         else:
             await m.edit_text("❌ GitHub सेव करने में दिक्कत आई, कृपया दोबारा भेजें।")
 
     except Exception as e:
-        await m.edit_text(f"❌ `Data Format Error: {e}`", parse_mode="Markdown")
+        await m.edit_text(f"❌ Data Format Error: {e}")
 
 async def delete_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     t = " ".join(context.args).strip()
     if not t:
-        return await update.message.reply_text("💡 उपयोग: `/delete TopicName`", parse_mode="Markdown")
+        return await update.message.reply_text("💡 उपयोग: /delete TopicName")
 
-    m = await update.message.reply_text(f"🛡️ Deleting `{t}` safely...", parse_mode="Markdown")
+    m = await update.message.reply_text(f"🛡️ Deleting {t} safely...")
     global DB_CACHE, STYLED_NAMES_CACHE
     latest_db = await get_latest_github_db()
     if not latest_db:
@@ -260,13 +258,13 @@ async def delete_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
         if saved:
             DB_CACHE = latest_db
             STYLED_NAMES_CACHE.clear()
-            await m.edit_text(f"✅ **DELETED:** `{t}`\n\nबाकी सभी विषय सुरक्षित हैं!", parse_mode="Markdown")
+            await m.edit_text(f"✅ DELETED: {t}\n\nबाकी सभी विषय सुरक्षित हैं!")
             markup = build_topics_keyboard(page=0)
-            await update.message.reply_text("🎯 **अपडेटेड विषय सूची:**", reply_markup=markup)
+            await update.message.reply_text("🎯 अपडेटेड विषय सूची:", reply_markup=markup)
         else:
             await m.edit_text("❌ डिलीट करने में विफल! GitHub कनेक्ट नहीं हुआ।")
     else:
-        await m.edit_text(f"❌ विषय `{t}` डेटाबेस में नहीं मिला! कृपया सही नाम लिखें।")
+        await m.edit_text(f"❌ विषय '{t}' डेटाबेस में नहीं मिला! कृपया सही नाम लिखें।")
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.message:
@@ -280,22 +278,16 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     welcome = (
         "╔════════════════════╗\n"
-        f"   👑 **{style_txt('PANKAJ QUIZ BOT 2.0')}** 👑\n"
+        f"   👑 {style_txt('PANKAJ QUIZ BOT 2.0')} 👑\n"
         "╚════════════════════╝\n\n"
         f"{random.choice(SHAYARIS)}\n\n"
-        "🎯 **अपनी पसंद का विषय चुनें:** 👇"
+        "🎯 अपनी पसंद का विषय चुनें: 👇"
     )
     markup = build_topics_keyboard(page=0)
-    await update.message.reply_text(welcome, reply_markup=markup, parse_mode="Markdown")
+    await update.message.reply_text(welcome, reply_markup=markup)
 
-async def send_fast_q(update_or_context, chat_id, is_edit=False):
-    if isinstance(update_or_context, ContextTypes.DEFAULT_TYPE):
-        context = update_or_context
-        query = None
-    else:
-        query = update_or_context.callback_query
-        context = update_or_context
-
+# --- त्रुटिरहित (Error-proof) सवाल भेजने वाला फ़ंक्शन ---
+async def send_fast_q(context: ContextTypes.DEFAULT_TYPE, chat_id: int, query=None, is_edit=False):
     ud = context.user_data
     if not ud or not ud.get('busy'):
         return
@@ -318,17 +310,22 @@ async def send_fast_q(update_or_context, chat_id, is_edit=False):
         
         reply_markup = InlineKeyboardMarkup(keyboard) if keyboard else None
         
-        if query and is_edit:
-            await query.edit_message_text(res, reply_markup=reply_markup, parse_mode="Markdown")
-        else:
-            await context.bot.send_message(chat_id, res, reply_markup=reply_markup, parse_mode="Markdown")
+        try:
+            if query and is_edit:
+                await query.edit_message_text(res, reply_markup=reply_markup)
+            else:
+                await context.bot.send_message(chat_id, res, reply_markup=reply_markup)
+        except Exception as e:
+            logger.error(f"Report card send error: {e}")
+            await context.bot.send_message(chat_id, res, reply_markup=reply_markup)
+            
         ud['busy'] = False
         return
 
     q = qs[idx]
     bar = "🔹" * (idx + 1) + "▫️" * (len(qs) - idx - 1)
-    q_text = q.get('question', '').strip()
-    original_options = q['options'].copy()
+    q_text = str(q.get('question', '')).strip()
+    original_options = list(q.get('options', []))
     correct_option_text = original_options[q['answer']]
 
     shuffled_options = original_options.copy()
@@ -341,15 +338,19 @@ async def send_fast_q(update_or_context, chat_id, is_edit=False):
         keyboard.append([InlineKeyboardButton(f"▪️ {opt_text}", callback_data=f"ans_{opt_idx}_{new_correct_index}")])
 
     reply_markup = InlineKeyboardMarkup(keyboard)
-    msg_text = f"✨ ({idx+1}/{len(qs)}) **{q_text}**\n\n{bar}"
+    msg_text = f"✨ ({idx+1}/{len(qs)}) {q_text}\n\n{bar}"
 
     ud['current_q_data'] = q
     ud['idx'] = idx + 1
 
-    if query and is_edit:
-        await query.edit_message_text(msg_text, reply_markup=reply_markup, parse_mode="Markdown")
-    else:
-        await context.bot.send_message(chat_id, msg_text, reply_markup=reply_markup, parse_mode="Markdown")
+    try:
+        if query and is_edit:
+            await query.edit_message_text(msg_text, reply_markup=reply_markup)
+        else:
+            await context.bot.send_message(chat_id, msg_text, reply_markup=reply_markup)
+    except Exception as e:
+        logger.error(f"Message Edit/Send failed, falling back to fresh message: {e}")
+        await context.bot.send_message(chat_id, msg_text, reply_markup=reply_markup)
 
 async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
@@ -398,7 +399,7 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             'topic': topic, 
             'wrong_qs': []
         })
-        await send_fast_q(context, query.message.chat_id, is_edit=False)
+        await send_fast_q(context, query.message.chat_id, query=query, is_edit=True)
         return
 
     if data == "retry_wrong":
@@ -420,7 +421,7 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             'topic': f"{topic} (गलत सवाल)", 
             'wrong_qs': []
         })
-        await send_fast_q(context, query.message.chat_id, is_edit=False)
+        await send_fast_q(context, query.message.chat_id, query=query, is_edit=True)
         return
 
     if data.startswith("ans_"):
@@ -439,7 +440,7 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 ud['wrong_qs'].append(ud.get('current_q_data'))
                 await query.answer("❌ गलत जवाब!", show_alert=False)
 
-            await send_fast_q(context, query.message.chat_id, is_edit=True)
+            await send_fast_q(context, query.message.chat_id, query=query, is_edit=True)
 
 async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE):
     logger.error(f"Update {update} caused error {context.error}")
