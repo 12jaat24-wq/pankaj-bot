@@ -168,7 +168,7 @@ def build_topics_keyboard(page: int = 0):
     keyboard.append([InlineKeyboardButton("⚡ SUPER RESET ⚡", callback_data="super_reset")])
     return InlineKeyboardMarkup(keyboard)
 
-# --- Dynamic Native Quiz Engine ---
+# --- Instantly Triggered High-Speed Quiz Engine ---
 async def send_next_quiz(context: ContextTypes.DEFAULT_TYPE, chat_id: int, user_id: int):
     user_data = context.application.user_data.get(user_id)
     if not user_data or not user_data.get('busy'):
@@ -176,17 +176,22 @@ async def send_next_quiz(context: ContextTypes.DEFAULT_TYPE, chat_id: int, user_
 
     idx = user_data.get('idx', 0)
     qs = user_data.get('qs', [])
+    total_qs = len(qs)
 
-    if idx >= len(qs):
+    if idx >= total_qs:
         score = user_data.get('score', 0)
-        total = len(qs)
-        wrong_count = total - score
-        per = int((score / total) * 100) if total > 0 else 0
+        wrong_count = total_qs - score
+        per = int((score / total_qs) * 100) if total_qs > 0 else 0
         medal = "🏆" if per >= 80 else "🥇"
 
         res = (
-            f"╔══════════════════╗\n  📊 {style_txt('REPORT CARD')} {medal} \n╚══════════════════╝\n"
-            f"📝 विषय: {user_data['topic']}\n✅ सही: {score} | ❌ गलत: {wrong_count}\n🏆 स्कोर: {per}%\n━━━━━━━━━━━━━━━━━━━━"
+            f"╔═════════════════════════╗\n"
+            f"  📊 {style_txt('QUIZ REPORT CARD')} {medal}\n"
+            f"╚═════════════════════════╝\n\n"
+            f"📝 विषय: {user_data['topic']}\n"
+            f"✅ सही: {score} | ❌ गलत: {wrong_count}\n"
+            f"🏆 कुल स्कोर: {per}%\n"
+            f"━━━━━━━━━━━━━━━━━━━━━━━━━"
         )
 
         keyboard = []
@@ -199,7 +204,21 @@ async def send_next_quiz(context: ContextTypes.DEFAULT_TYPE, chat_id: int, user_
         return
 
     q = qs[idx]
-    q_text = f"({idx+1}/{len(qs)}) {str(q.get('question', '')).strip()}"
+    current_q_num = idx + 1
+    remaining_qs = total_qs - current_q_num
+
+    # 🎨 प्रगति बार (Progress Bar)
+    completed_blocks = int((current_q_num / total_qs) * 10)
+    progress_bar = "🟦" * completed_blocks + "⬜" * (10 - completed_blocks)
+
+    # 🌈 रंग-बिरंगा और स्टाइलिश हेडर
+    q_header = (
+        f"⚡ [{current_q_num}/{total_qs}]  | ⏳ बाकी: {remaining_qs} सवाल\n"
+        f" प्रगति: {progress_bar}\n"
+        f"━━━━━━━━━━━━━━━━━━━━\n"
+        f"❓ {str(q.get('question', '')).strip()}"
+    )
+
     original_options = list(q.get('options', []))
     correct_option_text = original_options[q['answer']]
 
@@ -207,10 +226,10 @@ async def send_next_quiz(context: ContextTypes.DEFAULT_TYPE, chat_id: int, user_
     random.shuffle(shuffled_options)
     correct_option_id = shuffled_options.index(correct_option_text)
 
-    # 🎯 Telegram Native Quiz Poll भेजना
+    # 🎯 0 Microsecond Instant Quiz Poll
     message = await context.bot.send_poll(
         chat_id=chat_id,
-        question=q_text,
+        question=q_header,
         options=shuffled_options,
         type=Poll.QUIZ,
         correct_option_id=correct_option_id,
@@ -226,7 +245,7 @@ async def send_next_quiz(context: ContextTypes.DEFAULT_TYPE, chat_id: int, user_
 
     user_data['idx'] = idx + 1
 
-# --- Poll Handler ---
+# --- Instant Poll Answer Handler ---
 async def handle_poll_answer(update: Update, context: ContextTypes.DEFAULT_TYPE):
     poll_answer = update.poll_answer
     poll_id = poll_answer.poll_id
@@ -249,11 +268,10 @@ async def handle_poll_answer(update: Update, context: ContextTypes.DEFAULT_TYPE)
                 user_data['wrong_qs'] = []
             user_data['wrong_qs'].append(tracker["q_data"])
 
-        # 0.8 सेकंड का गैप ताकि यूज़र टेलीग्राम का ग्रीन/रेड एनीमेशन देख सके
-        await asyncio.sleep(0.8)
+        # ⚡ शून्य डिले (Instant Jump to Next Question)
         await send_next_quiz(context, chat_id, user_id)
 
-# --- Command Handlers ---
+# --- Commands ---
 async def reset_bot(update: Update, context: ContextTypes.DEFAULT_TYPE):
     m = await update.message.reply_text("🌀 Rebooting Bot...")
     try:
