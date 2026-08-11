@@ -27,7 +27,7 @@ logger = logging.getLogger(__name__)
 
 DB_CACHE = {}
 STYLED_NAMES_CACHE = {}
-POLL_TRACKER = {}  # Fast memory lookup
+POLL_TRACKER = {}  # Fast lookup
 TOPICS_PER_PAGE = 10 
 
 def style_txt(text):
@@ -168,14 +168,21 @@ def build_topics_keyboard(page: int = 0):
     keyboard.append([InlineKeyboardButton("⚡ SUPER RESET ⚡", callback_data="super_reset")])
     return InlineKeyboardMarkup(keyboard)
 
-# --- NO-DISTRACTION QUIZ ENGINE ---
+# --- UNLIMITED & HIGH-SPEED ENGINE ---
 async def send_next_quiz(context: ContextTypes.DEFAULT_TYPE, chat_id: int, user_id: int):
     user_data = context.application.user_data.get(user_id)
     if not user_data or not user_data.get('busy'):
         return
 
     idx = user_data.get('idx', 0)
-    qs = user_data.get('qs', [])
+    topic = user_data.get('topic')
+    
+    # DB_CACHE से ऑन-द-फ़्लाई सवाल उठाएगा (No State Overhead)
+    if user_data.get('is_retry'):
+        qs = user_data.get('wrong_qs_pool', [])
+    else:
+        qs = user_data.get('q_indices', [])
+
     total_qs = len(qs)
 
     if idx >= total_qs:
@@ -188,7 +195,7 @@ async def send_next_quiz(context: ContextTypes.DEFAULT_TYPE, chat_id: int, user_
             f"╔═════════════════════════╗\n"
             f"  📊 {style_txt('QUIZ REPORT CARD')} {medal}\n"
             f"╚═════════════════════════╝\n\n"
-            f"📝 विषय: {user_data['topic']}\n"
+            f"📝 विषय: {topic}\n"
             f"✅ सही: {score} | ❌ गलत: {wrong_count}\n"
             f"🏆 कुल स्कोर: {per}%\n"
             f"━━━━━━━━━━━━━━━━━━━━━━━━━"
@@ -203,15 +210,19 @@ async def send_next_quiz(context: ContextTypes.DEFAULT_TYPE, chat_id: int, user_
         user_data['busy'] = False
         return
 
-    q = qs[idx]
+    # सवाल प्राप्त करें
+    if user_data.get('is_retry'):
+        q = qs[idx]
+    else:
+        q_idx = qs[idx]
+        q = DB_CACHE[topic][q_idx]
+
     current_q_num = idx + 1
     remaining_qs = total_qs - current_q_num
 
-    # 🌀 एनिमेटेड आइकॉन + प्रोग्रेस नीचे
     completed_blocks = int((current_q_num / total_qs) * 8)
     progress_bar = "🟢" * completed_blocks + "⚪" * (8 - completed_blocks)
 
-    # 📌 प्रश्न को सबसे ऊपर रखा गया है ताकि पढ़ने में डिस्टर्बेंस न हो
     q_question = str(q.get('question', '')).strip()
     
     q_header = (
@@ -227,26 +238,32 @@ async def send_next_quiz(context: ContextTypes.DEFAULT_TYPE, chat_id: int, user_
     random.shuffle(shuffled_options)
     correct_option_id = shuffled_options.index(correct_option_text)
 
-    # ⚡ Instant Push
-    message = await context.bot.send_poll(
-        chat_id=chat_id,
-        question=q_header,
-        options=shuffled_options,
-        type=Poll.QUIZ,
-        correct_option_id=correct_option_id,
-        is_anonymous=False
-    )
+    try:
+        message = await context.bot.send_poll(
+            chat_id=chat_id,
+            question=q_header,
+            options=shuffled_options,
+            type=Poll.QUIZ,
+            correct_option_id=correct_option_id,
+            is_anonymous=False
+        )
 
-    POLL_TRACKER[message.poll.id] = {
-        "user_id": user_id,
-        "chat_id": chat_id,
-        "correct_option_id": correct_option_id,
-        "q_data": q
-    }
+        POLL_TRACKER[message.poll.id] = {
+            "user_id": user_id,
+            "chat_id": chat_id,
+            "correct_option_id": correct_option_id,
+            "q_data": q
+        }
 
-    user_data['idx'] = idx + 1
+        user_data['idx'] = idx + 1
 
-# --- Instant Triggering ---
+    except Exception as e:
+        logger.error(f"Error sending poll: {e}")
+        # अगर टेलीग्राम कोई एरर दे, तो बिना रुके अगले सवाल पर बढ़ जाओ
+        user_data['idx'] = idx + 1
+        asyncio.create_task(send_next_quiz(context, chat_id, user_id))
+
+# --- Poll Answer Handler ---
 async def handle_poll_answer(update: Update, context: ContextTypes.DEFAULT_TYPE):
     poll_answer = update.poll_answer
     poll_id = poll_answer.poll_id
@@ -269,7 +286,7 @@ async def handle_poll_answer(update: Update, context: ContextTypes.DEFAULT_TYPE)
                 user_data['wrong_qs'] = []
             user_data['wrong_qs'].append(tracker["q_data"])
 
-        # Non-blocking instant task
+        # Async Fire & Forget
         asyncio.create_task(send_next_quiz(context, chat_id, user_id))
 
 # --- Commands ---
@@ -423,20 +440,24 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await query.message.reply_text("❌ यह विषय डिलीट हो चुका है! /start करें।")
             return
 
-        qs = list(DB_CACHE.get(topic, []))
-        if not qs:
+        total_questions = len(DB_CACHE[topic])
+        if total_questions == 0:
             await query.message.reply_text("❌ इस विषय में कोई सवाल नहीं हैं!")
             return
 
-        random.shuffle(qs)
+        # केवल प्रश्न के इंडेक्स की सूची (Lightweight Index Mapping)
+        indices = list(range(total_questions))
+        random.shuffle(indices)
+
         context.user_data.clear()
         context.user_data.update({
-            'qs': qs, 
+            'q_indices': indices, 
             'idx': 0, 
             'score': 0, 
             'busy': True, 
             'topic': topic, 
-            'wrong_qs': []
+            'wrong_qs': [],
+            'is_retry': False
         })
         asyncio.create_task(send_next_quiz(context, chat_id, user_id))
         return
@@ -453,12 +474,13 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         random.shuffle(qs)
         context.user_data.clear()
         context.user_data.update({
-            'qs': qs, 
+            'wrong_qs_pool': qs, 
             'idx': 0, 
             'score': 0, 
             'busy': True, 
             'topic': f"{topic} (गलत सवाल)", 
-            'wrong_qs': []
+            'wrong_qs': [],
+            'is_retry': True
         })
         asyncio.create_task(send_next_quiz(context, chat_id, user_id))
         return
