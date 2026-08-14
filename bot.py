@@ -1,3 +1,4 @@
+from aiohttp import web
 import os
 import json
 import random
@@ -169,13 +170,12 @@ def build_topics_keyboard(page: int = 0):
     keyboard.append([InlineKeyboardButton("⚡ SUPER RESET ⚡", callback_data="super_reset")])
     return InlineKeyboardMarkup(keyboard)
 
-# --- BULLETPROOF ENGINE (HANDLES FAST CLICKS & FLOOD WAIT) ---
+# --- BULLETPROOF ENGINE ---
 async def send_next_quiz(context: ContextTypes.DEFAULT_TYPE, chat_id: int, user_id: int):
     user_data = context.application.user_data.get(user_id)
     if not user_data or not user_data.get('busy'):
         return
 
-    # Lock Mechanism: एक समय में एक ही सवाल प्रोसेस करने का लॉक
     if user_data.get('sending_lock', False):
         return
     user_data['sending_lock'] = True
@@ -196,7 +196,6 @@ async def send_next_quiz(context: ContextTypes.DEFAULT_TYPE, chat_id: int, user_
 
         total_qs = len(qs)
 
-        # क्विज़ पूरा होने पर रिपोर्ट कार्ड
         if idx >= total_qs:
             score = user_data.get('score', 0)
             wrong_count = total_qs - score
@@ -255,7 +254,6 @@ async def send_next_quiz(context: ContextTypes.DEFAULT_TYPE, chat_id: int, user_
         random.shuffle(shuffled_options)
         correct_option_id = shuffled_options.index(correct_option_text)
 
-        # ⚡ Rapid Click & Flood-Wait Error Prevention Loop
         sent = False
         while not sent:
             try:
@@ -281,7 +279,6 @@ async def send_next_quiz(context: ContextTypes.DEFAULT_TYPE, chat_id: int, user_
                 sent = True
 
             except RetryAfter as e:
-                # यदि तेज़ी से क्लिक करने पर टेलीग्राम ब्रेक लगाने को कहे, तो उतने सेकंड ऑटो-इंतज़ार करेगा
                 await asyncio.sleep(e.retry_after + 0.1)
             except (TimedOut, NetworkError):
                 await asyncio.sleep(0.3)
@@ -291,7 +288,6 @@ async def send_next_quiz(context: ContextTypes.DEFAULT_TYPE, chat_id: int, user_
                 sent = True
 
     finally:
-        # लॉक रिलीज़ ताकि अगला सवाल आ सके
         user_data['sending_lock'] = False
 
 # --- Poll Answer Handler ---
@@ -317,7 +313,6 @@ async def handle_poll_answer(update: Update, context: ContextTypes.DEFAULT_TYPE)
                 user_data['wrong_qs'] = []
             user_data['wrong_qs'].append(tracker["q_data"])
 
-        # अगली रिक्वेस्ट को नॉन-ब्लॉकिंग कतार में डालना
         asyncio.create_task(send_next_quiz(context, chat_id, user_id))
 
 # --- Commands ---
@@ -437,7 +432,6 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     markup = build_topics_keyboard(page=0)
     await update.message.reply_text(welcome, reply_markup=markup)
 
-# --- Zero-Lag Callback Handler ---
 async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
@@ -518,8 +512,23 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE):
     logger.error(f"Update {update} caused error {context.error}")
 
+# --- SELF-PING LOOP (Render को 24/7 बिना सोए एक्टिव रखेगा) ---
+async def self_ping():
+    await asyncio.sleep(10)
+    async with httpx.AsyncClient() as client:
+        while True:
+            try:
+                await client.get(f"{RENDER_URL}/{TOKEN}", timeout=10.0)
+                logger.info("⚡ Heartbeat Sent: Server Kept Awake!")
+            except Exception as e:
+                logger.error(f"Heartbeat Error: {e}")
+            await asyncio.sleep(240)  # हर 4 मिनट में पिंग करेगा
+
+async def post_init(application: Application):
+    asyncio.create_task(self_ping())
+
 def main():
-    app = Application.builder().token(TOKEN).concurrent_updates(True).build()
+    app = Application.builder().token(TOKEN).concurrent_updates(True).post_init(post_init).build()
 
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CommandHandler("refresh", refresh_cmd))
@@ -534,7 +543,9 @@ def main():
 
     p = int(os.environ.get("PORT", 10000))
     app.run_webhook(
-        listen="0.0.0.0", port=p, url_path=TOKEN,
+        listen="0.0.0.0",
+        port=p,
+        url_path=TOKEN,
         webhook_url=f"{RENDER_URL}/{TOKEN}",
         drop_pending_updates=True
     )
