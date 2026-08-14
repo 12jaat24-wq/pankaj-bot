@@ -4,3 +4,4 @@ flask
 PyGithub
 google-generativeai
 httpx
+aiohttp
