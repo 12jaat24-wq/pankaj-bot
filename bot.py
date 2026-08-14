@@ -14,6 +14,7 @@ from telegram.ext import (
     filters,
     ContextTypes
 )
+from telegram.error import RetryAfter, TimedOut, NetworkError
 
 # --- कॉन्फ़िगरेशन ---
 TOKEN = os.environ.get("BOT_TOKEN")
@@ -168,122 +169,130 @@ def build_topics_keyboard(page: int = 0):
     keyboard.append([InlineKeyboardButton("⚡ SUPER RESET ⚡", callback_data="super_reset")])
     return InlineKeyboardMarkup(keyboard)
 
-# --- Dynamic Failsafe Engine ---
+# --- BULLETPROOF ENGINE (HANDLES FAST CLICKS & FLOOD WAIT) ---
 async def send_next_quiz(context: ContextTypes.DEFAULT_TYPE, chat_id: int, user_id: int):
     user_data = context.application.user_data.get(user_id)
     if not user_data or not user_data.get('busy'):
         return
 
-    idx = user_data.get('idx', 0)
-    topic = user_data.get('topic')
-    
-    # 1. डेटाबेस चेकिंग (Safety Catch)
-    if not user_data.get('is_retry') and (topic not in DB_CACHE or not DB_CACHE[topic]):
-        user_data['busy'] = False
-        await context.bot.send_message(chat_id, "⚠️ डेटाबेस में बदलाव हुआ है। कृपया नए सिरे से विषय चुनें: /start")
+    # Lock Mechanism: एक समय में एक ही सवाल प्रोसेस करने का लॉक
+    if user_data.get('sending_lock', False):
         return
+    user_data['sending_lock'] = True
 
-    if user_data.get('is_retry'):
-        qs = user_data.get('wrong_qs_pool', [])
-    else:
-        qs = user_data.get('q_indices', [])
-
-    total_qs = len(qs)
-
-    # 2. क्विज़ समाप्त होने पर
-    if idx >= total_qs:
-        score = user_data.get('score', 0)
-        wrong_count = total_qs - score
-        per = int((score / total_qs) * 100) if total_qs > 0 else 0
-        medal = "🏆" if per >= 80 else "🥇"
-
-        res = (
-            f"╔═════════════════════════╗\n"
-            f"  📊 {style_txt('QUIZ REPORT CARD')} {medal}\n"
-            f"╚═════════════════════════╝\n\n"
-            f"📝 विषय: {topic}\n"
-            f"✅ सही: {score} | ❌ गलत: {wrong_count}\n"
-            f"🏆 कुल स्कोर: {per}%\n"
-            f"━━━━━━━━━━━━━━━━━━━━━━━━━"
-        )
-
-        keyboard = []
-        if wrong_count > 0 and user_data.get('wrong_qs'):
-            keyboard.append([InlineKeyboardButton(f"🔄 गलत सवाल फिर से हल करें ({wrong_count})", callback_data="retry_wrong")])
-
-        reply_markup = InlineKeyboardMarkup(keyboard) if keyboard else None
-        await context.bot.send_message(chat_id, res, reply_markup=reply_markup)
-        user_data['busy'] = False
-        return
-
-    # 3. नया सवाल सुरक्षित रूप से लोड करना (Crash Prevention)
     try:
+        idx = user_data.get('idx', 0)
+        topic = user_data.get('topic')
+        
+        if not user_data.get('is_retry') and (topic not in DB_CACHE or not DB_CACHE[topic]):
+            user_data['busy'] = False
+            await context.bot.send_message(chat_id, "⚠️ डेटाबेस में बदलाव हुआ है। कृपया नए सिरे से विषय चुनें: /start")
+            return
+
         if user_data.get('is_retry'):
-            q = qs[idx]
+            qs = user_data.get('wrong_qs_pool', [])
         else:
-            q_idx = qs[idx]
-            q = DB_CACHE[topic][q_idx]
-    except Exception as e:
-        # अगर नया JSON ऐड होने से इंडेक्स बिगड़ा है तो ऑटो-स्किप करेगा (रुकेगा नहीं)
-        logger.error(f"Index Recovery Triggered: {e}")
-        user_data['idx'] = idx + 1
-        asyncio.create_task(send_next_quiz(context, chat_id, user_id))
-        return
+            qs = user_data.get('q_indices', [])
 
-    current_q_num = idx + 1
-    remaining_qs = total_qs - current_q_num
+        total_qs = len(qs)
 
-    completed_blocks = int((current_q_num / total_qs) * 8)
-    progress_bar = "🟢" * completed_blocks + "⚪" * (8 - completed_blocks)
+        # क्विज़ पूरा होने पर रिपोर्ट कार्ड
+        if idx >= total_qs:
+            score = user_data.get('score', 0)
+            wrong_count = total_qs - score
+            per = int((score / total_qs) * 100) if total_qs > 0 else 0
+            medal = "🏆" if per >= 80 else "🥇"
 
-    q_question = str(q.get('question', '')).strip()
-    
-    q_header = (
-        f"Q{current_q_num}. {q_question}\n"
-        f"━━━━━━━━━━━━━━━━━━━━\n"
-        f"🌀 {progress_bar} | ⏳ शेष: {remaining_qs}"
-    )
-
-    original_options = list(q.get('options', []))
-    correct_option_text = original_options[q['answer']]
-
-    shuffled_options = original_options.copy()
-    random.shuffle(shuffled_options)
-    correct_option_id = shuffled_options.index(correct_option_text)
-
-    # 4. ऑटो-रीट्राई टाइमआउट सिस्टम (Network Failure Prevention)
-    sent_successfully = False
-    for attempt in range(2):
-        try:
-            message = await context.bot.send_poll(
-                chat_id=chat_id,
-                question=q_header,
-                options=shuffled_options,
-                type=Poll.QUIZ,
-                correct_option_id=correct_option_id,
-                is_anonymous=False,
-                read_timeout=10,
-                write_timeout=10
+            res = (
+                f"╔═════════════════════════╗\n"
+                f"  📊 {style_txt('QUIZ REPORT CARD')} {medal}\n"
+                f"╚═════════════════════════╝\n\n"
+                f"📝 विषय: {topic}\n"
+                f"✅ सही: {score} | ❌ गलत: {wrong_count}\n"
+                f"🏆 कुल स्कोर: {per}%\n"
+                f"━━━━━━━━━━━━━━━━━━━━━━━━━"
             )
 
-            POLL_TRACKER[message.poll.id] = {
-                "user_id": user_id,
-                "chat_id": chat_id,
-                "correct_option_id": correct_option_id,
-                "q_data": q
-            }
+            keyboard = []
+            if wrong_count > 0 and user_data.get('wrong_qs'):
+                keyboard.append([InlineKeyboardButton(f"🔄 गलत सवाल फिर से हल करें ({wrong_count})", callback_data="retry_wrong")])
 
+            reply_markup = InlineKeyboardMarkup(keyboard) if keyboard else None
+            await context.bot.send_message(chat_id, res, reply_markup=reply_markup)
+            user_data['busy'] = False
+            return
+
+        try:
+            if user_data.get('is_retry'):
+                q = qs[idx]
+            else:
+                q_idx = qs[idx]
+                q = DB_CACHE[topic][q_idx]
+        except Exception:
             user_data['idx'] = idx + 1
-            sent_successfully = True
-            break
-        except Exception as e:
-            logger.error(f"Poll Send Retry {attempt+1}: {e}")
-            await asyncio.sleep(0.3)
+            user_data['sending_lock'] = False
+            asyncio.create_task(send_next_quiz(context, chat_id, user_id))
+            return
 
-    if not sent_successfully:
-        # नेटवर्क ख़राब होने पर बिना अटके अगला सवाल भेजने का प्रयास करेगा
-        user_data['idx'] = idx + 1
-        asyncio.create_task(send_next_quiz(context, chat_id, user_id))
+        current_q_num = idx + 1
+        remaining_qs = total_qs - current_q_num
+
+        completed_blocks = int((current_q_num / total_qs) * 8)
+        progress_bar = "🟢" * completed_blocks + "⚪" * (8 - completed_blocks)
+
+        q_question = str(q.get('question', '')).strip()
+        
+        q_header = (
+            f"Q{current_q_num}. {q_question}\n"
+            f"━━━━━━━━━━━━━━━━━━━━\n"
+            f"🌀 {progress_bar} | ⏳ शेष: {remaining_qs}"
+        )
+
+        original_options = list(q.get('options', []))
+        correct_option_text = original_options[q['answer']]
+
+        shuffled_options = original_options.copy()
+        random.shuffle(shuffled_options)
+        correct_option_id = shuffled_options.index(correct_option_text)
+
+        # ⚡ Rapid Click & Flood-Wait Error Prevention Loop
+        sent = False
+        while not sent:
+            try:
+                message = await context.bot.send_poll(
+                    chat_id=chat_id,
+                    question=q_header,
+                    options=shuffled_options,
+                    type=Poll.QUIZ,
+                    correct_option_id=correct_option_id,
+                    is_anonymous=False,
+                    read_timeout=20,
+                    write_timeout=20
+                )
+
+                POLL_TRACKER[message.poll.id] = {
+                    "user_id": user_id,
+                    "chat_id": chat_id,
+                    "correct_option_id": correct_option_id,
+                    "q_data": q
+                }
+
+                user_data['idx'] = idx + 1
+                sent = True
+
+            except RetryAfter as e:
+                # यदि तेज़ी से क्लिक करने पर टेलीग्राम ब्रेक लगाने को कहे, तो उतने सेकंड ऑटो-इंतज़ार करेगा
+                await asyncio.sleep(e.retry_after + 0.1)
+            except (TimedOut, NetworkError):
+                await asyncio.sleep(0.3)
+            except Exception as e:
+                logger.error(f"Poll Error Skipped: {e}")
+                user_data['idx'] = idx + 1
+                sent = True
+
+    finally:
+        # लॉक रिलीज़ ताकि अगला सवाल आ सके
+        user_data['sending_lock'] = False
 
 # --- Poll Answer Handler ---
 async def handle_poll_answer(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -308,6 +317,7 @@ async def handle_poll_answer(update: Update, context: ContextTypes.DEFAULT_TYPE)
                 user_data['wrong_qs'] = []
             user_data['wrong_qs'].append(tracker["q_data"])
 
+        # अगली रिक्वेस्ट को नॉन-ब्लॉकिंग कतार में डालना
         asyncio.create_task(send_next_quiz(context, chat_id, user_id))
 
 # --- Commands ---
@@ -430,8 +440,6 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 # --- Zero-Lag Callback Handler ---
 async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
-    
-    # ⚡ 1. क्लिक करते ही Instant UI Acknowledge (बटन कभी गोल-गोल नहीं घूमेगा)
     await query.answer()
 
     data = query.data
@@ -478,7 +486,8 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             'busy': True, 
             'topic': topic, 
             'wrong_qs': [],
-            'is_retry': False
+            'is_retry': False,
+            'sending_lock': False
         })
         asyncio.create_task(send_next_quiz(context, chat_id, user_id))
         return
@@ -500,7 +509,8 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             'busy': True, 
             'topic': f"{topic} (गलत सवाल)", 
             'wrong_qs': [],
-            'is_retry': True
+            'is_retry': True,
+            'sending_lock': False
         })
         asyncio.create_task(send_next_quiz(context, chat_id, user_id))
         return
