@@ -27,7 +27,7 @@ logger = logging.getLogger(__name__)
 
 DB_CACHE = {}
 STYLED_NAMES_CACHE = {}
-POLL_TRACKER = {}  # Fast lookup
+POLL_TRACKER = {}  
 TOPICS_PER_PAGE = 10 
 
 def style_txt(text):
@@ -168,7 +168,7 @@ def build_topics_keyboard(page: int = 0):
     keyboard.append([InlineKeyboardButton("⚡ SUPER RESET ⚡", callback_data="super_reset")])
     return InlineKeyboardMarkup(keyboard)
 
-# --- FAILSAFE & NON-STOP QUIZ ENGINE ---
+# --- Dynamic Failsafe Engine ---
 async def send_next_quiz(context: ContextTypes.DEFAULT_TYPE, chat_id: int, user_id: int):
     user_data = context.application.user_data.get(user_id)
     if not user_data or not user_data.get('busy'):
@@ -177,10 +177,10 @@ async def send_next_quiz(context: ContextTypes.DEFAULT_TYPE, chat_id: int, user_
     idx = user_data.get('idx', 0)
     topic = user_data.get('topic')
     
-    # टॉपिक वैलिडेशन (सुरक्षा जाँच)
+    # 1. डेटाबेस चेकिंग (Safety Catch)
     if not user_data.get('is_retry') and (topic not in DB_CACHE or not DB_CACHE[topic]):
         user_data['busy'] = False
-        await context.bot.send_message(chat_id, "⚠️ डेटाबेस अपडेट हुआ है। कृपया नए सिरे से विषय चुनें: /start")
+        await context.bot.send_message(chat_id, "⚠️ डेटाबेस में बदलाव हुआ है। कृपया नए सिरे से विषय चुनें: /start")
         return
 
     if user_data.get('is_retry'):
@@ -190,6 +190,7 @@ async def send_next_quiz(context: ContextTypes.DEFAULT_TYPE, chat_id: int, user_
 
     total_qs = len(qs)
 
+    # 2. क्विज़ समाप्त होने पर
     if idx >= total_qs:
         score = user_data.get('score', 0)
         wrong_count = total_qs - score
@@ -215,15 +216,16 @@ async def send_next_quiz(context: ContextTypes.DEFAULT_TYPE, chat_id: int, user_
         user_data['busy'] = False
         return
 
-    # प्रश्न लोड करना (Failsafe)
+    # 3. नया सवाल सुरक्षित रूप से लोड करना (Crash Prevention)
     try:
         if user_data.get('is_retry'):
             q = qs[idx]
         else:
             q_idx = qs[idx]
             q = DB_CACHE[topic][q_idx]
-    except (IndexError, KeyError):
-        # अगर डेटा में कोई गड़बड़ हुई तो अटने की जगह स्वतः स्किप होगा
+    except Exception as e:
+        # अगर नया JSON ऐड होने से इंडेक्स बिगड़ा है तो ऑटो-स्किप करेगा (रुकेगा नहीं)
+        logger.error(f"Index Recovery Triggered: {e}")
         user_data['idx'] = idx + 1
         asyncio.create_task(send_next_quiz(context, chat_id, user_id))
         return
@@ -249,7 +251,7 @@ async def send_next_quiz(context: ContextTypes.DEFAULT_TYPE, chat_id: int, user_
     random.shuffle(shuffled_options)
     correct_option_id = shuffled_options.index(correct_option_text)
 
-    # नेटवर्क धीमा होने पर ऑटो-रीट्राई लॉजिक (Auto-Retry on Slow Net)
+    # 4. ऑटो-रीट्राई टाइमआउट सिस्टम (Network Failure Prevention)
     sent_successfully = False
     for attempt in range(2):
         try:
@@ -260,8 +262,8 @@ async def send_next_quiz(context: ContextTypes.DEFAULT_TYPE, chat_id: int, user_
                 type=Poll.QUIZ,
                 correct_option_id=correct_option_id,
                 is_anonymous=False,
-                read_timeout=15,
-                write_timeout=15
+                read_timeout=10,
+                write_timeout=10
             )
 
             POLL_TRACKER[message.poll.id] = {
@@ -275,11 +277,11 @@ async def send_next_quiz(context: ContextTypes.DEFAULT_TYPE, chat_id: int, user_
             sent_successfully = True
             break
         except Exception as e:
-            logger.error(f"Poll Send Attempt {attempt+1} Failed: {e}")
-            await asyncio.sleep(0.5)
+            logger.error(f"Poll Send Retry {attempt+1}: {e}")
+            await asyncio.sleep(0.3)
 
     if not sent_successfully:
-        # दो बार में भी फेल होने पर अगला सवाल ट्राई करेगा (रुकने नहीं देगा)
+        # नेटवर्क ख़राब होने पर बिना अटके अगला सवाल भेजने का प्रयास करेगा
         user_data['idx'] = idx + 1
         asyncio.create_task(send_next_quiz(context, chat_id, user_id))
 
@@ -425,10 +427,11 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     markup = build_topics_keyboard(page=0)
     await update.message.reply_text(welcome, reply_markup=markup)
 
-# --- INSTANT CALLBACK HANDLER (NO LAG) ---
+# --- Zero-Lag Callback Handler ---
 async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
-    # तुरंत Telegram UI को Ack भेजो ताकि बटन गोल-गोल न घूमे
+    
+    # ⚡ 1. क्लिक करते ही Instant UI Acknowledge (बटन कभी गोल-गोल नहीं घूमेगा)
     await query.answer()
 
     data = query.data
