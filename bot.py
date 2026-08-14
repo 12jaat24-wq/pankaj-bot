@@ -168,7 +168,7 @@ def build_topics_keyboard(page: int = 0):
     keyboard.append([InlineKeyboardButton("⚡ SUPER RESET ⚡", callback_data="super_reset")])
     return InlineKeyboardMarkup(keyboard)
 
-# --- UNLIMITED & HIGH-SPEED ENGINE ---
+# --- FAILSAFE & NON-STOP QUIZ ENGINE ---
 async def send_next_quiz(context: ContextTypes.DEFAULT_TYPE, chat_id: int, user_id: int):
     user_data = context.application.user_data.get(user_id)
     if not user_data or not user_data.get('busy'):
@@ -177,7 +177,12 @@ async def send_next_quiz(context: ContextTypes.DEFAULT_TYPE, chat_id: int, user_
     idx = user_data.get('idx', 0)
     topic = user_data.get('topic')
     
-    # DB_CACHE से ऑन-द-फ़्लाई सवाल उठाएगा (No State Overhead)
+    # टॉपिक वैलिडेशन (सुरक्षा जाँच)
+    if not user_data.get('is_retry') and (topic not in DB_CACHE or not DB_CACHE[topic]):
+        user_data['busy'] = False
+        await context.bot.send_message(chat_id, "⚠️ डेटाबेस अपडेट हुआ है। कृपया नए सिरे से विषय चुनें: /start")
+        return
+
     if user_data.get('is_retry'):
         qs = user_data.get('wrong_qs_pool', [])
     else:
@@ -210,12 +215,18 @@ async def send_next_quiz(context: ContextTypes.DEFAULT_TYPE, chat_id: int, user_
         user_data['busy'] = False
         return
 
-    # सवाल प्राप्त करें
-    if user_data.get('is_retry'):
-        q = qs[idx]
-    else:
-        q_idx = qs[idx]
-        q = DB_CACHE[topic][q_idx]
+    # प्रश्न लोड करना (Failsafe)
+    try:
+        if user_data.get('is_retry'):
+            q = qs[idx]
+        else:
+            q_idx = qs[idx]
+            q = DB_CACHE[topic][q_idx]
+    except (IndexError, KeyError):
+        # अगर डेटा में कोई गड़बड़ हुई तो अटने की जगह स्वतः स्किप होगा
+        user_data['idx'] = idx + 1
+        asyncio.create_task(send_next_quiz(context, chat_id, user_id))
+        return
 
     current_q_num = idx + 1
     remaining_qs = total_qs - current_q_num
@@ -238,28 +249,37 @@ async def send_next_quiz(context: ContextTypes.DEFAULT_TYPE, chat_id: int, user_
     random.shuffle(shuffled_options)
     correct_option_id = shuffled_options.index(correct_option_text)
 
-    try:
-        message = await context.bot.send_poll(
-            chat_id=chat_id,
-            question=q_header,
-            options=shuffled_options,
-            type=Poll.QUIZ,
-            correct_option_id=correct_option_id,
-            is_anonymous=False
-        )
+    # नेटवर्क धीमा होने पर ऑटो-रीट्राई लॉजिक (Auto-Retry on Slow Net)
+    sent_successfully = False
+    for attempt in range(2):
+        try:
+            message = await context.bot.send_poll(
+                chat_id=chat_id,
+                question=q_header,
+                options=shuffled_options,
+                type=Poll.QUIZ,
+                correct_option_id=correct_option_id,
+                is_anonymous=False,
+                read_timeout=15,
+                write_timeout=15
+            )
 
-        POLL_TRACKER[message.poll.id] = {
-            "user_id": user_id,
-            "chat_id": chat_id,
-            "correct_option_id": correct_option_id,
-            "q_data": q
-        }
+            POLL_TRACKER[message.poll.id] = {
+                "user_id": user_id,
+                "chat_id": chat_id,
+                "correct_option_id": correct_option_id,
+                "q_data": q
+            }
 
-        user_data['idx'] = idx + 1
+            user_data['idx'] = idx + 1
+            sent_successfully = True
+            break
+        except Exception as e:
+            logger.error(f"Poll Send Attempt {attempt+1} Failed: {e}")
+            await asyncio.sleep(0.5)
 
-    except Exception as e:
-        logger.error(f"Error sending poll: {e}")
-        # अगर टेलीग्राम कोई एरर दे, तो बिना रुके अगले सवाल पर बढ़ जाओ
+    if not sent_successfully:
+        # दो बार में भी फेल होने पर अगला सवाल ट्राई करेगा (रुकने नहीं देगा)
         user_data['idx'] = idx + 1
         asyncio.create_task(send_next_quiz(context, chat_id, user_id))
 
@@ -286,7 +306,6 @@ async def handle_poll_answer(update: Update, context: ContextTypes.DEFAULT_TYPE)
                 user_data['wrong_qs'] = []
             user_data['wrong_qs'].append(tracker["q_data"])
 
-        # Async Fire & Forget
         asyncio.create_task(send_next_quiz(context, chat_id, user_id))
 
 # --- Commands ---
@@ -406,25 +425,26 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     markup = build_topics_keyboard(page=0)
     await update.message.reply_text(welcome, reply_markup=markup)
 
+# --- INSTANT CALLBACK HANDLER (NO LAG) ---
 async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
+    # तुरंत Telegram UI को Ack भेजो ताकि बटन गोल-गोल न घूमे
+    await query.answer()
+
     data = query.data
     user_id = query.from_user.id
     chat_id = query.message.chat_id
 
     if data == "noop":
-        await query.answer()
         return
 
     if data == "super_reset":
-        await query.answer()
         class TU:
             def __init__(self, m): self.message = m
         await reset_bot(TU(query.message), context)
         return
 
     if data.startswith("page_"):
-        await query.answer()
         page = int(data.split("_")[1])
         markup = build_topics_keyboard(page=page)
         try:
@@ -434,7 +454,6 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
     if data.startswith("tp_"):
-        await query.answer()
         topic = data[3:]
         if topic not in DB_CACHE:
             await query.message.reply_text("❌ यह विषय डिलीट हो चुका है! /start करें।")
@@ -445,7 +464,6 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await query.message.reply_text("❌ इस विषय में कोई सवाल नहीं हैं!")
             return
 
-        # केवल प्रश्न के इंडेक्स की सूची (Lightweight Index Mapping)
         indices = list(range(total_questions))
         random.shuffle(indices)
 
@@ -463,7 +481,6 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
     if data == "retry_wrong":
-        await query.answer()
         wrong_qs = context.user_data.get('wrong_qs', [])
         topic = context.user_data.get('topic', 'रिवीजन')
         if not wrong_qs:
