@@ -27,7 +27,7 @@ logger = logging.getLogger(__name__)
 
 DB_CACHE = {}
 STYLED_NAMES_CACHE = {}
-POLL_TRACKER = {}  # poll_id -> {user_id, chat_id, correct_option_id, q_data}
+POLL_TRACKER = {}  # Fast lookup
 TOPICS_PER_PAGE = 10 
 
 def style_txt(text):
@@ -47,7 +47,7 @@ async def get_latest_github_db():
     }
     try:
         async with httpx.AsyncClient() as client:
-            ref_res = await client.get(f"https://api.github.com/repos/{REPO_NAME}/git/trees/main?recursive=1", headers=headers, timeout=15.0)
+            ref_res = await client.get(f"https://api.github.com/repos/{REPO_NAME}/git/trees/main?recursive=1", headers=headers, timeout=10.0)
             if ref_res.status_code == 200:
                 tree = ref_res.json().get("tree", [])
                 file_blob_sha = None
@@ -59,7 +59,7 @@ async def get_latest_github_db():
                 if file_blob_sha:
                     blob_headers = headers.copy()
                     blob_headers["Accept"] = "application/vnd.github.v3.raw"
-                    blob_res = await client.get(f"https://api.github.com/repos/{REPO_NAME}/git/blobs/{file_blob_sha}", headers=blob_headers, timeout=20.0)
+                    blob_res = await client.get(f"https://api.github.com/repos/{REPO_NAME}/git/blobs/{file_blob_sha}", headers=blob_headers, timeout=15.0)
                     if blob_res.status_code == 200:
                         return json.loads(blob_res.text)
     except Exception as e:
@@ -82,7 +82,7 @@ async def save_to_github_safely(data_to_save, commit_msg):
                 f"https://api.github.com/repos/{REPO_NAME}/git/blobs",
                 headers=headers,
                 json={"content": content_str, "encoding": "utf-8"},
-                timeout=30.0
+                timeout=20.0
             )
             if blob_res.status_code != 201: return False
             blob_sha = blob_res.json()["sha"]
@@ -94,7 +94,7 @@ async def save_to_github_safely(data_to_save, commit_msg):
                     "base_tree": latest_commit_sha,
                     "tree": [{"path": DB_FILE, "mode": "100644", "type": "blob", "sha": blob_sha}]
                 },
-                timeout=15.0
+                timeout=10.0
             )
             if tree_res.status_code != 201: return False
             new_tree_sha = tree_res.json()["sha"]
@@ -103,7 +103,7 @@ async def save_to_github_safely(data_to_save, commit_msg):
                 f"https://api.github.com/repos/{REPO_NAME}/git/commits",
                 headers=headers,
                 json={"message": commit_msg, "tree": new_tree_sha, "parents": [latest_commit_sha]},
-                timeout=15.0
+                timeout=10.0
             )
             if commit_res.status_code != 201: return False
             new_commit_sha = commit_res.json()["sha"]
@@ -112,7 +112,7 @@ async def save_to_github_safely(data_to_save, commit_msg):
                 f"https://api.github.com/repos/{REPO_NAME}/git/refs/heads/main",
                 headers=headers,
                 json={"sha": new_commit_sha},
-                timeout=15.0
+                timeout=10.0
             )
             return update_ref.status_code == 200
     except Exception as e:
@@ -168,14 +168,21 @@ def build_topics_keyboard(page: int = 0):
     keyboard.append([InlineKeyboardButton("⚡ SUPER RESET ⚡", callback_data="super_reset")])
     return InlineKeyboardMarkup(keyboard)
 
-# --- Instantly Triggered High-Speed Quiz Engine ---
+# --- UNLIMITED & HIGH-SPEED ENGINE ---
 async def send_next_quiz(context: ContextTypes.DEFAULT_TYPE, chat_id: int, user_id: int):
     user_data = context.application.user_data.get(user_id)
     if not user_data or not user_data.get('busy'):
         return
 
     idx = user_data.get('idx', 0)
-    qs = user_data.get('qs', [])
+    topic = user_data.get('topic')
+    
+    # DB_CACHE से ऑन-द-फ़्लाई सवाल उठाएगा (No State Overhead)
+    if user_data.get('is_retry'):
+        qs = user_data.get('wrong_qs_pool', [])
+    else:
+        qs = user_data.get('q_indices', [])
+
     total_qs = len(qs)
 
     if idx >= total_qs:
@@ -188,7 +195,7 @@ async def send_next_quiz(context: ContextTypes.DEFAULT_TYPE, chat_id: int, user_
             f"╔═════════════════════════╗\n"
             f"  📊 {style_txt('QUIZ REPORT CARD')} {medal}\n"
             f"╚═════════════════════════╝\n\n"
-            f"📝 विषय: {user_data['topic']}\n"
+            f"📝 विषय: {topic}\n"
             f"✅ सही: {score} | ❌ गलत: {wrong_count}\n"
             f"🏆 कुल स्कोर: {per}%\n"
             f"━━━━━━━━━━━━━━━━━━━━━━━━━"
@@ -203,20 +210,25 @@ async def send_next_quiz(context: ContextTypes.DEFAULT_TYPE, chat_id: int, user_
         user_data['busy'] = False
         return
 
-    q = qs[idx]
+    # सवाल प्राप्त करें
+    if user_data.get('is_retry'):
+        q = qs[idx]
+    else:
+        q_idx = qs[idx]
+        q = DB_CACHE[topic][q_idx]
+
     current_q_num = idx + 1
     remaining_qs = total_qs - current_q_num
 
-    # 🎨 प्रगति बार (Progress Bar)
-    completed_blocks = int((current_q_num / total_qs) * 10)
-    progress_bar = "🟦" * completed_blocks + "⬜" * (10 - completed_blocks)
+    completed_blocks = int((current_q_num / total_qs) * 8)
+    progress_bar = "🟢" * completed_blocks + "⚪" * (8 - completed_blocks)
 
-    # 🌈 रंग-बिरंगा और स्टाइलिश हेडर
+    q_question = str(q.get('question', '')).strip()
+    
     q_header = (
-        f"⚡ [{current_q_num}/{total_qs}]  | ⏳ बाकी: {remaining_qs} सवाल\n"
-        f" प्रगति: {progress_bar}\n"
+        f"Q{current_q_num}. {q_question}\n"
         f"━━━━━━━━━━━━━━━━━━━━\n"
-        f"❓ {str(q.get('question', '')).strip()}"
+        f"🌀 {progress_bar} | ⏳ शेष: {remaining_qs}"
     )
 
     original_options = list(q.get('options', []))
@@ -226,26 +238,32 @@ async def send_next_quiz(context: ContextTypes.DEFAULT_TYPE, chat_id: int, user_
     random.shuffle(shuffled_options)
     correct_option_id = shuffled_options.index(correct_option_text)
 
-    # 🎯 0 Microsecond Instant Quiz Poll
-    message = await context.bot.send_poll(
-        chat_id=chat_id,
-        question=q_header,
-        options=shuffled_options,
-        type=Poll.QUIZ,
-        correct_option_id=correct_option_id,
-        is_anonymous=False
-    )
+    try:
+        message = await context.bot.send_poll(
+            chat_id=chat_id,
+            question=q_header,
+            options=shuffled_options,
+            type=Poll.QUIZ,
+            correct_option_id=correct_option_id,
+            is_anonymous=False
+        )
 
-    POLL_TRACKER[message.poll.id] = {
-        "user_id": user_id,
-        "chat_id": chat_id,
-        "correct_option_id": correct_option_id,
-        "q_data": q
-    }
+        POLL_TRACKER[message.poll.id] = {
+            "user_id": user_id,
+            "chat_id": chat_id,
+            "correct_option_id": correct_option_id,
+            "q_data": q
+        }
 
-    user_data['idx'] = idx + 1
+        user_data['idx'] = idx + 1
 
-# --- Instant Poll Answer Handler ---
+    except Exception as e:
+        logger.error(f"Error sending poll: {e}")
+        # अगर टेलीग्राम कोई एरर दे, तो बिना रुके अगले सवाल पर बढ़ जाओ
+        user_data['idx'] = idx + 1
+        asyncio.create_task(send_next_quiz(context, chat_id, user_id))
+
+# --- Poll Answer Handler ---
 async def handle_poll_answer(update: Update, context: ContextTypes.DEFAULT_TYPE):
     poll_answer = update.poll_answer
     poll_id = poll_answer.poll_id
@@ -268,15 +286,15 @@ async def handle_poll_answer(update: Update, context: ContextTypes.DEFAULT_TYPE)
                 user_data['wrong_qs'] = []
             user_data['wrong_qs'].append(tracker["q_data"])
 
-        # ⚡ शून्य डिले (Instant Jump to Next Question)
-        await send_next_quiz(context, chat_id, user_id)
+        # Async Fire & Forget
+        asyncio.create_task(send_next_quiz(context, chat_id, user_id))
 
 # --- Commands ---
 async def reset_bot(update: Update, context: ContextTypes.DEFAULT_TYPE):
     m = await update.message.reply_text("🌀 Rebooting Bot...")
     try:
         await context.bot.delete_webhook(drop_pending_updates=True)
-        await asyncio.sleep(0.3)
+        await asyncio.sleep(0.2)
         await context.bot.set_webhook(url=f"{RENDER_URL}/{TOKEN}", drop_pending_updates=True)
         await sync_db()
         context.user_data.clear()
@@ -422,22 +440,26 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await query.message.reply_text("❌ यह विषय डिलीट हो चुका है! /start करें।")
             return
 
-        qs = list(DB_CACHE.get(topic, []))
-        if not qs:
+        total_questions = len(DB_CACHE[topic])
+        if total_questions == 0:
             await query.message.reply_text("❌ इस विषय में कोई सवाल नहीं हैं!")
             return
 
-        random.shuffle(qs)
+        # केवल प्रश्न के इंडेक्स की सूची (Lightweight Index Mapping)
+        indices = list(range(total_questions))
+        random.shuffle(indices)
+
         context.user_data.clear()
         context.user_data.update({
-            'qs': qs, 
+            'q_indices': indices, 
             'idx': 0, 
             'score': 0, 
             'busy': True, 
             'topic': topic, 
-            'wrong_qs': []
+            'wrong_qs': [],
+            'is_retry': False
         })
-        await send_next_quiz(context, chat_id, user_id)
+        asyncio.create_task(send_next_quiz(context, chat_id, user_id))
         return
 
     if data == "retry_wrong":
@@ -452,14 +474,15 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         random.shuffle(qs)
         context.user_data.clear()
         context.user_data.update({
-            'qs': qs, 
+            'wrong_qs_pool': qs, 
             'idx': 0, 
             'score': 0, 
             'busy': True, 
             'topic': f"{topic} (गलत सवाल)", 
-            'wrong_qs': []
+            'wrong_qs': [],
+            'is_retry': True
         })
-        await send_next_quiz(context, chat_id, user_id)
+        asyncio.create_task(send_next_quiz(context, chat_id, user_id))
         return
 
 async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE):
