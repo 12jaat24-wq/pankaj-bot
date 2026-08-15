@@ -171,6 +171,7 @@ def build_topics_keyboard(page: int = 0):
     return InlineKeyboardMarkup(keyboard)
 
 # --- BULLETPROOF ENGINE ---
+# --- BULLETPROOF ENGINE (Lock Stuck Safety) ---
 async def send_next_quiz(context: ContextTypes.DEFAULT_TYPE, chat_id: int, user_id: int):
     user_data = context.application.user_data.get(user_id)
     if not user_data or not user_data.get('busy'):
@@ -178,6 +179,7 @@ async def send_next_quiz(context: ContextTypes.DEFAULT_TYPE, chat_id: int, user_
 
     if user_data.get('sending_lock', False):
         return
+        
     user_data['sending_lock'] = True
 
     try:
@@ -229,7 +231,6 @@ async def send_next_quiz(context: ContextTypes.DEFAULT_TYPE, chat_id: int, user_
                 q = DB_CACHE[topic][q_idx]
         except Exception:
             user_data['idx'] = idx + 1
-            user_data['sending_lock'] = False
             asyncio.create_task(send_next_quiz(context, chat_id, user_id))
             return
 
@@ -254,41 +255,34 @@ async def send_next_quiz(context: ContextTypes.DEFAULT_TYPE, chat_id: int, user_
         random.shuffle(shuffled_options)
         correct_option_id = shuffled_options.index(correct_option_text)
 
-        sent = False
-        while not sent:
-            try:
-                message = await context.bot.send_poll(
-                    chat_id=chat_id,
-                    question=q_header,
-                    options=shuffled_options,
-                    type=Poll.QUIZ,
-                    correct_option_id=correct_option_id,
-                    is_anonymous=False,
-                    read_timeout=20,
-                    write_timeout=20
-                )
+        message = await context.bot.send_poll(
+            chat_id=chat_id,
+            question=q_header,
+            options=shuffled_options,
+            type=Poll.QUIZ,
+            correct_option_id=correct_option_id,
+            is_anonymous=False,
+            read_timeout=15,
+            write_timeout=15
+        )
 
-                POLL_TRACKER[message.poll.id] = {
-                    "user_id": user_id,
-                    "chat_id": chat_id,
-                    "correct_option_id": correct_option_id,
-                    "q_data": q
-                }
+        POLL_TRACKER[message.poll.id] = {
+            "user_id": user_id,
+            "chat_id": chat_id,
+            "correct_option_id": correct_option_id,
+            "q_data": q
+        }
 
-                user_data['idx'] = idx + 1
-                sent = True
+        user_data['idx'] = idx + 1
 
-            except RetryAfter as e:
-                await asyncio.sleep(e.retry_after + 0.1)
-            except (TimedOut, NetworkError):
-                await asyncio.sleep(0.3)
-            except Exception as e:
-                logger.error(f"Poll Error Skipped: {e}")
-                user_data['idx'] = idx + 1
-                sent = True
-
+    except Exception as e:
+        logger.error(f"Quiz Sending Error: {e}")
+        if user_data:
+            user_data['idx'] = user_data.get('idx', 0) + 1
+            asyncio.create_task(send_next_quiz(context, chat_id, user_id))
     finally:
-        user_data['sending_lock'] = False
+        if user_data:
+            user_data['sending_lock'] = False
 
 # --- Poll Answer Handler ---
 async def handle_poll_answer(update: Update, context: ContextTypes.DEFAULT_TYPE):
