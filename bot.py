@@ -285,6 +285,9 @@ async def send_next_quiz(context: ContextTypes.DEFAULT_TYPE, chat_id: int, user_
             user_data['sending_lock'] = False
 
 # --- Poll Answer Handler ---
+# --- Async Queue Safety Handler ---
+USER_LOCKS = {}
+
 async def handle_poll_answer(update: Update, context: ContextTypes.DEFAULT_TYPE):
     poll_answer = update.poll_answer
     poll_id = poll_answer.poll_id
@@ -298,16 +301,20 @@ async def handle_poll_answer(update: Update, context: ContextTypes.DEFAULT_TYPE)
     correct_option_id = tracker["correct_option_id"]
     selected_option = poll_answer.option_ids[0]
 
-    user_data = context.application.user_data.get(user_id)
-    if user_data and user_data.get('busy'):
-        if selected_option == correct_option_id:
-            user_data['score'] += 1
-        else:
-            if 'wrong_qs' not in user_data:
-                user_data['wrong_qs'] = []
-            user_data['wrong_qs'].append(tracker["q_data"])
+    if user_id not in USER_LOCKS:
+        USER_LOCKS[user_id] = asyncio.Lock()
 
-        asyncio.create_task(send_next_quiz(context, chat_id, user_id))
+    async with USER_LOCKS[user_id]:
+        user_data = context.application.user_data.get(user_id)
+        if user_data and user_data.get('busy'):
+            if selected_option == correct_option_id:
+                user_data['score'] += 1
+            else:
+                if 'wrong_qs' not in user_data:
+                    user_data['wrong_qs'] = []
+                user_data['wrong_qs'].append(tracker["q_data"])
+
+            await send_next_quiz(context, chat_id, user_id)
 
 # --- Commands ---
 async def reset_bot(update: Update, context: ContextTypes.DEFAULT_TYPE):
