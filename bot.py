@@ -74,11 +74,9 @@ async def save_to_github_safely(data_to_save, commit_msg):
         "Accept": "application/vnd.github.v3+json"
     }
     try:
-        # indent=2 हटाकर अन-नेसेसरी स्पेस मिटाए गए हैं ताकि फ़ाइल साइज़ 40% छोटा रहे
-        content_str = json.dumps(data_to_save, ensure_ascii=False, separators=(',', ':'))
-        
+        content_str = json.dumps(data_to_save, indent=2, ensure_ascii=False)
         async with httpx.AsyncClient() as client:
-            ref_res = await client.get(f"https://api.github.com/repos/{REPO_NAME}/git/ref/heads/main", headers=headers, timeout=15.0)
+            ref_res = await client.get(f"https://api.github.com/repos/{REPO_NAME}/git/ref/heads/main", headers=headers, timeout=10.0)
             if ref_res.status_code != 200: return False
             latest_commit_sha = ref_res.json()["object"]["sha"]
 
@@ -86,7 +84,7 @@ async def save_to_github_safely(data_to_save, commit_msg):
                 f"https://api.github.com/repos/{REPO_NAME}/git/blobs",
                 headers=headers,
                 json={"content": content_str, "encoding": "utf-8"},
-                timeout=30.0
+                timeout=20.0
             )
             if blob_res.status_code != 201: return False
             blob_sha = blob_res.json()["sha"]
@@ -98,7 +96,7 @@ async def save_to_github_safely(data_to_save, commit_msg):
                     "base_tree": latest_commit_sha,
                     "tree": [{"path": DB_FILE, "mode": "100644", "type": "blob", "sha": blob_sha}]
                 },
-                timeout=15.0
+                timeout=10.0
             )
             if tree_res.status_code != 201: return False
             new_tree_sha = tree_res.json()["sha"]
@@ -107,7 +105,7 @@ async def save_to_github_safely(data_to_save, commit_msg):
                 f"https://api.github.com/repos/{REPO_NAME}/git/commits",
                 headers=headers,
                 json={"message": commit_msg, "tree": new_tree_sha, "parents": [latest_commit_sha]},
-                timeout=15.0
+                timeout=10.0
             )
             if commit_res.status_code != 201: return False
             new_commit_sha = commit_res.json()["sha"]
@@ -116,12 +114,9 @@ async def save_to_github_safely(data_to_save, commit_msg):
                 f"https://api.github.com/repos/{REPO_NAME}/git/refs/heads/main",
                 headers=headers,
                 json={"sha": new_commit_sha},
-                timeout=15.0
+                timeout=10.0
             )
             return update_ref.status_code == 200
-    except Exception as e:
-        logger.error(f"GitHub Save Failed: {e}")
-        return False
     except Exception as e:
         logger.error(f"GitHub Save Failed: {e}")
         return False
