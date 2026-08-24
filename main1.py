@@ -1,3 +1,4 @@
+from aiohttp import web
 import os
 import json
 import random
@@ -14,6 +15,7 @@ from telegram.ext import (
     filters,
     ContextTypes
 )
+from telegram.error import RetryAfter, TimedOut, NetworkError
 
 # --- कॉन्फ़िगरेशन ---
 TOKEN = os.environ.get("BOT_TOKEN")
@@ -27,7 +29,7 @@ logger = logging.getLogger(__name__)
 
 DB_CACHE = {}
 STYLED_NAMES_CACHE = {}
-POLL_TRACKER = {}  # Fast lookup
+POLL_TRACKER = {}  
 TOPICS_PER_PAGE = 10 
 
 def style_txt(text):
@@ -168,122 +170,124 @@ def build_topics_keyboard(page: int = 0):
     keyboard.append([InlineKeyboardButton("⚡ SUPER RESET ⚡", callback_data="super_reset")])
     return InlineKeyboardMarkup(keyboard)
 
-# --- FAILSAFE & NON-STOP QUIZ ENGINE ---
+# --- BULLETPROOF ENGINE ---
+# --- BULLETPROOF ENGINE (Lock Stuck Safety) ---
 async def send_next_quiz(context: ContextTypes.DEFAULT_TYPE, chat_id: int, user_id: int):
     user_data = context.application.user_data.get(user_id)
     if not user_data or not user_data.get('busy'):
         return
 
-    idx = user_data.get('idx', 0)
-    topic = user_data.get('topic')
-    
-    # टॉपिक वैलिडेशन (सुरक्षा जाँच)
-    if not user_data.get('is_retry') and (topic not in DB_CACHE or not DB_CACHE[topic]):
-        user_data['busy'] = False
-        await context.bot.send_message(chat_id, "⚠️ डेटाबेस अपडेट हुआ है। कृपया नए सिरे से विषय चुनें: /start")
+    if user_data.get('sending_lock', False):
         return
+        
+    user_data['sending_lock'] = True
 
-    if user_data.get('is_retry'):
-        qs = user_data.get('wrong_qs_pool', [])
-    else:
-        qs = user_data.get('q_indices', [])
-
-    total_qs = len(qs)
-
-    if idx >= total_qs:
-        score = user_data.get('score', 0)
-        wrong_count = total_qs - score
-        per = int((score / total_qs) * 100) if total_qs > 0 else 0
-        medal = "🏆" if per >= 80 else "🥇"
-
-        res = (
-            f"╔═════════════════════════╗\n"
-            f"  📊 {style_txt('QUIZ REPORT CARD')} {medal}\n"
-            f"╚═════════════════════════╝\n\n"
-            f"📝 विषय: {topic}\n"
-            f"✅ सही: {score} | ❌ गलत: {wrong_count}\n"
-            f"🏆 कुल स्कोर: {per}%\n"
-            f"━━━━━━━━━━━━━━━━━━━━━━━━━"
-        )
-
-        keyboard = []
-        if wrong_count > 0 and user_data.get('wrong_qs'):
-            keyboard.append([InlineKeyboardButton(f"🔄 गलत सवाल फिर से हल करें ({wrong_count})", callback_data="retry_wrong")])
-
-        reply_markup = InlineKeyboardMarkup(keyboard) if keyboard else None
-        await context.bot.send_message(chat_id, res, reply_markup=reply_markup)
-        user_data['busy'] = False
-        return
-
-    # प्रश्न लोड करना (Failsafe)
     try:
+        idx = user_data.get('idx', 0)
+        topic = user_data.get('topic')
+        
+        if not user_data.get('is_retry') and (topic not in DB_CACHE or not DB_CACHE[topic]):
+            user_data['busy'] = False
+            await context.bot.send_message(chat_id, "⚠️ डेटाबेस में बदलाव हुआ है। कृपया नए सिरे से विषय चुनें: /start")
+            return
+
         if user_data.get('is_retry'):
-            q = qs[idx]
+            qs = user_data.get('wrong_qs_pool', [])
         else:
-            q_idx = qs[idx]
-            q = DB_CACHE[topic][q_idx]
-    except (IndexError, KeyError):
-        # अगर डेटा में कोई गड़बड़ हुई तो अटने की जगह स्वतः स्किप होगा
-        user_data['idx'] = idx + 1
-        asyncio.create_task(send_next_quiz(context, chat_id, user_id))
-        return
+            qs = user_data.get('q_indices', [])
 
-    current_q_num = idx + 1
-    remaining_qs = total_qs - current_q_num
+        total_qs = len(qs)
 
-    completed_blocks = int((current_q_num / total_qs) * 8)
-    progress_bar = "🟢" * completed_blocks + "⚪" * (8 - completed_blocks)
+        if idx >= total_qs:
+            score = user_data.get('score', 0)
+            wrong_count = total_qs - score
+            per = int((score / total_qs) * 100) if total_qs > 0 else 0
+            medal = "🏆" if per >= 80 else "🥇"
 
-    q_question = str(q.get('question', '')).strip()
-    
-    q_header = (
-        f"Q{current_q_num}. {q_question}\n"
-        f"━━━━━━━━━━━━━━━━━━━━\n"
-        f"🌀 {progress_bar} | ⏳ शेष: {remaining_qs}"
-    )
-
-    original_options = list(q.get('options', []))
-    correct_option_text = original_options[q['answer']]
-
-    shuffled_options = original_options.copy()
-    random.shuffle(shuffled_options)
-    correct_option_id = shuffled_options.index(correct_option_text)
-
-    # नेटवर्क धीमा होने पर ऑटो-रीट्राई लॉजिक (Auto-Retry on Slow Net)
-    sent_successfully = False
-    for attempt in range(2):
-        try:
-            message = await context.bot.send_poll(
-                chat_id=chat_id,
-                question=q_header,
-                options=shuffled_options,
-                type=Poll.QUIZ,
-                correct_option_id=correct_option_id,
-                is_anonymous=False,
-                read_timeout=15,
-                write_timeout=15
+            res = (
+                f"╔═════════════════════════╗\n"
+                f"  📊 {style_txt('QUIZ REPORT CARD')} {medal}\n"
+                f"╚═════════════════════════╝\n\n"
+                f"📝 विषय: {topic}\n"
+                f"✅ सही: {score} | ❌ गलत: {wrong_count}\n"
+                f"🏆 कुल स्कोर: {per}%\n"
+                f"━━━━━━━━━━━━━━━━━━━━━━━━━"
             )
 
-            POLL_TRACKER[message.poll.id] = {
-                "user_id": user_id,
-                "chat_id": chat_id,
-                "correct_option_id": correct_option_id,
-                "q_data": q
-            }
+            keyboard = []
+            if wrong_count > 0 and user_data.get('wrong_qs'):
+                keyboard.append([InlineKeyboardButton(f"🔄 गलत सवाल फिर से हल करें ({wrong_count})", callback_data="retry_wrong")])
 
+            reply_markup = InlineKeyboardMarkup(keyboard) if keyboard else None
+            await context.bot.send_message(chat_id, res, reply_markup=reply_markup)
+            user_data['busy'] = False
+            return
+
+        try:
+            if user_data.get('is_retry'):
+                q = qs[idx]
+            else:
+                q_idx = qs[idx]
+                q = DB_CACHE[topic][q_idx]
+        except Exception:
             user_data['idx'] = idx + 1
-            sent_successfully = True
-            break
-        except Exception as e:
-            logger.error(f"Poll Send Attempt {attempt+1} Failed: {e}")
-            await asyncio.sleep(0.5)
+            asyncio.create_task(send_next_quiz(context, chat_id, user_id))
+            return
 
-    if not sent_successfully:
-        # दो बार में भी फेल होने पर अगला सवाल ट्राई करेगा (रुकने नहीं देगा)
+        current_q_num = idx + 1
+        remaining_qs = total_qs - current_q_num
+
+        completed_blocks = int((current_q_num / total_qs) * 8)
+        progress_bar = "🟢" * completed_blocks + "⚪" * (8 - completed_blocks)
+
+        q_question = str(q.get('question', '')).strip()
+        
+        q_header = (
+            f"Q{current_q_num}. {q_question}\n"
+            f"━━━━━━━━━━━━━━━━━━━━\n"
+            f"🌀 {progress_bar} | ⏳ शेष: {remaining_qs}"
+        )
+
+        original_options = list(q.get('options', []))
+        correct_option_text = original_options[q['answer']]
+
+        shuffled_options = original_options.copy()
+        random.shuffle(shuffled_options)
+        correct_option_id = shuffled_options.index(correct_option_text)
+
+        message = await context.bot.send_poll(
+            chat_id=chat_id,
+            question=q_header,
+            options=shuffled_options,
+            type=Poll.QUIZ,
+            correct_option_id=correct_option_id,
+            is_anonymous=False,
+            read_timeout=15,
+            write_timeout=15
+        )
+
+        POLL_TRACKER[message.poll.id] = {
+            "user_id": user_id,
+            "chat_id": chat_id,
+            "correct_option_id": correct_option_id,
+            "q_data": q
+        }
+
         user_data['idx'] = idx + 1
-        asyncio.create_task(send_next_quiz(context, chat_id, user_id))
+
+    except Exception as e:
+        logger.error(f"Quiz Sending Error: {e}")
+        if user_data:
+            user_data['idx'] = user_data.get('idx', 0) + 1
+            asyncio.create_task(send_next_quiz(context, chat_id, user_id))
+    finally:
+        if user_data:
+            user_data['sending_lock'] = False
 
 # --- Poll Answer Handler ---
+# --- Async Queue Safety Handler ---
+USER_LOCKS = {}
+
 async def handle_poll_answer(update: Update, context: ContextTypes.DEFAULT_TYPE):
     poll_answer = update.poll_answer
     poll_id = poll_answer.poll_id
@@ -297,16 +301,20 @@ async def handle_poll_answer(update: Update, context: ContextTypes.DEFAULT_TYPE)
     correct_option_id = tracker["correct_option_id"]
     selected_option = poll_answer.option_ids[0]
 
-    user_data = context.application.user_data.get(user_id)
-    if user_data and user_data.get('busy'):
-        if selected_option == correct_option_id:
-            user_data['score'] += 1
-        else:
-            if 'wrong_qs' not in user_data:
-                user_data['wrong_qs'] = []
-            user_data['wrong_qs'].append(tracker["q_data"])
+    if user_id not in USER_LOCKS:
+        USER_LOCKS[user_id] = asyncio.Lock()
 
-        asyncio.create_task(send_next_quiz(context, chat_id, user_id))
+    async with USER_LOCKS[user_id]:
+        user_data = context.application.user_data.get(user_id)
+        if user_data and user_data.get('busy'):
+            if selected_option == correct_option_id:
+                user_data['score'] += 1
+            else:
+                if 'wrong_qs' not in user_data:
+                    user_data['wrong_qs'] = []
+                user_data['wrong_qs'].append(tracker["q_data"])
+
+            await send_next_quiz(context, chat_id, user_id)
 
 # --- Commands ---
 async def reset_bot(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -425,10 +433,8 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     markup = build_topics_keyboard(page=0)
     await update.message.reply_text(welcome, reply_markup=markup)
 
-# --- INSTANT CALLBACK HANDLER (NO LAG) ---
 async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
-    # तुरंत Telegram UI को Ack भेजो ताकि बटन गोल-गोल न घूमे
     await query.answer()
 
     data = query.data
@@ -475,7 +481,8 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             'busy': True, 
             'topic': topic, 
             'wrong_qs': [],
-            'is_retry': False
+            'is_retry': False,
+            'sending_lock': False
         })
         asyncio.create_task(send_next_quiz(context, chat_id, user_id))
         return
@@ -497,7 +504,8 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             'busy': True, 
             'topic': f"{topic} (गलत सवाल)", 
             'wrong_qs': [],
-            'is_retry': True
+            'is_retry': True,
+            'sending_lock': False
         })
         asyncio.create_task(send_next_quiz(context, chat_id, user_id))
         return
@@ -505,8 +513,23 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE):
     logger.error(f"Update {update} caused error {context.error}")
 
+# --- SELF-PING LOOP (Render को 24/7 बिना सोए एक्टिव रखेगा) ---
+async def self_ping():
+    await asyncio.sleep(10)
+    async with httpx.AsyncClient() as client:
+        while True:
+            try:
+                await client.get(f"{RENDER_URL}/{TOKEN}", timeout=10.0)
+                logger.info("⚡ Heartbeat Sent: Server Kept Awake!")
+            except Exception as e:
+                logger.error(f"Heartbeat Error: {e}")
+            await asyncio.sleep(240)  # हर 4 मिनट में पिंग करेगा
+
+async def post_init(application: Application):
+    asyncio.create_task(self_ping())
+
 def main():
-    app = Application.builder().token(TOKEN).concurrent_updates(True).build()
+    app = Application.builder().token(TOKEN).concurrent_updates(True).post_init(post_init).build()
 
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CommandHandler("refresh", refresh_cmd))
@@ -521,7 +544,9 @@ def main():
 
     p = int(os.environ.get("PORT", 10000))
     app.run_webhook(
-        listen="0.0.0.0", port=p, url_path=TOKEN,
+        listen="0.0.0.0",
+        port=p,
+        url_path=TOKEN,
         webhook_url=f"{RENDER_URL}/{TOKEN}",
         drop_pending_updates=True
     )
