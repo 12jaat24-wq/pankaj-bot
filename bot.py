@@ -20,9 +20,11 @@ from telegram.error import RetryAfter, TimedOut, NetworkError
 # --- कॉन्फ़िगरेशन ---
 TOKEN = os.environ.get("BOT_TOKEN")
 GITHUB_TOKEN = os.environ.get("GITHUB_TOKEN")
-REPO_NAME = "12jaat24-wq/pankaj-bot"
+REPO_NAME = os.environ.get("REPO_NAME", "12jaat24-wq/pankaj-bot")  # Env से उठाने का विकल्प
 DB_FILE = "quiz_database.json"
-RENDER_URL = "https://pankaj-bot.onrender.com"
+
+# Render URL को पर्यावरण (Environment) से डायनामिक रूप से प्राप्त करें
+RENDER_URL = os.environ.get("RENDER_EXTERNAL_URL", "https://pankaj-bot.onrender.com").rstrip("/")
 
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -49,8 +51,8 @@ async def get_latest_github_db():
         "Accept": "application/vnd.github.v3+json"
     }
     try:
-        async with httpx.AsyncClient() as client:
-            ref_res = await client.get(f"https://api.github.com/repos/{REPO_NAME}/git/trees/main?recursive=1", headers=headers, timeout=8.0)
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            ref_res = await client.get(f"https://api.github.com/repos/{REPO_NAME}/git/trees/main?recursive=1", headers=headers)
             if ref_res.status_code == 200:
                 tree = ref_res.json().get("tree", [])
                 file_blob_sha = None
@@ -62,7 +64,7 @@ async def get_latest_github_db():
                 if file_blob_sha:
                     blob_headers = headers.copy()
                     blob_headers["Accept"] = "application/vnd.github.v3.raw"
-                    blob_res = await client.get(f"https://api.github.com/repos/{REPO_NAME}/git/blobs/{file_blob_sha}", headers=blob_headers, timeout=8.0)
+                    blob_res = await client.get(f"https://api.github.com/repos/{REPO_NAME}/git/blobs/{file_blob_sha}", headers=blob_headers)
                     if blob_res.status_code == 200:
                         return json.loads(blob_res.text)
     except Exception as e:
@@ -76,16 +78,15 @@ async def save_to_github_safely(data_to_save, commit_msg):
     }
     try:
         content_str = json.dumps(data_to_save, indent=2, ensure_ascii=False)
-        async with httpx.AsyncClient() as client:
-            ref_res = await client.get(f"https://api.github.com/repos/{REPO_NAME}/git/ref/heads/main", headers=headers, timeout=8.0)
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            ref_res = await client.get(f"https://api.github.com/repos/{REPO_NAME}/git/ref/heads/main", headers=headers)
             if ref_res.status_code != 200: return False
             latest_commit_sha = ref_res.json()["object"]["sha"]
 
             blob_res = await client.post(
                 f"https://api.github.com/repos/{REPO_NAME}/git/blobs",
                 headers=headers,
-                json={"content": content_str, "encoding": "utf-8"},
-                timeout=10.0
+                json={"content": content_str, "encoding": "utf-8"}
             )
             if blob_res.status_code != 201: return False
             blob_sha = blob_res.json()["sha"]
@@ -96,8 +97,7 @@ async def save_to_github_safely(data_to_save, commit_msg):
                 json={
                     "base_tree": latest_commit_sha,
                     "tree": [{"path": DB_FILE, "mode": "100644", "type": "blob", "sha": blob_sha}]
-                },
-                timeout=8.0
+                }
             )
             if tree_res.status_code != 201: return False
             new_tree_sha = tree_res.json()["sha"]
@@ -105,8 +105,7 @@ async def save_to_github_safely(data_to_save, commit_msg):
             commit_res = await client.post(
                 f"https://api.github.com/repos/{REPO_NAME}/git/commits",
                 headers=headers,
-                json={"message": commit_msg, "tree": new_tree_sha, "parents": [latest_commit_sha]},
-                timeout=8.0
+                json={"message": commit_msg, "tree": new_tree_sha, "parents": [latest_commit_sha]}
             )
             if commit_res.status_code != 201: return False
             new_commit_sha = commit_res.json()["sha"]
@@ -114,8 +113,7 @@ async def save_to_github_safely(data_to_save, commit_msg):
             update_ref = await client.patch(
                 f"https://api.github.com/repos/{REPO_NAME}/git/refs/heads/main",
                 headers=headers,
-                json={"sha": new_commit_sha},
-                timeout=8.0
+                json={"sha": new_commit_sha}
             )
             return update_ref.status_code == 200
     except Exception as e:
@@ -186,7 +184,6 @@ async def send_next_quiz(context: ContextTypes.DEFAULT_TYPE, chat_id: int, user_
     if not user_data or not user_data.get('busy'):
         return
 
-    # अगर भेजने की प्रक्रिया लॉक है, तो पहले सुरक्षित अनलॉक करें
     if user_data.get('sending_lock', False):
         user_data['sending_lock'] = False
 
@@ -299,7 +296,6 @@ async def send_next_quiz(context: ContextTypes.DEFAULT_TYPE, chat_id: int, user_
     except Exception as e:
         logger.error(f"Quiz Sending Error: {e}")
         if user_data:
-            # एरर आने पर लॉक रिलीज़ करके अगला प्रयास करें ताकि बॉट कभी भी अटके न
             user_data['sending_lock'] = False
             user_data['idx'] = user_data.get('idx', 0) + 1
             asyncio.create_task(send_next_quiz(context, chat_id, user_id))
@@ -314,7 +310,6 @@ async def handle_poll_answer(update: Update, context: ContextTypes.DEFAULT_TYPE)
     poll_answer = update.poll_answer
     poll_id = poll_answer.poll_id
 
-    # अगर ट्रैकर में Poll न मिले तब भी पुराना ट्रैकर डेटा क्लियर रखें
     if poll_id not in POLL_TRACKER:
         user_id = poll_answer.user.id
         user_data = context.application.user_data.get(user_id)
@@ -354,8 +349,9 @@ async def reset_bot(update: Update, context: ContextTypes.DEFAULT_TYPE):
     m = await update.message.reply_text("🌀 Rebooting Bot...")
     try:
         await context.bot.delete_webhook(drop_pending_updates=True)
-        await asyncio.sleep(0.1)
-        await context.bot.set_webhook(url=f"{RENDER_URL}/{TOKEN}", drop_pending_updates=True)
+        await asyncio.sleep(0.5)
+        webhook_url = f"{RENDER_URL}/{TOKEN}"
+        await context.bot.set_webhook(url=webhook_url, drop_pending_updates=True)
         await sync_db()
         context.user_data.clear()
         POLL_TRACKER.clear()
@@ -491,7 +487,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     welcome = (
         "╔════════════════════╗\n"
-        f"    👑 {style_txt('PANKAJ QUIZ BOT 2.0')} 👑\n"
+        f"   👑 {style_txt('PANKAJ QUIZ BOT 2.0')} 👑\n"
         "╚════════════════════╝\n\n"
         f"{random.choice(SHAYARIS)}\n\n"
         "🎯 अपनी पसंद का विषय चुनें: 👇"
