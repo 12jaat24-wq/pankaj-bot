@@ -14,7 +14,6 @@ from telegram.ext import (
     filters,
     ContextTypes
 )
-from telegram.error import RetryAfter, TimedOut, NetworkError
 
 # --- कॉन्फ़िगरेशन ---
 TOKEN = os.environ.get("BOT_TOKEN")
@@ -30,6 +29,8 @@ DB_CACHE = {}
 STYLED_NAMES_CACHE = {}
 POLL_TRACKER = {}  
 TOPICS_PER_PAGE = 10 
+USER_LOCKS = {}
+PING_TASK = None
 
 def style_txt(text):
     if text in STYLED_NAMES_CACHE:
@@ -169,15 +170,15 @@ def build_topics_keyboard(page: int = 0):
     keyboard.append([InlineKeyboardButton("⚡ SUPER RESET ⚡", callback_data="super_reset")])
     return InlineKeyboardMarkup(keyboard)
 
-# --- BULLETPROOF ENGINE (HANDLES FAST CLICKS & FLOOD WAIT) ---
+# --- BULLETPROOF ENGINE ---
 async def send_next_quiz(context: ContextTypes.DEFAULT_TYPE, chat_id: int, user_id: int):
     user_data = context.application.user_data.get(user_id)
     if not user_data or not user_data.get('busy'):
         return
 
-    # Lock Mechanism: एक समय में एक ही सवाल प्रोसेस करने का लॉक
     if user_data.get('sending_lock', False):
         return
+        
     user_data['sending_lock'] = True
 
     try:
@@ -196,7 +197,6 @@ async def send_next_quiz(context: ContextTypes.DEFAULT_TYPE, chat_id: int, user_
 
         total_qs = len(qs)
 
-        # क्विज़ पूरा होने पर रिपोर्ट कार्ड
         if idx >= total_qs:
             score = user_data.get('score', 0)
             wrong_count = total_qs - score
@@ -230,7 +230,6 @@ async def send_next_quiz(context: ContextTypes.DEFAULT_TYPE, chat_id: int, user_
                 q = DB_CACHE[topic][q_idx]
         except Exception:
             user_data['idx'] = idx + 1
-            user_data['sending_lock'] = False
             asyncio.create_task(send_next_quiz(context, chat_id, user_id))
             return
 
@@ -255,44 +254,34 @@ async def send_next_quiz(context: ContextTypes.DEFAULT_TYPE, chat_id: int, user_
         random.shuffle(shuffled_options)
         correct_option_id = shuffled_options.index(correct_option_text)
 
-        # ⚡ Rapid Click & Flood-Wait Error Prevention Loop
-        sent = False
-        while not sent:
-            try:
-                message = await context.bot.send_poll(
-                    chat_id=chat_id,
-                    question=q_header,
-                    options=shuffled_options,
-                    type=Poll.QUIZ,
-                    correct_option_id=correct_option_id,
-                    is_anonymous=False,
-                    read_timeout=20,
-                    write_timeout=20
-                )
+        message = await context.bot.send_poll(
+            chat_id=chat_id,
+            question=q_header,
+            options=shuffled_options,
+            type=Poll.QUIZ,
+            correct_option_id=correct_option_id,
+            is_anonymous=False,
+            read_timeout=15,
+            write_timeout=15
+        )
 
-                POLL_TRACKER[message.poll.id] = {
-                    "user_id": user_id,
-                    "chat_id": chat_id,
-                    "correct_option_id": correct_option_id,
-                    "q_data": q
-                }
+        POLL_TRACKER[message.poll.id] = {
+            "user_id": user_id,
+            "chat_id": chat_id,
+            "correct_option_id": correct_option_id,
+            "q_data": q
+        }
 
-                user_data['idx'] = idx + 1
-                sent = True
+        user_data['idx'] = idx + 1
 
-            except RetryAfter as e:
-                # यदि तेज़ी से क्लिक करने पर टेलीग्राम ब्रेक लगाने को कहे, तो उतने सेकंड ऑटो-इंतज़ार करेगा
-                await asyncio.sleep(e.retry_after + 0.1)
-            except (TimedOut, NetworkError):
-                await asyncio.sleep(0.3)
-            except Exception as e:
-                logger.error(f"Poll Error Skipped: {e}")
-                user_data['idx'] = idx + 1
-                sent = True
-
+    except Exception as e:
+        logger.error(f"Quiz Sending Error: {e}")
+        if user_data:
+            user_data['idx'] = user_data.get('idx', 0) + 1
+            asyncio.create_task(send_next_quiz(context, chat_id, user_id))
     finally:
-        # लॉक रिलीज़ ताकि अगला सवाल आ सके
-        user_data['sending_lock'] = False
+        if user_data:
+            user_data['sending_lock'] = False
 
 # --- Poll Answer Handler ---
 async def handle_poll_answer(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -308,29 +297,36 @@ async def handle_poll_answer(update: Update, context: ContextTypes.DEFAULT_TYPE)
     correct_option_id = tracker["correct_option_id"]
     selected_option = poll_answer.option_ids[0]
 
-    user_data = context.application.user_data.get(user_id)
-    if user_data and user_data.get('busy'):
-        if selected_option == correct_option_id:
-            user_data['score'] += 1
-        else:
-            if 'wrong_qs' not in user_data:
-                user_data['wrong_qs'] = []
-            user_data['wrong_qs'].append(tracker["q_data"])
+    if user_id not in USER_LOCKS:
+        USER_LOCKS[user_id] = asyncio.Lock()
 
-        # अगली रिक्वेस्ट को नॉन-ब्लॉकिंग कतार में डालना
-        asyncio.create_task(send_next_quiz(context, chat_id, user_id))
+    async with USER_LOCKS[user_id]:
+        user_data = context.application.user_data.get(user_id)
+        if user_data and user_data.get('busy'):
+            if selected_option == correct_option_id:
+                user_data['score'] += 1
+            else:
+                if 'wrong_qs' not in user_data:
+                    user_data['wrong_qs'] = []
+                user_data['wrong_qs'].append(tracker["q_data"])
+
+            await send_next_quiz(context, chat_id, user_id)
 
 # --- Commands ---
 async def reset_bot(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    m = await update.message.reply_text("🌀 Rebooting Bot...")
+    m = await update.message.reply_text("🌀 Rebooting & Flushing Webhook...")
     try:
         await context.bot.delete_webhook(drop_pending_updates=True)
-        await asyncio.sleep(0.2)
-        await context.bot.set_webhook(url=f"{RENDER_URL}/{TOKEN}", drop_pending_updates=True)
+        await asyncio.sleep(1.0)
+        await context.bot.set_webhook(
+            url=f"{RENDER_URL}/{TOKEN}",
+            allowed_updates=Update.ALL_TYPES,
+            drop_pending_updates=True
+        )
         await sync_db()
         context.user_data.clear()
         POLL_TRACKER.clear()
-        res = "╔════════════════════╗\n  ⚡ BOT IS ALIVE NOW ⚡ \n╚════════════════════╝\n✅ सारे जाम साफ़ हो गए हैं!"
+        res = "╔════════════════════╗\n  ⚡ BOT IS ALIVE NOW ⚡ \n╚════════════════════╝\n✅ सारे बटन और जाम साफ़ हो गए हैं!"
         await m.edit_text(res)
     except Exception as e:
         await m.edit_text(f"❌ Failed: {e}")
@@ -437,7 +433,6 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     markup = build_topics_keyboard(page=0)
     await update.message.reply_text(welcome, reply_markup=markup)
 
-# --- Zero-Lag Callback Handler ---
 async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
@@ -518,8 +513,44 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE):
     logger.error(f"Update {update} caused error {context.error}")
 
+# --- SELF-PING LOOP (Render को 24/7 बिना सोए एक्टिव रखेगा) ---
+async def self_ping():
+    try:
+        await asyncio.sleep(15)
+        async with httpx.AsyncClient() as client:
+            while True:
+                try:
+                    await client.get(RENDER_URL, timeout=10.0)
+                    logger.info("⚡ Heartbeat Sent: Server Kept Awake!")
+                except Exception as e:
+                    logger.error(f"Heartbeat Error: {e}")
+                await asyncio.sleep(240)  # हर 4 मिनट में पिंग करेगा
+    except asyncio.CancelledError:
+        logger.info("Self-ping task cancelled cleanly.")
+
+# --- STARTUP INITIALIZATION ---
+async def post_init(application: Application):
+    global PING_TASK
+    # ध्यान दें: Webhook सेट करने का काम app.run_webhook खुद करता है, 
+    # यहाँ दुबारा कॉल करने से Telegram Flood Control एरर आता था।
+    await sync_db()
+    PING_TASK = asyncio.create_task(self_ping())
+
+# --- CLEAN SHUTDOWN ---
+async def post_shutdown(application: Application):
+    global PING_TASK
+    if PING_TASK and not PING_TASK.done():
+        PING_TASK.cancel()
+
 def main():
-    app = Application.builder().token(TOKEN).concurrent_updates(True).build()
+    app = (
+        Application.builder()
+        .token(TOKEN)
+        .concurrent_updates(True)
+        .post_init(post_init)
+        .post_shutdown(post_shutdown)
+        .build()
+    )
 
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CommandHandler("refresh", refresh_cmd))
@@ -534,8 +565,11 @@ def main():
 
     p = int(os.environ.get("PORT", 10000))
     app.run_webhook(
-        listen="0.0.0.0", port=p, url_path=TOKEN,
+        listen="0.0.0.0",
+        port=p,
+        url_path=TOKEN,
         webhook_url=f"{RENDER_URL}/{TOKEN}",
+        allowed_updates=Update.ALL_TYPES,
         drop_pending_updates=True
     )
 
