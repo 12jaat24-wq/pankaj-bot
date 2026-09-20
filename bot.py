@@ -4,12 +4,13 @@ import random
 import logging
 import asyncio
 import httpx
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, Poll
 from telegram.ext import (
     Application,
     CommandHandler,
     CallbackQueryHandler,
     MessageHandler,
+    PollAnswerHandler,
     filters,
     ContextTypes
 )
@@ -26,7 +27,9 @@ logger = logging.getLogger(__name__)
 
 DB_CACHE = {}
 STYLED_NAMES_CACHE = {}
+POLL_TRACKER = {}  
 TOPICS_PER_PAGE = 10 
+USER_LOCKS = {}
 PING_TASK = None
 
 def style_txt(text):
@@ -167,186 +170,174 @@ def build_topics_keyboard(page: int = 0):
     keyboard.append([InlineKeyboardButton("⚡ SUPER RESET ⚡", callback_data="super_reset")])
     return InlineKeyboardMarkup(keyboard)
 
-# --- 🎮 ARCADE GAMING HUD RENDERER (0.00 SEC FLICKER-FREE) ---
-def render_arcade_screen(user_data, view_idx):
-    topic = user_data.get('topic')
-    qs = user_data.get('wrong_qs_pool') if user_data.get('is_retry') else user_data.get('q_indices')
-    total_qs = len(qs)
-    history = user_data.get('history', [])
-    lives = user_data.get('lives', 5)
-    score = user_data.get('score', 0)
-    streak = user_data.get('streak', 0)
-    xp = user_data.get('xp', 0)
+# --- असली टेलीग्राम ऑफिशियल QUIZ POLL इंजन ---
+async def send_next_quiz(context: ContextTypes.DEFAULT_TYPE, chat_id: int, user_id: int):
+    user_data = context.application.user_data.get(user_id)
+    if not user_data or not user_data.get('busy'):
+        return
 
-    # अगर गेम समाप्त हो गया (सवाल खत्म या 0 लाइफ)
-    if view_idx >= total_qs or lives <= 0:
-        wrong_count = len([h for h in history if not h['is_correct'] and h['user_selected'] is not None])
-        skipped = total_qs - score - wrong_count
-        per = int((score / total_qs) * 100) if total_qs > 0 else 0
-
-        title = "💀 GAME OVER" if lives <= 0 else "🏆 VICTORY CHAMPION"
-        rank = "👑 GODLIKE" if per >= 90 else "⚡ PRO GAMER" if per >= 70 else "🎯 SURVIVOR"
-
-        text = (
-            f"┏━━━━━━━━━━━━━━━━━━━━━┓\n"
-            f"   {title}   \n"
-            f"┗━━━━━━━━━━━━━━━━━━━━━┛\n\n"
-            f"🎮 विषय: ❴ {topic} ❵\n"
-            f"🎖️ रैंक: {rank}\n"
-            f"⭐ कुल XP अर्जित: {xp} PTS\n"
-            f"─────────────────────\n"
-            f"🟢 सही उत्तर   : {score}\n"
-            f"🔴 गलत उत्तर   : {wrong_count}\n"
-            f"⚪ छोड़े गए     : {skipped}\n"
-            f"📊 एक्यूरेसी    : {per}%\n"
-            f"─────────────────────\n"
-            f"💡 नीचे दिए बटनों से पिछला गेम रीव्यू करें या गलत सवाल फिर से खेलें!"
-        )
-
-        kb = []
-        if total_qs > 0:
-            kb.append([InlineKeyboardButton("🔍 सवालों का पूरा रीव्यू (Review)", callback_data=f"qnav_view_{min(view_idx, total_qs-1)}")])
-        if wrong_count > 0:
-            kb.append([InlineKeyboardButton(f"🔄 गलत सवाल फिर से खेलें ({wrong_count})", callback_data="retry_wrong")])
-        kb.append([InlineKeyboardButton("🏠 मुख्य मेनू (/start)", callback_data="go_start")])
-        return text, InlineKeyboardMarkup(kb)
-
-    # वर्तमान सवाल डेटा
-    if user_data.get('is_retry'):
-        q = qs[view_idx]
-    else:
-        q = DB_CACHE[topic][qs[view_idx]]
-
-    current_q_num = view_idx + 1
-
-    # रंगीन लाइफ बार ❤️
-    lives_str = "❤️" * lives + "🖤" * (5 - lives)
-    streak_banner = f"🔥 COMBO x{streak}" if streak >= 2 else "⚡ ACTIVE"
-
-    completed_blocks = int((current_q_num / total_qs) * 8)
-    progress_bar = "🟩" * completed_blocks + "⬜" * (8 - completed_blocks)
-
-    is_answered = view_idx < len(history)
-    letters = ["🅐", "🅑", "🅒", "🅓", "🅔", "🅕"]
-
-    if not is_answered:
-        # अगर सवाल अभी हल करना है
-        if 'pending_q_meta' not in user_data or user_data['pending_q_meta']['idx'] != view_idx:
-            original_options = list(q.get('options', []))
-            correct_text = original_options[q['answer']]
-            shuffled = original_options.copy()
-            random.shuffle(shuffled)
-            correct_id = shuffled.index(correct_text)
-
-            user_data['pending_q_meta'] = {
-                'idx': view_idx,
-                'shuffled': shuffled,
-                'correct_id': correct_id,
-                'q': q,
-                'hidden': []
-            }
-
-        meta = user_data['pending_q_meta']
-        shuffled = meta['shuffled']
-        hidden = meta.get('hidden', [])
-
-        text = (
-            f"╭─────────────────────╮\n"
-            f"  🕹️ {style_txt('PANKAJ ARCADE')} • Q{current_q_num}/{total_qs}\n"
-            f"╰─────────────────────╯\n"
-            f"💓 {lives_str} │ {streak_banner}\n"
-            f"⭐ XP: {xp} PTS    │ ⏳ शेष: {total_qs - current_q_num}\n"
-            f"━━━━━━━━━━━━━━━━━━━━━\n"
-            f"❓ {str(q.get('question','')).strip()}\n"
-            f"━━━━━━━━━━━━━━━━━━━━━\n"
-            f"{progress_bar}\n"
-            f"👇 सही विकल्प चुनें:"
-        )
-
-        kb = []
-        for i, opt in enumerate(shuffled):
-            if i in hidden:
-                kb.append([InlineKeyboardButton("🚫 [ 50:50 से हटाया गया ]", callback_data="noop")])
-            else:
-                l = letters[i] if i < len(letters) else f"{i+1}."
-                kb.append([InlineKeyboardButton(f"{l} {str(opt)[:50]}", callback_data=f"qans_{i}")])
-
-        # गेमिंग कंट्रोल बार
-        nav_row = []
-        if view_idx > 0:
-            nav_row.append(InlineKeyboardButton("⬅️ पिछला", callback_data=f"qnav_view_{view_idx-1}"))
-
-        # 50:50 लाइफलाइन बटन
-        if not user_data.get('used_5050', False):
-            nav_row.append(InlineKeyboardButton("💡 50:50", callback_data="use_5050"))
-
-        nav_row.append(InlineKeyboardButton("⏩ छोड़ें", callback_data="qnav_skip"))
-        nav_row.append(InlineKeyboardButton("🛑 बंद", callback_data="qnav_quit"))
-        kb.append(nav_row)
-
-    else:
-        # रीव्यू मोड (पहले से हल किया गया सवाल)
-        h = history[view_idx]
-        shuffled = h['shuffled']
-        user_choice = h['user_selected']
-        correct_id = h['correct_id']
-
-        status_text = "✅ आपका उत्तर सही था!" if h['is_correct'] else "❌ आपका उत्तर गलत था!" if user_choice is not None else "⚪ आपने छोड़ दिया था!"
-
-        text = (
-            f"╭─────────────────────╮\n"
-            f"  🔍 {style_txt('TIME MACHINE')} • Q{current_q_num}/{total_qs}\n"
-            f"╰─────────────────────╯\n"
-            f"📊 स्टेटस: {status_text}\n"
-            f"━━━━━━━━━━━━━━━━━━━━━\n"
-            f"❓ {str(q.get('question','')).strip()}\n"
-            f"━━━━━━━━━━━━━━━━━━━━━\n"
-            f"👉 आपका चुनाव: {shuffled[user_choice] if user_choice is not None else 'छोड़ा था'}\n"
-            f"🎯 सही उत्तर  : ✅ {shuffled[correct_id]}"
-        )
-
-        kb = []
-        for i, opt in enumerate(shuffled):
-            prefix = "✅ " if i == correct_id else "❌ " if i == user_choice else f"{letters[i]} "
-            kb.append([InlineKeyboardButton(f"{prefix}{str(opt)[:50]}", callback_data="noop")])
-
-        nav_row = []
-        if view_idx > 0:
-            nav_row.append(InlineKeyboardButton("⬅️ पिछला", callback_data=f"qnav_view_{view_idx-1}"))
+    if user_data.get('sending_lock', False):
+        return
         
-        if view_idx < len(history) - 1:
-            nav_row.append(InlineKeyboardButton("अगला ➡️", callback_data=f"qnav_view_{view_idx+1}"))
+    user_data['sending_lock'] = True
+
+    try:
+        idx = user_data.get('idx', 0)
+        topic = user_data.get('topic')
+        
+        if not user_data.get('is_retry') and (topic not in DB_CACHE or not DB_CACHE[topic]):
+            user_data['busy'] = False
+            await context.bot.send_message(chat_id, "⚠️ डेटाबेस अपडेट हुआ है। /start दबाएं।")
+            return
+
+        if user_data.get('is_retry'):
+            qs = user_data.get('wrong_qs_pool', [])
         else:
-            nav_row.append(InlineKeyboardButton("⚡ ताज़ा सवाल ➡️", callback_data=f"qnav_view_{len(history)}"))
+            qs = user_data.get('q_indices', [])
 
-        kb.append(nav_row)
+        total_qs = len(qs)
 
-    return text, InlineKeyboardMarkup(kb)
+        # जब पूरे सवाल खत्म हो जाएं
+        if idx >= total_qs:
+            score = user_data.get('score', 0)
+            wrong_count = total_qs - score
+            per = int((score / total_qs) * 100) if total_qs > 0 else 0
 
-# --- ⚡ 0.00 SEC INSTANT CALLBACK HANDLER ---
+            res = (
+                f"┏━━━━━━━━━━━━━━━━━━━━━┓\n"
+                f"  🏆 {style_txt('QUIZ COMPLETED')} 🏆\n"
+                f"┗━━━━━━━━━━━━━━━━━━━━━┛\n\n"
+                f"📚 विषय: ❴ {topic} ❵\n"
+                f"─────────────────────\n"
+                f"🟢 सही उत्तर  : {score}\n"
+                f"🔴 गलत उत्तर  : {wrong_count}\n"
+                f"📊 कुल स्कोर  : {per}%\n"
+                f"─────────────────────\n"
+                f"✨ ऊपर स्क्रॉल करके आप सभी सवाल और अपने उत्तर देख सकते हैं!"
+            )
+
+            keyboard = []
+            if wrong_count > 0 and user_data.get('wrong_qs'):
+                keyboard.append([InlineKeyboardButton(f"🔄 गलत सवाल फिर से हल करें ({wrong_count})", callback_data="retry_wrong")])
+            keyboard.append([InlineKeyboardButton("🏠 नया विषय चुनें (/start)", callback_data="go_start")])
+
+            reply_markup = InlineKeyboardMarkup(keyboard)
+            await context.bot.send_message(chat_id, res, reply_markup=reply_markup)
+            user_data['busy'] = False
+            return
+
+        try:
+            if user_data.get('is_retry'):
+                q = qs[idx]
+            else:
+                q_idx = qs[idx]
+                q = DB_CACHE[topic][q_idx]
+        except Exception:
+            user_data['idx'] = idx + 1
+            asyncio.create_task(send_next_quiz(context, chat_id, user_id))
+            return
+
+        current_q_num = idx + 1
+        q_question = str(q.get('question', '')).strip()
+        
+        # साफ़ और सुंदर हेडर (कोई फालतू बकवास नहीं)
+        q_header = f"Q{current_q_num}/{total_qs} • {q_question[:260]}"
+
+        original_options = list(q.get('options', []))
+        correct_option_text = original_options[q['answer']]
+
+        shuffled_options = original_options.copy()
+        random.shuffle(shuffled_options)
+        correct_option_id = shuffled_options.index(correct_option_text)
+
+        safe_options = [str(opt)[:95] for opt in shuffled_options]
+
+        # 🌸 ऑफिशियल Telegram Quiz Poll भेजना (बिना किसी ऊपर वाले नोटिफिकेशन पॉपअप के)
+        message = await context.bot.send_poll(
+            chat_id=chat_id,
+            question=q_header,
+            options=safe_options,
+            type=Poll.QUIZ,
+            correct_option_id=correct_option_id,
+            is_anonymous=False,
+            # ध्यान दें: explanation नहीं है, इसलिए ऊपर कोई अजीब लाइटबल्ब/नोटिफिकेशन नहीं आएगा
+            read_timeout=15,
+            write_timeout=15
+        )
+
+        POLL_TRACKER[message.poll.id] = {
+            "user_id": user_id,
+            "chat_id": chat_id,
+            "correct_option_id": correct_option_id,
+            "q_data": q
+        }
+
+        user_data['idx'] = idx + 1
+
+    except Exception as e:
+        logger.error(f"Quiz Sending Error: {e}")
+        if user_data:
+            user_data['idx'] = user_data.get('idx', 0) + 1
+            asyncio.create_task(send_next_quiz(context, chat_id, user_id))
+    finally:
+        if user_data:
+            user_data['sending_lock'] = False
+
+# --- Poll Answer Handler (हाथों-हाथ फूल और पटाखे + अगला सवाल) ---
+async def handle_poll_answer(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    poll_answer = update.poll_answer
+    poll_id = poll_answer.poll_id
+
+    if poll_id not in POLL_TRACKER:
+        return
+
+    tracker = POLL_TRACKER.pop(poll_id)
+    user_id = tracker["user_id"]
+    chat_id = tracker["chat_id"]
+    correct_option_id = tracker["correct_option_id"]
+    selected_option = poll_answer.option_ids[0]
+
+    if user_id not in USER_LOCKS:
+        USER_LOCKS[user_id] = asyncio.Lock()
+
+    async with USER_LOCKS[user_id]:
+        user_data = context.application.user_data.get(user_id)
+        if user_data and user_data.get('busy'):
+            if selected_option == correct_option_id:
+                user_data['score'] += 1
+            else:
+                if 'wrong_qs' not in user_data:
+                    user_data['wrong_qs'] = []
+                user_data['wrong_qs'].append(tracker["q_data"])
+
+            # केवल 0.3 सेकंड का वेट ताकि Telegram क्लाइंट पर फूल/पटाखे फूट सकें
+            await asyncio.sleep(0.35)
+            await send_next_quiz(context, chat_id, user_id)
+
+# --- Commands & Callbacks ---
 async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
+    await query.answer()
+
     data = query.data
+    user_id = query.from_user.id
+    chat_id = query.message.chat_id
     user_data = context.user_data
 
     if data == "noop":
-        await query.answer()
         return
 
     if data == "go_start":
-        await query.answer()
         await start(update, context)
         return
 
     if data == "super_reset":
-        await query.answer()
         class TU:
             def __init__(self, m): self.message = m
         await reset_bot(TU(query.message), context)
         return
 
     if data.startswith("page_"):
-        await query.answer()
         page = int(data.split("_")[1])
         markup = build_topics_keyboard(page=page)
         try:
@@ -355,12 +346,11 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             pass
         return
 
-    # विषय चुनना (बिना किसी फालतू मैसेज के डायरेक्ट उसी मैसेज में गेम शुरू)
+    # विषय चुनते ही सीधे बिना किसी फालतू मैसेज के पहला पोल चालू
     if data.startswith("tp_"):
-        await query.answer()
         topic = data[3:]
         if topic not in DB_CACHE or not DB_CACHE[topic]:
-            await query.answer("❌ इस विषय में सवाल नहीं हैं!", show_alert=True)
+            await query.message.reply_text("❌ विषय में कोई सवाल नहीं हैं!")
             return
 
         indices = list(range(len(DB_CACHE[topic])))
@@ -370,158 +360,39 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         user_data.update({
             'topic': topic,
             'q_indices': indices,
-            'history': [],
+            'idx': 0,
             'score': 0,
-            'streak': 0,
-            'xp': 0,
-            'lives': 5,
-            'used_5050': False,
             'busy': True,
             'is_retry': False,
-            'view_idx': 0
+            'sending_lock': False
         })
 
-        text, kb = render_arcade_screen(user_data, 0)
-        await query.edit_message_text(text, reply_markup=kb)
-        return
-
-    # 50:50 लाइफलाइन का इस्तेमाल
-    if data == "use_5050":
-        meta = user_data.get('pending_q_meta')
-        if meta and not user_data.get('used_5050'):
-            user_data['used_5050'] = True
-            corr = meta['correct_id']
-            wrong_indices = [i for i in range(len(meta['shuffled'])) if i != corr]
-            to_hide = random.sample(wrong_indices, min(2, len(wrong_indices)))
-            meta['hidden'] = to_hide
-            
-            await query.answer("💡 50:50 एक्टिव! 2 गलत विकल्प उड़ा दिए गए!", show_alert=False)
-            text, kb = render_arcade_screen(user_data, user_data.get('view_idx', 0))
-            await query.edit_message_text(text, reply_markup=kb)
-        else:
-            await query.answer("⚠️ 50:50 लाइफलाइन पहले ही उपयोग हो चुकी है!", show_alert=False)
-        return
-
-    # उत्तर विकल्प पर क्लिक (0-माइक्रोसेकंड रिस्पॉन्स + फ़्लोटिंग टोस्ट)
-    if data.startswith("qans_"):
-        selected_id = int(data.split("_")[1])
-        meta = user_data.get('pending_q_meta')
-        if not meta:
-            await query.answer()
-            return
-
-        corr_id = meta['correct_id']
-        is_correct = (selected_id == corr_id)
-
-        if is_correct:
-            user_data['score'] = user_data.get('score', 0) + 1
-            user_data['streak'] = user_data.get('streak', 0) + 1
-            earned_xp = 10 + (user_data['streak'] * 5)
-            user_data['xp'] = user_data.get('xp', 0) + earned_xp
-            # फ़ोन में हल्का वाइब्रेशन + ऊपर नियॉन टोस्ट (बिना किसी लैग के)
-            await query.answer(f"🎉 सही उत्तर! +{earned_xp} XP 🔥 COMBO x{user_data['streak']}", show_alert=False)
-        else:
-            user_data['streak'] = 0
-            user_data['lives'] = max(0, user_data.get('lives', 5) - 1)
-            corr_text = meta['shuffled'][corr_id]
-            # गलत होने पर झटका + सही उत्तर तुरंत टोस्ट में
-            await query.answer(f"❌ गलत! सही उत्तर: {corr_text[:35]} (💔 1 Life Lost)", show_alert=False)
-
-        user_data.setdefault('history', []).append({
-            'q': meta['q'],
-            'shuffled': meta['shuffled'],
-            'correct_id': corr_id,
-            'user_selected': selected_id,
-            'is_correct': is_correct
-        })
-
-        next_idx = len(user_data['history'])
-        user_data['view_idx'] = next_idx
-        text, kb = render_arcade_screen(user_data, next_idx)
-        try:
-            await query.edit_message_text(text, reply_markup=kb)
-        except Exception:
-            pass
-        return
-
-    # सवाल छोड़ना (Skip)
-    if data == "qnav_skip":
-        meta = user_data.get('pending_q_meta')
-        if meta:
-            user_data['streak'] = 0
-            user_data.setdefault('history', []).append({
-                'q': meta['q'],
-                'shuffled': meta['shuffled'],
-                'correct_id': meta['correct_id'],
-                'user_selected': None,
-                'is_correct': False
-            })
-        await query.answer("⏩ सवाल छोड़ दिया गया!", show_alert=False)
-        next_idx = len(user_data.get('history', []))
-        user_data['view_idx'] = next_idx
-        text, kb = render_arcade_screen(user_data, next_idx)
-        try:
-            await query.edit_message_text(text, reply_markup=kb)
-        except Exception:
-            pass
-        return
-
-    # पिछला / अगला सवाल देखना (Time Machine Review)
-    if data.startswith("qnav_view_"):
-        await query.answer()
-        target_idx = int(data.split("_")[2])
-        user_data['view_idx'] = target_idx
-        text, kb = render_arcade_screen(user_data, target_idx)
-        try:
-            await query.edit_message_text(text, reply_markup=kb)
-        except Exception:
-            pass
-        return
-
-    # क्विज़ बीच में समाप्त करना
-    if data == "qnav_quit":
-        await query.answer("🛑 गेम समाप्त!")
-        user_data['view_idx'] = 999999
-        text, kb = render_arcade_screen(user_data, 999999)
-        try:
-            await query.edit_message_text(text, reply_markup=kb)
-        except Exception:
-            pass
+        asyncio.create_task(send_next_quiz(context, chat_id, user_id))
         return
 
     # गलत सवाल दोबारा हल करना
     if data == "retry_wrong":
-        await query.answer()
-        history = user_data.get('history', [])
-        wrong_qs = [h['q'] for h in history if not h['is_correct']]
+        wrong_qs = user_data.get('wrong_qs', [])
+        topic = user_data.get('topic', 'रिवीजन')
         if not wrong_qs:
-            await query.answer("❌ कोई गलत सवाल बाकी नहीं है!", show_alert=True)
+            await query.message.reply_text("❌ कोई गलत सवाल बाकी नहीं है!")
             return
 
-        random.shuffle(wrong_qs)
-        topic = user_data.get('topic', 'रिवीजन')
+        qs = list(wrong_qs)
+        random.shuffle(qs)
         user_data.clear()
         user_data.update({
             'topic': f"{topic} (रिवीजन)",
-            'wrong_qs_pool': wrong_qs,
-            'history': [],
+            'wrong_qs_pool': qs,
+            'idx': 0,
             'score': 0,
-            'streak': 0,
-            'xp': 0,
-            'lives': 5,
-            'used_5050': False,
             'busy': True,
             'is_retry': True,
-            'view_idx': 0
+            'sending_lock': False
         })
-        text, kb = render_arcade_screen(user_data, 0)
-        try:
-            await query.edit_message_text(text, reply_markup=kb)
-        except Exception:
-            pass
+        asyncio.create_task(send_next_quiz(context, chat_id, user_id))
         return
 
-# --- Commands ---
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data.clear()
     if not DB_CACHE:
@@ -532,11 +403,10 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     welcome = (
         "┏━━━━━━━━━━━━━━━━━━━━━┓\n"
-        f"  🕹️ {style_txt('PANKAJ CYBER ARCADE')} 🕹️\n"
+        f"   👑 {style_txt('PANKAJ QUIZ BOT')} 👑\n"
         "┗━━━━━━━━━━━━━━━━━━━━━┛\n\n"
         f"{random.choice(SHAYARIS)}\n\n"
-        "⚡ 0.00 सेकंड स्पीड • नो स्क्रीन फ्लिकर!\n"
-        "💓 5 लाइफलाइन सिस्टम • 💡 50:50 KBC मोड\n\n"
+        "🌸 असली Telegram Quiz Poll (हाथों-हाथ फूल/पटाखे)!\n"
         "🎯 अपनी पसंद का विषय चुनें: 👇"
     )
     markup = build_topics_keyboard(page=0)
@@ -557,6 +427,7 @@ async def reset_bot(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         await sync_db()
         context.user_data.clear()
+        POLL_TRACKER.clear()
         res = "╔════════════════════╗\n  ⚡ BOT IS ALIVE NOW ⚡ \n╚════════════════════╝\n✅ सारे बटन और जाम साफ़ हो गए हैं!"
         await m.edit_text(res)
     except Exception as e:
@@ -689,6 +560,7 @@ def main():
     app.add_handler(CommandHandler("reset", reset_bot))
     app.add_handler(CommandHandler("delete", delete_cmd))
     app.add_handler(CallbackQueryHandler(handle_callback))
+    app.add_handler(PollAnswerHandler(handle_poll_answer))
     app.add_handler(MessageHandler(filters.TEXT & (~filters.COMMAND), handle_input))
     app.add_handler(MessageHandler(filters.Document.ALL, handle_input))
     
