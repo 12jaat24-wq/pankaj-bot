@@ -170,7 +170,7 @@ def build_topics_keyboard(page: int = 0):
     keyboard.append([InlineKeyboardButton("⚡ SUPER RESET ⚡", callback_data="super_reset")])
     return InlineKeyboardMarkup(keyboard)
 
-# --- BULLETPROOF ENGINE ---
+# --- रंगीन और सुपर-फ़ास्ट क्विज़ इंजन ---
 async def send_next_quiz(context: ContextTypes.DEFAULT_TYPE, chat_id: int, user_id: int):
     user_data = context.application.user_data.get(user_id)
     if not user_data or not user_data.get('busy'):
@@ -187,7 +187,7 @@ async def send_next_quiz(context: ContextTypes.DEFAULT_TYPE, chat_id: int, user_
         
         if not user_data.get('is_retry') and (topic not in DB_CACHE or not DB_CACHE[topic]):
             user_data['busy'] = False
-            await context.bot.send_message(chat_id, "⚠️ डेटाबेस में बदलाव हुआ है। कृपया नए सिरे से विषय चुनें: /start")
+            await context.bot.send_message(chat_id, "⚠️ डेटाबेस अपडेट हुआ है। कृपया फिर से चुनें: /start")
             return
 
         if user_data.get('is_retry'):
@@ -197,20 +197,33 @@ async def send_next_quiz(context: ContextTypes.DEFAULT_TYPE, chat_id: int, user_
 
         total_qs = len(qs)
 
+        # क्विज़ खत्म होने पर रंगीन रिपोर्ट कार्ड
         if idx >= total_qs:
             score = user_data.get('score', 0)
             wrong_count = total_qs - score
             per = int((score / total_qs) * 100) if total_qs > 0 else 0
-            medal = "🏆" if per >= 80 else "🥇"
+            
+            if per >= 90:
+                rank_badge = "👑 लेजेंड (GODLIKE)"
+            elif per >= 70:
+                rank_badge = "⚡ प्रो मास्टर (EXPERT)"
+            elif per >= 50:
+                rank_badge = "🎯 योद्धा (FIGHTER)"
+            else:
+                rank_badge = "🌱 अभ्यासी (ROOKIE)"
 
             res = (
-                f"╔═════════════════════════╗\n"
-                f"  📊 {style_txt('QUIZ REPORT CARD')} {medal}\n"
-                f"╚═════════════════════════╝\n\n"
-                f"📝 विषय: {topic}\n"
-                f"✅ सही: {score} | ❌ गलत: {wrong_count}\n"
-                f"🏆 कुल स्कोर: {per}%\n"
-                f"━━━━━━━━━━━━━━━━━━━━━━━━━"
+                f"┏━━━━━━━━━━━━━━━━━━━━━┓\n"
+                f"  🏆 {style_txt('QUIZ CHAMPION REPORT')} 🏆\n"
+                f"┗━━━━━━━━━━━━━━━━━━━━━┛\n\n"
+                f"📚 विषय: ❴ {topic} ❵\n"
+                f"🎖️ रैंक: {rank_badge}\n"
+                f"─────────────────────\n"
+                f"🟢 सही उत्तर  : {score}\n"
+                f"🔴 गलत उत्तर  : {wrong_count}\n"
+                f"📊 कुल एक्यूरेसी: {per}%\n"
+                f"─────────────────────\n"
+                f"✨ नया विषय शुरू करने के लिए /start दबाएं!"
             )
 
             keyboard = []
@@ -220,6 +233,7 @@ async def send_next_quiz(context: ContextTypes.DEFAULT_TYPE, chat_id: int, user_
             reply_markup = InlineKeyboardMarkup(keyboard) if keyboard else None
             await context.bot.send_message(chat_id, res, reply_markup=reply_markup)
             user_data['busy'] = False
+            user_data['last_msg_id'] = None
             return
 
         try:
@@ -236,15 +250,32 @@ async def send_next_quiz(context: ContextTypes.DEFAULT_TYPE, chat_id: int, user_
         current_q_num = idx + 1
         remaining_qs = total_qs - current_q_num
 
+        # रंगीन प्रोग्रेस बार
         completed_blocks = int((current_q_num / total_qs) * 8)
-        progress_bar = "🟢" * completed_blocks + "⚪" * (8 - completed_blocks)
+        progress_bar = "🟩" * completed_blocks + "⬜" * (8 - completed_blocks)
+
+        # स्ट्रीक (Streak) बैज
+        streak = user_data.get('streak', 0)
+        if streak >= 10:
+            streak_tag = "👑 GODLIKE x10+ 🔥"
+        elif streak >= 5:
+            streak_tag = f"⚡ UNSTOPPABLE x{streak} 💥"
+        elif streak >= 3:
+            streak_tag = f"🔥 ON FIRE x{streak}!"
+        elif streak >= 2:
+            streak_tag = f"✨ COMBO x{streak}"
+        else:
+            streak_tag = "🎯 लक्ष्य पर नज़र रखो!"
 
         q_question = str(q.get('question', '')).strip()
         
+        # Telegram Poll Question (300 अक्षर लिमिट सेफ)
         q_header = (
-            f"Q{current_q_num}. {q_question}\n"
-            f"━━━━━━━━━━━━━━━━━━━━\n"
-            f"🌀 {progress_bar} | ⏳ शेष: {remaining_qs}"
+            f"⚡ Q{current_q_num}/{total_qs} • {streak_tag}\n"
+            f"━━━━━━━━━━━━━━━━━━━\n"
+            f"📌 {q_question[:210]}\n"
+            f"━━━━━━━━━━━━━━━━━━━\n"
+            f"{progress_bar} (बाकी: {remaining_qs})"
         )
 
         original_options = list(q.get('options', []))
@@ -254,16 +285,30 @@ async def send_next_quiz(context: ContextTypes.DEFAULT_TYPE, chat_id: int, user_
         random.shuffle(shuffled_options)
         correct_option_id = shuffled_options.index(correct_option_text)
 
+        # 100 अक्षर लिमिट सेफ
+        safe_options = [str(opt)[:95] for opt in shuffled_options]
+
+        # पुराना सवाल डिलीट करें (ताकि चैट एकदम साफ और उसी जगह लगे)
+        old_msg_id = user_data.get('last_msg_id')
+        if old_msg_id:
+            try:
+                await context.bot.delete_message(chat_id=chat_id, message_id=old_msg_id)
+            except Exception:
+                pass  # अगर यूजर ने खुद डिलीट कर दिया हो तो इग्नोर करें
+
         message = await context.bot.send_poll(
             chat_id=chat_id,
             question=q_header,
-            options=shuffled_options,
+            options=safe_options,
             type=Poll.QUIZ,
             correct_option_id=correct_option_id,
             is_anonymous=False,
             read_timeout=15,
             write_timeout=15
         )
+
+        # नया मैसेज आईडी याद रखें ताकि अगली बार इसे डिलीट कर सकें
+        user_data['last_msg_id'] = message.message_id
 
         POLL_TRACKER[message.poll.id] = {
             "user_id": user_id,
@@ -305,11 +350,15 @@ async def handle_poll_answer(update: Update, context: ContextTypes.DEFAULT_TYPE)
         if user_data and user_data.get('busy'):
             if selected_option == correct_option_id:
                 user_data['score'] += 1
+                user_data['streak'] = user_data.get('streak', 0) + 1
             else:
+                user_data['streak'] = 0  # गलत जवाब पर स्ट्रीक टूटी
                 if 'wrong_qs' not in user_data:
                     user_data['wrong_qs'] = []
                 user_data['wrong_qs'].append(tracker["q_data"])
 
+            # 1.2 सेकंड का वेट ताकि यूजर को Telegram का हरा/लाल रंग और पटाखे दिखें
+            await asyncio.sleep(1.2)
             await send_next_quiz(context, chat_id, user_id)
 
 # --- Commands ---
@@ -424,10 +473,11 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return await update.message.reply_text("❌ डेटाबेस खाली है!")
 
     welcome = (
-        "╔════════════════════╗\n"
-        f"   👑 {style_txt('PANKAJ QUIZ BOT 2.0')} 👑\n"
-        "╚════════════════════╝\n\n"
+        "┏━━━━━━━━━━━━━━━━━━━━━┓\n"
+        f"   👑 {style_txt('PANKAJ QUIZ ZONE 2.0')} 👑\n"
+        "┗━━━━━━━━━━━━━━━━━━━━━┛\n\n"
         f"{random.choice(SHAYARIS)}\n\n"
+        "🎮 गेम मोड: ऑटो-क्लीन स्क्रीन ऑन है!\n"
         "🎯 अपनी पसंद का विषय चुनें: 👇"
     )
     markup = build_topics_keyboard(page=0)
@@ -462,7 +512,7 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if data.startswith("tp_"):
         topic = data[3:]
         if topic not in DB_CACHE:
-            await query.message.reply_text("❌ यह विषय डिलीट हो चुका है! /start करें।")
+            await query.message.reply_text("❌ यह विषय मौजूद नहीं है! /start करें।")
             return
 
         total_questions = len(DB_CACHE[topic])
@@ -478,11 +528,13 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             'q_indices': indices, 
             'idx': 0, 
             'score': 0, 
+            'streak': 0,
             'busy': True, 
             'topic': topic, 
             'wrong_qs': [],
             'is_retry': False,
-            'sending_lock': False
+            'sending_lock': False,
+            'last_msg_id': None
         })
         asyncio.create_task(send_next_quiz(context, chat_id, user_id))
         return
@@ -501,11 +553,13 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             'wrong_qs_pool': qs, 
             'idx': 0, 
             'score': 0, 
+            'streak': 0,
             'busy': True, 
             'topic': f"{topic} (गलत सवाल)", 
             'wrong_qs': [],
             'is_retry': True,
-            'sending_lock': False
+            'sending_lock': False,
+            'last_msg_id': None
         })
         asyncio.create_task(send_next_quiz(context, chat_id, user_id))
         return
@@ -513,7 +567,7 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE):
     logger.error(f"Update {update} caused error {context.error}")
 
-# --- SELF-PING LOOP (Render को 24/7 बिना सोए एक्टिव रखेगा) ---
+# --- SELF-PING LOOP ---
 async def self_ping():
     try:
         await asyncio.sleep(15)
@@ -524,15 +578,13 @@ async def self_ping():
                     logger.info("⚡ Heartbeat Sent: Server Kept Awake!")
                 except Exception as e:
                     logger.error(f"Heartbeat Error: {e}")
-                await asyncio.sleep(240)  # हर 4 मिनट में पिंग करेगा
+                await asyncio.sleep(240)
     except asyncio.CancelledError:
         logger.info("Self-ping task cancelled cleanly.")
 
 # --- STARTUP INITIALIZATION ---
 async def post_init(application: Application):
     global PING_TASK
-    # ध्यान दें: Webhook सेट करने का काम app.run_webhook खुद करता है, 
-    # यहाँ दुबारा कॉल करने से Telegram Flood Control एरर आता था।
     await sync_db()
     PING_TASK = asyncio.create_task(self_ping())
 
