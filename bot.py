@@ -30,6 +30,7 @@ STYLED_NAMES_CACHE = {}
 POLL_TRACKER = {}  
 TOPICS_PER_PAGE = 10 
 USER_LOCKS = {}
+PING_TASK = None
 
 def style_txt(text):
     if text in STYLED_NAMES_CACHE:
@@ -315,9 +316,8 @@ async def handle_poll_answer(update: Update, context: ContextTypes.DEFAULT_TYPE)
 async def reset_bot(update: Update, context: ContextTypes.DEFAULT_TYPE):
     m = await update.message.reply_text("🌀 Rebooting & Flushing Webhook...")
     try:
-        # पुराना सब कुछ डिलीट कर नए सिरे से बटन और पोल्स एक्टिवेट करना
         await context.bot.delete_webhook(drop_pending_updates=True)
-        await asyncio.sleep(0.5)
+        await asyncio.sleep(1.0)
         await context.bot.set_webhook(
             url=f"{RENDER_URL}/{TOKEN}",
             allowed_updates=Update.ALL_TYPES,
@@ -515,34 +515,32 @@ async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE):
 
 # --- SELF-PING LOOP (Render को 24/7 बिना सोए एक्टिव रखेगा) ---
 async def self_ping():
-    await asyncio.sleep(15)
-    async with httpx.AsyncClient() as client:
-        while True:
-            try:
-                # सर्वर को एक्टिव रखने के लिए पिंग
-                await client.get(RENDER_URL, timeout=10.0)
-                logger.info("⚡ Heartbeat Sent: Server Kept Awake!")
-            except Exception as e:
-                logger.error(f"Heartbeat Error: {e}")
-            await asyncio.sleep(240)  # हर 4 मिनट में पिंग करेगा
-
-# --- ऑटोमैटिक वेबहुक रिपेयर (Startup Magic) ---
-async def post_init(application: Application):
     try:
-        logger.info("🔧 Auto-fixing Telegram Webhook...")
-        await application.bot.delete_webhook(drop_pending_updates=True)
-        await asyncio.sleep(1.0)
-        await application.bot.set_webhook(
-            url=f"{RENDER_URL}/{TOKEN}",
-            allowed_updates=Update.ALL_TYPES,
-            drop_pending_updates=True
-        )
-        logger.info("✅ Webhook Auto-configured with ALL_TYPES successfully!")
-    except Exception as e:
-        logger.error(f"Webhook Auto-setup Warning: {e}")
-        
+        await asyncio.sleep(15)
+        async with httpx.AsyncClient() as client:
+            while True:
+                try:
+                    await client.get(RENDER_URL, timeout=10.0)
+                    logger.info("⚡ Heartbeat Sent: Server Kept Awake!")
+                except Exception as e:
+                    logger.error(f"Heartbeat Error: {e}")
+                await asyncio.sleep(240)  # हर 4 मिनट में पिंग करेगा
+    except asyncio.CancelledError:
+        logger.info("Self-ping task cancelled cleanly.")
+
+# --- STARTUP INITIALIZATION ---
+async def post_init(application: Application):
+    global PING_TASK
+    # ध्यान दें: Webhook सेट करने का काम app.run_webhook खुद करता है, 
+    # यहाँ दुबारा कॉल करने से Telegram Flood Control एरर आता था।
     await sync_db()
-    asyncio.create_task(self_ping())
+    PING_TASK = asyncio.create_task(self_ping())
+
+# --- CLEAN SHUTDOWN ---
+async def post_shutdown(application: Application):
+    global PING_TASK
+    if PING_TASK and not PING_TASK.done():
+        PING_TASK.cancel()
 
 def main():
     app = (
@@ -550,6 +548,7 @@ def main():
         .token(TOKEN)
         .concurrent_updates(True)
         .post_init(post_init)
+        .post_shutdown(post_shutdown)
         .build()
     )
 
