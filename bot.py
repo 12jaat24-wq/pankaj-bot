@@ -170,7 +170,7 @@ def build_topics_keyboard(page: int = 0):
     keyboard.append([InlineKeyboardButton("⚡ SUPER RESET ⚡", callback_data="super_reset")])
     return InlineKeyboardMarkup(keyboard)
 
-# --- असली टेलीग्राम ऑफिशियल QUIZ POLL इंजन ---
+# --- BULLETPROOF ENGINE ---
 async def send_next_quiz(context: ContextTypes.DEFAULT_TYPE, chat_id: int, user_id: int):
     user_data = context.application.user_data.get(user_id)
     if not user_data or not user_data.get('busy'):
@@ -187,7 +187,7 @@ async def send_next_quiz(context: ContextTypes.DEFAULT_TYPE, chat_id: int, user_
         
         if not user_data.get('is_retry') and (topic not in DB_CACHE or not DB_CACHE[topic]):
             user_data['busy'] = False
-            await context.bot.send_message(chat_id, "⚠️ डेटाबेस अपडेट हुआ है। /start दबाएं।")
+            await context.bot.send_message(chat_id, "⚠️ डेटाबेस में बदलाव हुआ है। कृपया नए सिरे से विषय चुनें: /start")
             return
 
         if user_data.get('is_retry'):
@@ -197,31 +197,27 @@ async def send_next_quiz(context: ContextTypes.DEFAULT_TYPE, chat_id: int, user_
 
         total_qs = len(qs)
 
-        # जब पूरे सवाल खत्म हो जाएं
         if idx >= total_qs:
             score = user_data.get('score', 0)
             wrong_count = total_qs - score
             per = int((score / total_qs) * 100) if total_qs > 0 else 0
+            medal = "🏆" if per >= 80 else "🥇"
 
             res = (
-                f"┏━━━━━━━━━━━━━━━━━━━━━┓\n"
-                f"  🏆 {style_txt('QUIZ COMPLETED')} 🏆\n"
-                f"┗━━━━━━━━━━━━━━━━━━━━━┛\n\n"
-                f"📚 विषय: ❴ {topic} ❵\n"
-                f"─────────────────────\n"
-                f"🟢 सही उत्तर  : {score}\n"
-                f"🔴 गलत उत्तर  : {wrong_count}\n"
-                f"📊 कुल स्कोर  : {per}%\n"
-                f"─────────────────────\n"
-                f"✨ ऊपर स्क्रॉल करके आप सभी सवाल और अपने उत्तर देख सकते हैं!"
+                f"╔═════════════════════════╗\n"
+                f"  📊 {style_txt('QUIZ REPORT CARD')} {medal}\n"
+                f"╚═════════════════════════╝\n\n"
+                f"📝 विषय: {topic}\n"
+                f"✅ सही: {score} | ❌ गलत: {wrong_count}\n"
+                f"🏆 कुल स्कोर: {per}%\n"
+                f"━━━━━━━━━━━━━━━━━━━━━━━━━"
             )
 
             keyboard = []
             if wrong_count > 0 and user_data.get('wrong_qs'):
                 keyboard.append([InlineKeyboardButton(f"🔄 गलत सवाल फिर से हल करें ({wrong_count})", callback_data="retry_wrong")])
-            keyboard.append([InlineKeyboardButton("🏠 नया विषय चुनें (/start)", callback_data="go_start")])
 
-            reply_markup = InlineKeyboardMarkup(keyboard)
+            reply_markup = InlineKeyboardMarkup(keyboard) if keyboard else None
             await context.bot.send_message(chat_id, res, reply_markup=reply_markup)
             user_data['busy'] = False
             return
@@ -238,10 +234,18 @@ async def send_next_quiz(context: ContextTypes.DEFAULT_TYPE, chat_id: int, user_
             return
 
         current_q_num = idx + 1
+        remaining_qs = total_qs - current_q_num
+
+        completed_blocks = int((current_q_num / total_qs) * 8)
+        progress_bar = "🟢" * completed_blocks + "⚪" * (8 - completed_blocks)
+
         q_question = str(q.get('question', '')).strip()
         
-        # साफ़ और सुंदर हेडर (कोई फालतू बकवास नहीं)
-        q_header = f"Q{current_q_num}/{total_qs} • {q_question[:260]}"
+        q_header = (
+            f"Q{current_q_num}. {q_question}\n"
+            f"━━━━━━━━━━━━━━━━━━━━\n"
+            f"🌀 {progress_bar} | ⏳ शेष: {remaining_qs}"
+        )
 
         original_options = list(q.get('options', []))
         correct_option_text = original_options[q['answer']]
@@ -250,17 +254,13 @@ async def send_next_quiz(context: ContextTypes.DEFAULT_TYPE, chat_id: int, user_
         random.shuffle(shuffled_options)
         correct_option_id = shuffled_options.index(correct_option_text)
 
-        safe_options = [str(opt)[:95] for opt in shuffled_options]
-
-        # 🌸 ऑफिशियल Telegram Quiz Poll भेजना (बिना किसी ऊपर वाले नोटिफिकेशन पॉपअप के)
         message = await context.bot.send_poll(
             chat_id=chat_id,
             question=q_header,
-            options=safe_options,
+            options=shuffled_options,
             type=Poll.QUIZ,
             correct_option_id=correct_option_id,
             is_anonymous=False,
-            # ध्यान दें: explanation नहीं है, इसलिए ऊपर कोई अजीब लाइटबल्ब/नोटिफिकेशन नहीं आएगा
             read_timeout=15,
             write_timeout=15
         )
@@ -283,7 +283,7 @@ async def send_next_quiz(context: ContextTypes.DEFAULT_TYPE, chat_id: int, user_
         if user_data:
             user_data['sending_lock'] = False
 
-# --- Poll Answer Handler (हाथों-हाथ फूल और पटाखे + अगला सवाल) ---
+# --- Poll Answer Handler ---
 async def handle_poll_answer(update: Update, context: ContextTypes.DEFAULT_TYPE):
     poll_answer = update.poll_answer
     poll_id = poll_answer.poll_id
@@ -310,111 +310,9 @@ async def handle_poll_answer(update: Update, context: ContextTypes.DEFAULT_TYPE)
                     user_data['wrong_qs'] = []
                 user_data['wrong_qs'].append(tracker["q_data"])
 
-            # केवल 0.3 सेकंड का वेट ताकि Telegram क्लाइंट पर फूल/पटाखे फूट सकें
-            await asyncio.sleep(0.35)
             await send_next_quiz(context, chat_id, user_id)
 
-# --- Commands & Callbacks ---
-async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    query = update.callback_query
-    await query.answer()
-
-    data = query.data
-    user_id = query.from_user.id
-    chat_id = query.message.chat_id
-    user_data = context.user_data
-
-    if data == "noop":
-        return
-
-    if data == "go_start":
-        await start(update, context)
-        return
-
-    if data == "super_reset":
-        class TU:
-            def __init__(self, m): self.message = m
-        await reset_bot(TU(query.message), context)
-        return
-
-    if data.startswith("page_"):
-        page = int(data.split("_")[1])
-        markup = build_topics_keyboard(page=page)
-        try:
-            await query.edit_message_reply_markup(reply_markup=markup)
-        except Exception:
-            pass
-        return
-
-    # विषय चुनते ही सीधे बिना किसी फालतू मैसेज के पहला पोल चालू
-    if data.startswith("tp_"):
-        topic = data[3:]
-        if topic not in DB_CACHE or not DB_CACHE[topic]:
-            await query.message.reply_text("❌ विषय में कोई सवाल नहीं हैं!")
-            return
-
-        indices = list(range(len(DB_CACHE[topic])))
-        random.shuffle(indices)
-
-        user_data.clear()
-        user_data.update({
-            'topic': topic,
-            'q_indices': indices,
-            'idx': 0,
-            'score': 0,
-            'busy': True,
-            'is_retry': False,
-            'sending_lock': False
-        })
-
-        asyncio.create_task(send_next_quiz(context, chat_id, user_id))
-        return
-
-    # गलत सवाल दोबारा हल करना
-    if data == "retry_wrong":
-        wrong_qs = user_data.get('wrong_qs', [])
-        topic = user_data.get('topic', 'रिवीजन')
-        if not wrong_qs:
-            await query.message.reply_text("❌ कोई गलत सवाल बाकी नहीं है!")
-            return
-
-        qs = list(wrong_qs)
-        random.shuffle(qs)
-        user_data.clear()
-        user_data.update({
-            'topic': f"{topic} (रिवीजन)",
-            'wrong_qs_pool': qs,
-            'idx': 0,
-            'score': 0,
-            'busy': True,
-            'is_retry': True,
-            'sending_lock': False
-        })
-        asyncio.create_task(send_next_quiz(context, chat_id, user_id))
-        return
-
-async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    context.user_data.clear()
-    if not DB_CACHE:
-        await sync_db()
-    if not DB_CACHE:
-        msg = update.message or update.callback_query.message
-        return await msg.reply_text("❌ डेटाबेस खाली है!")
-
-    welcome = (
-        "┏━━━━━━━━━━━━━━━━━━━━━┓\n"
-        f"   👑 {style_txt('PANKAJ QUIZ BOT')} 👑\n"
-        "┗━━━━━━━━━━━━━━━━━━━━━┛\n\n"
-        f"{random.choice(SHAYARIS)}\n\n"
-        "🌸 असली Telegram Quiz Poll (हाथों-हाथ फूल/पटाखे)!\n"
-        "🎯 अपनी पसंद का विषय चुनें: 👇"
-    )
-    markup = build_topics_keyboard(page=0)
-    if update.message:
-        await update.message.reply_text(welcome, reply_markup=markup)
-    else:
-        await update.callback_query.message.reply_text(welcome, reply_markup=markup)
-
+# --- Commands ---
 async def reset_bot(update: Update, context: ContextTypes.DEFAULT_TYPE):
     m = await update.message.reply_text("🌀 Rebooting & Flushing Webhook...")
     try:
@@ -515,10 +413,107 @@ async def delete_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     else:
         await m.edit_text(f"❌ विषय '{t}' डेटाबेस में नहीं मिला! कृपया सही नाम लिखें।")
 
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if update.message:
+        await update.message.reply_chat_action("typing")
+    context.user_data.clear()
+
+    if not DB_CACHE:
+        await sync_db()
+    if not DB_CACHE:
+        return await update.message.reply_text("❌ डेटाबेस खाली है!")
+
+    welcome = (
+        "╔════════════════════╗\n"
+        f"   👑 {style_txt('PANKAJ QUIZ BOT 2.0')} 👑\n"
+        "╚════════════════════╝\n\n"
+        f"{random.choice(SHAYARIS)}\n\n"
+        "🎯 अपनी पसंद का विषय चुनें: 👇"
+    )
+    markup = build_topics_keyboard(page=0)
+    await update.message.reply_text(welcome, reply_markup=markup)
+
+async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+
+    data = query.data
+    user_id = query.from_user.id
+    chat_id = query.message.chat_id
+
+    if data == "noop":
+        return
+
+    if data == "super_reset":
+        class TU:
+            def __init__(self, m): self.message = m
+        await reset_bot(TU(query.message), context)
+        return
+
+    if data.startswith("page_"):
+        page = int(data.split("_")[1])
+        markup = build_topics_keyboard(page=page)
+        try:
+            await query.edit_message_reply_markup(reply_markup=markup)
+        except Exception:
+            pass
+        return
+
+    if data.startswith("tp_"):
+        topic = data[3:]
+        if topic not in DB_CACHE:
+            await query.message.reply_text("❌ यह विषय डिलीट हो चुका है! /start करें।")
+            return
+
+        total_questions = len(DB_CACHE[topic])
+        if total_questions == 0:
+            await query.message.reply_text("❌ इस विषय में कोई सवाल नहीं हैं!")
+            return
+
+        indices = list(range(total_questions))
+        random.shuffle(indices)
+
+        context.user_data.clear()
+        context.user_data.update({
+            'q_indices': indices, 
+            'idx': 0, 
+            'score': 0, 
+            'busy': True, 
+            'topic': topic, 
+            'wrong_qs': [],
+            'is_retry': False,
+            'sending_lock': False
+        })
+        asyncio.create_task(send_next_quiz(context, chat_id, user_id))
+        return
+
+    if data == "retry_wrong":
+        wrong_qs = context.user_data.get('wrong_qs', [])
+        topic = context.user_data.get('topic', 'रिवीजन')
+        if not wrong_qs:
+            await query.message.reply_text("❌ कोई गलत सवाल बाकी नहीं है!")
+            return
+
+        qs = list(wrong_qs)
+        random.shuffle(qs)
+        context.user_data.clear()
+        context.user_data.update({
+            'wrong_qs_pool': qs, 
+            'idx': 0, 
+            'score': 0, 
+            'busy': True, 
+            'topic': f"{topic} (गलत सवाल)", 
+            'wrong_qs': [],
+            'is_retry': True,
+            'sending_lock': False
+        })
+        asyncio.create_task(send_next_quiz(context, chat_id, user_id))
+        return
+
 async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE):
     logger.error(f"Update {update} caused error {context.error}")
 
-# --- SELF-PING LOOP ---
+# --- SELF-PING LOOP (Render को 24/7 बिना सोए एक्टिव रखेगा) ---
 async def self_ping():
     try:
         await asyncio.sleep(15)
@@ -529,13 +524,15 @@ async def self_ping():
                     logger.info("⚡ Heartbeat Sent: Server Kept Awake!")
                 except Exception as e:
                     logger.error(f"Heartbeat Error: {e}")
-                await asyncio.sleep(240)
+                await asyncio.sleep(240)  # हर 4 मिनट में पिंग करेगा
     except asyncio.CancelledError:
         logger.info("Self-ping task cancelled cleanly.")
 
 # --- STARTUP INITIALIZATION ---
 async def post_init(application: Application):
     global PING_TASK
+    # ध्यान दें: Webhook सेट करने का काम app.run_webhook खुद करता है, 
+    # यहाँ दुबारा कॉल करने से Telegram Flood Control एरर आता था।
     await sync_db()
     PING_TASK = asyncio.create_task(self_ping())
 
