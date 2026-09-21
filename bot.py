@@ -30,7 +30,7 @@ STYLED_NAMES_CACHE = {}
 POLL_TRACKER = {}  
 TOPICS_PER_PAGE = 10 
 USER_LOCKS = {}
-PING_TASK = None
+WATCHDOG_TASK = None
 
 def style_txt(text):
     if text in STYLED_NAMES_CACHE:
@@ -49,7 +49,11 @@ async def get_latest_github_db():
     }
     try:
         async with httpx.AsyncClient() as client:
-            ref_res = await client.get(f"https://api.github.com/repos/{REPO_NAME}/git/trees/main?recursive=1", headers=headers, timeout=10.0)
+            ref_res = await client.get(
+                f"https://api.github.com/repos/{REPO_NAME}/git/trees/main?recursive=1", 
+                headers=headers, 
+                timeout=12.0
+            )
             if ref_res.status_code == 200:
                 tree = ref_res.json().get("tree", [])
                 file_blob_sha = None
@@ -61,7 +65,11 @@ async def get_latest_github_db():
                 if file_blob_sha:
                     blob_headers = headers.copy()
                     blob_headers["Accept"] = "application/vnd.github.v3.raw"
-                    blob_res = await client.get(f"https://api.github.com/repos/{REPO_NAME}/git/blobs/{file_blob_sha}", headers=blob_headers, timeout=15.0)
+                    blob_res = await client.get(
+                        f"https://api.github.com/repos/{REPO_NAME}/git/blobs/{file_blob_sha}", 
+                        headers=blob_headers, 
+                        timeout=15.0
+                    )
                     if blob_res.status_code == 200:
                         return json.loads(blob_res.text)
     except Exception as e:
@@ -170,7 +178,7 @@ def build_topics_keyboard(page: int = 0):
     keyboard.append([InlineKeyboardButton("⚡ SUPER RESET ⚡", callback_data="super_reset")])
     return InlineKeyboardMarkup(keyboard)
 
-# --- BULLETPROOF ENGINE ---
+# --- QUIZ ENGINE ---
 async def send_next_quiz(context: ContextTypes.DEFAULT_TYPE, chat_id: int, user_id: int):
     user_data = context.application.user_data.get(user_id)
     if not user_data or not user_data.get('busy'):
@@ -187,7 +195,7 @@ async def send_next_quiz(context: ContextTypes.DEFAULT_TYPE, chat_id: int, user_
         
         if not user_data.get('is_retry') and (topic not in DB_CACHE or not DB_CACHE[topic]):
             user_data['busy'] = False
-            await context.bot.send_message(chat_id, "⚠️ डेटाबेस में बदलाव हुआ है। कृपया नए सिरे से विषय चुनें: /start")
+            await context.bot.send_message(chat_id, "⚠️ विषय डेटा लोड नहीं हो सका। पुनः शुरू करें: /start")
             return
 
         if user_data.get('is_retry'):
@@ -261,8 +269,8 @@ async def send_next_quiz(context: ContextTypes.DEFAULT_TYPE, chat_id: int, user_
             type=Poll.QUIZ,
             correct_option_id=correct_option_id,
             is_anonymous=False,
-            read_timeout=15,
-            write_timeout=15
+            read_timeout=20,
+            write_timeout=20
         )
 
         POLL_TRACKER[message.poll.id] = {
@@ -314,19 +322,19 @@ async def handle_poll_answer(update: Update, context: ContextTypes.DEFAULT_TYPE)
 
 # --- Commands ---
 async def reset_bot(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    m = await update.message.reply_text("🌀 Rebooting & Flushing Webhook...")
+    m = await update.message.reply_text("🌀 Re-linking Webhook connection...")
     try:
-        await context.bot.delete_webhook(drop_pending_updates=True)
+        await context.bot.delete_webhook(drop_pending_updates=False)
         await asyncio.sleep(1.0)
         await context.bot.set_webhook(
             url=f"{RENDER_URL}/{TOKEN}",
             allowed_updates=Update.ALL_TYPES,
-            drop_pending_updates=True
+            drop_pending_updates=False
         )
         await sync_db()
         context.user_data.clear()
         POLL_TRACKER.clear()
-        res = "╔════════════════════╗\n  ⚡ BOT IS ALIVE NOW ⚡ \n╚════════════════════╝\n✅ सारे बटन और जाम साफ़ हो गए हैं!"
+        res = "╔════════════════════╗\n  ⚡ BOT IS ALIVE NOW ⚡ \n╚════════════════════╝\n✅ कनेक्शन पूरी तरह रीसेट हो गया है!"
         await m.edit_text(res)
     except Exception as e:
         await m.edit_text(f"❌ Failed: {e}")
@@ -421,7 +429,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not DB_CACHE:
         await sync_db()
     if not DB_CACHE:
-        return await update.message.reply_text("❌ डेटाबेस खाली है!")
+        return await update.message.reply_text("❌ डेटाबेस लोड हो रहा है, 3 सेकंड बाद पुनः /start करें।")
 
     welcome = (
         "╔════════════════════╗\n"
@@ -461,8 +469,11 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     if data.startswith("tp_"):
         topic = data[3:]
+        if not DB_CACHE:
+            await sync_db()
+
         if topic not in DB_CACHE:
-            await query.message.reply_text("❌ यह विषय डिलीट हो चुका है! /start करें।")
+            await query.message.reply_text("❌ यह विषय उपलब्ध नहीं है! /start करें।")
             return
 
         total_questions = len(DB_CACHE[topic])
@@ -511,36 +522,59 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
 async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE):
-    logger.error(f"Update {update} caused error {context.error}")
+    logger.error(f"Update {update} caused error: {context.error}")
 
-# --- SELF-PING LOOP (Render को 24/7 बिना सोए एक्टिव रखेगा) ---
-async def self_ping():
-    try:
-        await asyncio.sleep(15)
-        async with httpx.AsyncClient() as client:
-            while True:
+# --- INTERNAL STEALTH WATCHDOG (कभी न सोने देने और ऑटो-हीलिंग का इन-बिल्ट सिस्टम) ---
+async def self_keep_alive_watchdog(application: Application):
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"
+    }
+    await asyncio.sleep(10)
+    logger.info("⚡ Internal Self-Healing Watchdog Engine Online!")
+
+    while True:
+        try:
+            # 1. Render को बिना रुके 24/7 जगाए रखने के लिए Stealth Ping
+            async with httpx.AsyncClient(headers=headers, follow_redirects=True, timeout=12.0) as client:
                 try:
-                    await client.get(RENDER_URL, timeout=10.0)
-                    logger.info("⚡ Heartbeat Sent: Server Kept Awake!")
-                except Exception as e:
-                    logger.error(f"Heartbeat Error: {e}")
-                await asyncio.sleep(240)  # हर 4 मिनट में पिंग करेगा
-    except asyncio.CancelledError:
-        logger.info("Self-ping task cancelled cleanly.")
+                    await client.get(f"{RENDER_URL}/{TOKEN}")
+                except Exception:
+                    pass
+
+            # 2. Telegram Webhook Auto-Healer (मैन्युअल डिप्लॉय की ज़रूरत खत्म)
+            try:
+                webhook_info = await application.bot.get_webhook_info()
+                # अगर Telegram पर कोई एरर आया था या कनेक्शन रुका था, तुरंत री-लिंक करो
+                if webhook_info.last_error_date or webhook_info.has_custom_certificate:
+                    logger.warning(f"Telegram webhook delay detected: {webhook_info.last_error_message}. Auto-recovering...")
+                    await application.bot.set_webhook(
+                        url=f"{RENDER_URL}/{TOKEN}",
+                        allowed_updates=Update.ALL_TYPES,
+                        drop_pending_updates=False
+                    )
+            except Exception as e:
+                logger.warning(f"Telegram health check notice: {e}")
+
+        except asyncio.CancelledError:
+            break
+        except Exception as e:
+            logger.error(f"Watchdog error: {e}")
+
+        # हर 90 सेकंड में चलेगा (Render की 15 मिनट की सीमा से बहुत पहले)
+        await asyncio.sleep(90)
 
 # --- STARTUP INITIALIZATION ---
 async def post_init(application: Application):
-    global PING_TASK
-    # ध्यान दें: Webhook सेट करने का काम app.run_webhook खुद करता है, 
-    # यहाँ दुबारा कॉल करने से Telegram Flood Control एरर आता था।
-    await sync_db()
-    PING_TASK = asyncio.create_task(self_ping())
+    global WATCHDOG_TASK
+    asyncio.create_task(sync_db())
+    WATCHDOG_TASK = asyncio.create_task(self_keep_alive_watchdog(application))
 
 # --- CLEAN SHUTDOWN ---
 async def post_shutdown(application: Application):
-    global PING_TASK
-    if PING_TASK and not PING_TASK.done():
-        PING_TASK.cancel()
+    global WATCHDOG_TASK
+    if WATCHDOG_TASK and not WATCHDOG_TASK.done():
+        WATCHDOG_TASK.cancel()
 
 def main():
     app = (
@@ -570,7 +604,7 @@ def main():
         url_path=TOKEN,
         webhook_url=f"{RENDER_URL}/{TOKEN}",
         allowed_updates=Update.ALL_TYPES,
-        drop_pending_updates=True
+        drop_pending_updates=False  # पेंडिंग क्लिक या कमांड कभी ड्रॉप नहीं होगी
     )
 
 if __name__ == '__main__':
