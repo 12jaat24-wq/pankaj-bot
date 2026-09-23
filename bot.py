@@ -32,6 +32,15 @@ TOPICS_PER_PAGE = 10
 USER_LOCKS = {}
 WATCHDOG_TASK = None
 
+# ग्लोबल HTTP Client - सॉकेट लीक और इवेंट लूप हैंग होने से बचाने के लिए
+HTTP_CLIENT = None
+
+def get_http_client():
+    global HTTP_CLIENT
+    if HTTP_CLIENT is None or HTTP_CLIENT.is_closed:
+        HTTP_CLIENT = httpx.AsyncClient(timeout=httpx.Timeout(8.0, connect=5.0))
+    return HTTP_CLIENT
+
 def style_txt(text):
     if text in STYLED_NAMES_CACHE:
         return STYLED_NAMES_CACHE[text]
@@ -47,31 +56,29 @@ async def get_latest_github_db():
         "Authorization": f"Bearer {GITHUB_TOKEN}",
         "Accept": "application/vnd.github.v3+json"
     }
+    client = get_http_client()
     try:
-        async with httpx.AsyncClient() as client:
-            ref_res = await client.get(
-                f"https://api.github.com/repos/{REPO_NAME}/git/trees/main?recursive=1", 
-                headers=headers, 
-                timeout=12.0
-            )
-            if ref_res.status_code == 200:
-                tree = ref_res.json().get("tree", [])
-                file_blob_sha = None
-                for item in tree:
-                    if item.get("path") == DB_FILE:
-                        file_blob_sha = item.get("sha")
-                        break
-                
-                if file_blob_sha:
-                    blob_headers = headers.copy()
-                    blob_headers["Accept"] = "application/vnd.github.v3.raw"
-                    blob_res = await client.get(
-                        f"https://api.github.com/repos/{REPO_NAME}/git/blobs/{file_blob_sha}", 
-                        headers=blob_headers, 
-                        timeout=15.0
-                    )
-                    if blob_res.status_code == 200:
-                        return json.loads(blob_res.text)
+        ref_res = await client.get(
+            f"https://api.github.com/repos/{REPO_NAME}/git/trees/main?recursive=1", 
+            headers=headers
+        )
+        if ref_res.status_code == 200:
+            tree = ref_res.json().get("tree", [])
+            file_blob_sha = None
+            for item in tree:
+                if item.get("path") == DB_FILE:
+                    file_blob_sha = item.get("sha")
+                    break
+            
+            if file_blob_sha:
+                blob_headers = headers.copy()
+                blob_headers["Accept"] = "application/vnd.github.v3.raw"
+                blob_res = await client.get(
+                    f"https://api.github.com/repos/{REPO_NAME}/git/blobs/{file_blob_sha}", 
+                    headers=blob_headers
+                )
+                if blob_res.status_code == 200:
+                    return json.loads(blob_res.text)
     except Exception as e:
         logger.error(f"GitHub Direct Fetch Error: {e}")
     return {}
@@ -81,50 +88,46 @@ async def save_to_github_safely(data_to_save, commit_msg):
         "Authorization": f"Bearer {GITHUB_TOKEN}",
         "Accept": "application/vnd.github.v3+json"
     }
+    client = get_http_client()
     try:
         content_str = json.dumps(data_to_save, indent=2, ensure_ascii=False)
-        async with httpx.AsyncClient() as client:
-            ref_res = await client.get(f"https://api.github.com/repos/{REPO_NAME}/git/ref/heads/main", headers=headers, timeout=10.0)
-            if ref_res.status_code != 200: return False
-            latest_commit_sha = ref_res.json()["object"]["sha"]
+        ref_res = await client.get(f"https://api.github.com/repos/{REPO_NAME}/git/ref/heads/main", headers=headers)
+        if ref_res.status_code != 200: return False
+        latest_commit_sha = ref_res.json()["object"]["sha"]
 
-            blob_res = await client.post(
-                f"https://api.github.com/repos/{REPO_NAME}/git/blobs",
-                headers=headers,
-                json={"content": content_str, "encoding": "utf-8"},
-                timeout=20.0
-            )
-            if blob_res.status_code != 201: return False
-            blob_sha = blob_res.json()["sha"]
+        blob_res = await client.post(
+            f"https://api.github.com/repos/{REPO_NAME}/git/blobs",
+            headers=headers,
+            json={"content": content_str, "encoding": "utf-8"}
+        )
+        if blob_res.status_code != 201: return False
+        blob_sha = blob_res.json()["sha"]
 
-            tree_res = await client.post(
-                f"https://api.github.com/repos/{REPO_NAME}/git/trees",
-                headers=headers,
-                json={
-                    "base_tree": latest_commit_sha,
-                    "tree": [{"path": DB_FILE, "mode": "100644", "type": "blob", "sha": blob_sha}]
-                },
-                timeout=10.0
-            )
-            if tree_res.status_code != 201: return False
-            new_tree_sha = tree_res.json()["sha"]
+        tree_res = await client.post(
+            f"https://api.github.com/repos/{REPO_NAME}/git/trees",
+            headers=headers,
+            json={
+                "base_tree": latest_commit_sha,
+                "tree": [{"path": DB_FILE, "mode": "100644", "type": "blob", "sha": blob_sha}]
+            }
+        )
+        if tree_res.status_code != 201: return False
+        new_tree_sha = tree_res.json()["sha"]
 
-            commit_res = await client.post(
-                f"https://api.github.com/repos/{REPO_NAME}/git/commits",
-                headers=headers,
-                json={"message": commit_msg, "tree": new_tree_sha, "parents": [latest_commit_sha]},
-                timeout=10.0
-            )
-            if commit_res.status_code != 201: return False
-            new_commit_sha = commit_res.json()["sha"]
+        commit_res = await client.post(
+            f"https://api.github.com/repos/{REPO_NAME}/git/commits",
+            headers=headers,
+            json={"message": commit_msg, "tree": new_tree_sha, "parents": [latest_commit_sha]}
+        )
+        if commit_res.status_code != 201: return False
+        new_commit_sha = commit_res.json()["sha"]
 
-            update_ref = await client.patch(
-                f"https://api.github.com/repos/{REPO_NAME}/git/refs/heads/main",
-                headers=headers,
-                json={"sha": new_commit_sha},
-                timeout=10.0
-            )
-            return update_ref.status_code == 200
+        update_ref = await client.patch(
+            f"https://api.github.com/repos/{REPO_NAME}/git/refs/heads/main",
+            headers=headers,
+            json={"sha": new_commit_sha}
+        )
+        return update_ref.status_code == 200
     except Exception as e:
         logger.error(f"GitHub Save Failed: {e}")
         return False
@@ -269,8 +272,8 @@ async def send_next_quiz(context: ContextTypes.DEFAULT_TYPE, chat_id: int, user_
             type=Poll.QUIZ,
             correct_option_id=correct_option_id,
             is_anonymous=False,
-            read_timeout=20,
-            write_timeout=20
+            read_timeout=10,
+            write_timeout=10
         )
 
         POLL_TRACKER[message.poll.id] = {
@@ -324,14 +327,14 @@ async def handle_poll_answer(update: Update, context: ContextTypes.DEFAULT_TYPE)
 async def reset_bot(update: Update, context: ContextTypes.DEFAULT_TYPE):
     m = await update.message.reply_text("🌀 Re-linking Webhook connection...")
     try:
-        await context.bot.delete_webhook(drop_pending_updates=False)
-        await asyncio.sleep(1.0)
+        await context.bot.delete_webhook(drop_pending_updates=True)
+        await asyncio.sleep(0.5)
         await context.bot.set_webhook(
             url=f"{RENDER_URL}/{TOKEN}",
             allowed_updates=Update.ALL_TYPES,
-            drop_pending_updates=False
+            drop_pending_updates=True
         )
-        await sync_db()
+        asyncio.create_task(sync_db())
         context.user_data.clear()
         POLL_TRACKER.clear()
         res = "╔════════════════════╗\n  ⚡ BOT IS ALIVE NOW ⚡ \n╚════════════════════╝\n✅ कनेक्शन पूरी तरह रीसेट हो गया है!"
@@ -421,19 +424,21 @@ async def delete_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     else:
         await m.edit_text(f"❌ विषय '{t}' डेटाबेस में नहीं मिला! कृपया सही नाम लिखें।")
 
+# NON-BLOCKING START COMMAND
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.message:
         await update.message.reply_chat_action("typing")
     context.user_data.clear()
 
+    # अगर कैश खाली है तो बैकग्राउंड में लोड होने दो, यूजर को रोको मत!
     if not DB_CACHE:
-        await sync_db()
-    if not DB_CACHE:
-        return await update.message.reply_text("❌ डेटाबेस लोड हो रहा है, 3 सेकंड बाद पुनः /start करें।")
+        asyncio.create_task(sync_db())
+        await update.message.reply_text("🔄 डेटाबेस सिंक हो रहा है... 2-3 सेकंड में दोबारा /start भेजें।")
+        return
 
     welcome = (
         "╔════════════════════╗\n"
-        f"   👑 {style_txt('PANKAJ QUIZ BOT 2.0')} 👑\n"
+        f"    👑 {style_txt('PANKAJ QUIZ BOT 2.0')} 👑\n"
         "╚════════════════════╝\n\n"
         f"{random.choice(SHAYARIS)}\n\n"
         "🎯 अपनी पसंद का विषय चुनें: 👇"
@@ -524,57 +529,33 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE):
     logger.error(f"Update {update} caused error: {context.error}")
 
-# --- INTERNAL STEALTH WATCHDOG (कभी न सोने देने और ऑटो-हीलिंग का इन-बिल्ट सिस्टम) ---
+# CLEAN NON-BLOCKING WATCHDOG
 async def self_keep_alive_watchdog(application: Application):
-    headers = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
-        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"
-    }
     await asyncio.sleep(10)
-    logger.info("⚡ Internal Self-Healing Watchdog Engine Online!")
+    logger.info("⚡ Internal Watchdog Online!")
 
     while True:
         try:
-            # 1. Render को बिना रुके 24/7 जगाए रखने के लिए Stealth Ping
-            async with httpx.AsyncClient(headers=headers, follow_redirects=True, timeout=12.0) as client:
-                try:
-                    await client.get(f"{RENDER_URL}/{TOKEN}")
-                except Exception:
-                    pass
-
-            # 2. Telegram Webhook Auto-Healer (मैन्युअल डिप्लॉय की ज़रूरत खत्म)
-            try:
-                webhook_info = await application.bot.get_webhook_info()
-                # अगर Telegram पर कोई एरर आया था या कनेक्शन रुका था, तुरंत री-लिंक करो
-                if webhook_info.last_error_date or webhook_info.has_custom_certificate:
-                    logger.warning(f"Telegram webhook delay detected: {webhook_info.last_error_message}. Auto-recovering...")
-                    await application.bot.set_webhook(
-                        url=f"{RENDER_URL}/{TOKEN}",
-                        allowed_updates=Update.ALL_TYPES,
-                        drop_pending_updates=False
-                    )
-            except Exception as e:
-                logger.warning(f"Telegram health check notice: {e}")
-
+            client = get_http_client()
+            await client.get(f"{RENDER_URL}/{TOKEN}")
         except asyncio.CancelledError:
             break
         except Exception as e:
-            logger.error(f"Watchdog error: {e}")
+            logger.error(f"Watchdog ping error: {e}")
 
-        # हर 90 सेकंड में चलेगा (Render की 15 मिनट की सीमा से बहुत पहले)
-        await asyncio.sleep(90)
+        await asyncio.sleep(60)
 
-# --- STARTUP INITIALIZATION ---
 async def post_init(application: Application):
     global WATCHDOG_TASK
     asyncio.create_task(sync_db())
     WATCHDOG_TASK = asyncio.create_task(self_keep_alive_watchdog(application))
 
-# --- CLEAN SHUTDOWN ---
 async def post_shutdown(application: Application):
-    global WATCHDOG_TASK
+    global WATCHDOG_TASK, HTTP_CLIENT
     if WATCHDOG_TASK and not WATCHDOG_TASK.done():
         WATCHDOG_TASK.cancel()
+    if HTTP_CLIENT and not HTTP_CLIENT.is_closed:
+        await HTTP_CLIENT.aclose()
 
 def main():
     app = (
@@ -604,7 +585,7 @@ def main():
         url_path=TOKEN,
         webhook_url=f"{RENDER_URL}/{TOKEN}",
         allowed_updates=Update.ALL_TYPES,
-        drop_pending_updates=False  # पेंडिंग क्लिक या कमांड कभी ड्रॉप नहीं होगी
+        drop_pending_updates=True  # बैकग्राउंड में रुके हुए सारे पुराने/अटके हुए मैसेजेस को ड्रॉप कर देगा
     )
 
 if __name__ == '__main__':
