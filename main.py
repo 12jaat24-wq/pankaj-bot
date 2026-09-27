@@ -30,7 +30,14 @@ STYLED_NAMES_CACHE = {}
 POLL_TRACKER = {}  
 TOPICS_PER_PAGE = 10 
 USER_LOCKS = {}
-PING_TASK = None
+WATCHDOG_TASK = None
+HTTP_CLIENT = None
+
+def get_http_client():
+    global HTTP_CLIENT
+    if HTTP_CLIENT is None or HTTP_CLIENT.is_closed:
+        HTTP_CLIENT = httpx.AsyncClient(timeout=httpx.Timeout(10.0, connect=5.0))
+    return HTTP_CLIENT
 
 def style_txt(text):
     if text in STYLED_NAMES_CACHE:
@@ -47,23 +54,29 @@ async def get_latest_github_db():
         "Authorization": f"Bearer {GITHUB_TOKEN}",
         "Accept": "application/vnd.github.v3+json"
     }
+    client = get_http_client()
     try:
-        async with httpx.AsyncClient() as client:
-            ref_res = await client.get(f"https://api.github.com/repos/{REPO_NAME}/git/trees/main?recursive=1", headers=headers, timeout=10.0)
-            if ref_res.status_code == 200:
-                tree = ref_res.json().get("tree", [])
-                file_blob_sha = None
-                for item in tree:
-                    if item.get("path") == DB_FILE:
-                        file_blob_sha = item.get("sha")
-                        break
-                
-                if file_blob_sha:
-                    blob_headers = headers.copy()
-                    blob_headers["Accept"] = "application/vnd.github.v3.raw"
-                    blob_res = await client.get(f"https://api.github.com/repos/{REPO_NAME}/git/blobs/{file_blob_sha}", headers=blob_headers, timeout=15.0)
-                    if blob_res.status_code == 200:
-                        return json.loads(blob_res.text)
+        ref_res = await client.get(
+            f"https://api.github.com/repos/{REPO_NAME}/git/trees/main?recursive=1", 
+            headers=headers
+        )
+        if ref_res.status_code == 200:
+            tree = ref_res.json().get("tree", [])
+            file_blob_sha = None
+            for item in tree:
+                if item.get("path") == DB_FILE:
+                    file_blob_sha = item.get("sha")
+                    break
+            
+            if file_blob_sha:
+                blob_headers = headers.copy()
+                blob_headers["Accept"] = "application/vnd.github.v3.raw"
+                blob_res = await client.get(
+                    f"https://api.github.com/repos/{REPO_NAME}/git/blobs/{file_blob_sha}", 
+                    headers=blob_headers
+                )
+                if blob_res.status_code == 200:
+                    return json.loads(blob_res.text)
     except Exception as e:
         logger.error(f"GitHub Direct Fetch Error: {e}")
     return {}
@@ -73,50 +86,46 @@ async def save_to_github_safely(data_to_save, commit_msg):
         "Authorization": f"Bearer {GITHUB_TOKEN}",
         "Accept": "application/vnd.github.v3+json"
     }
+    client = get_http_client()
     try:
         content_str = json.dumps(data_to_save, indent=2, ensure_ascii=False)
-        async with httpx.AsyncClient() as client:
-            ref_res = await client.get(f"https://api.github.com/repos/{REPO_NAME}/git/ref/heads/main", headers=headers, timeout=10.0)
-            if ref_res.status_code != 200: return False
-            latest_commit_sha = ref_res.json()["object"]["sha"]
+        ref_res = await client.get(f"https://api.github.com/repos/{REPO_NAME}/git/ref/heads/main", headers=headers)
+        if ref_res.status_code != 200: return False
+        latest_commit_sha = ref_res.json()["object"]["sha"]
 
-            blob_res = await client.post(
-                f"https://api.github.com/repos/{REPO_NAME}/git/blobs",
-                headers=headers,
-                json={"content": content_str, "encoding": "utf-8"},
-                timeout=20.0
-            )
-            if blob_res.status_code != 201: return False
-            blob_sha = blob_res.json()["sha"]
+        blob_res = await client.post(
+            f"https://api.github.com/repos/{REPO_NAME}/git/blobs",
+            headers=headers,
+            json={"content": content_str, "encoding": "utf-8"}
+        )
+        if blob_res.status_code != 201: return False
+        blob_sha = blob_res.json()["sha"]
 
-            tree_res = await client.post(
-                f"https://api.github.com/repos/{REPO_NAME}/git/trees",
-                headers=headers,
-                json={
-                    "base_tree": latest_commit_sha,
-                    "tree": [{"path": DB_FILE, "mode": "100644", "type": "blob", "sha": blob_sha}]
-                },
-                timeout=10.0
-            )
-            if tree_res.status_code != 201: return False
-            new_tree_sha = tree_res.json()["sha"]
+        tree_res = await client.post(
+            f"https://api.github.com/repos/{REPO_NAME}/git/trees",
+            headers=headers,
+            json={
+                "base_tree": latest_commit_sha,
+                "tree": [{"path": DB_FILE, "mode": "100644", "type": "blob", "sha": blob_sha}]
+            }
+        )
+        if tree_res.status_code != 201: return False
+        new_tree_sha = tree_res.json()["sha"]
 
-            commit_res = await client.post(
-                f"https://api.github.com/repos/{REPO_NAME}/git/commits",
-                headers=headers,
-                json={"message": commit_msg, "tree": new_tree_sha, "parents": [latest_commit_sha]},
-                timeout=10.0
-            )
-            if commit_res.status_code != 201: return False
-            new_commit_sha = commit_res.json()["sha"]
+        commit_res = await client.post(
+            f"https://api.github.com/repos/{REPO_NAME}/git/commits",
+            headers=headers,
+            json={"message": commit_msg, "tree": new_tree_sha, "parents": [latest_commit_sha]}
+        )
+        if commit_res.status_code != 201: return False
+        new_commit_sha = commit_res.json()["sha"]
 
-            update_ref = await client.patch(
-                f"https://api.github.com/repos/{REPO_NAME}/git/refs/heads/main",
-                headers=headers,
-                json={"sha": new_commit_sha},
-                timeout=10.0
-            )
-            return update_ref.status_code == 200
+        update_ref = await client.patch(
+            f"https://api.github.com/repos/{REPO_NAME}/git/refs/heads/main",
+            headers=headers,
+            json={"sha": new_commit_sha}
+        )
+        return update_ref.status_code == 200
     except Exception as e:
         logger.error(f"GitHub Save Failed: {e}")
         return False
@@ -124,7 +133,7 @@ async def save_to_github_safely(data_to_save, commit_msg):
 async def sync_db():
     global DB_CACHE, STYLED_NAMES_CACHE
     latest_db = await get_latest_github_db()
-    if latest_db or latest_db == {}:
+    if latest_db:
         DB_CACHE = latest_db
         STYLED_NAMES_CACHE.clear()
         return True
@@ -170,7 +179,7 @@ def build_topics_keyboard(page: int = 0):
     keyboard.append([InlineKeyboardButton("⚡ SUPER RESET ⚡", callback_data="super_reset")])
     return InlineKeyboardMarkup(keyboard)
 
-# --- BULLETPROOF ENGINE ---
+# --- QUIZ ENGINE ---
 async def send_next_quiz(context: ContextTypes.DEFAULT_TYPE, chat_id: int, user_id: int):
     user_data = context.application.user_data.get(user_id)
     if not user_data or not user_data.get('busy'):
@@ -187,7 +196,7 @@ async def send_next_quiz(context: ContextTypes.DEFAULT_TYPE, chat_id: int, user_
         
         if not user_data.get('is_retry') and (topic not in DB_CACHE or not DB_CACHE[topic]):
             user_data['busy'] = False
-            await context.bot.send_message(chat_id, "⚠️ डेटाबेस में बदलाव हुआ है। कृपया नए सिरे से विषय चुनें: /start")
+            await context.bot.send_message(chat_id, "⚠️ विषय डेटा लोड नहीं हो सका। पुनः शुरू करें: /start")
             return
 
         if user_data.get('is_retry'):
@@ -230,6 +239,7 @@ async def send_next_quiz(context: ContextTypes.DEFAULT_TYPE, chat_id: int, user_
                 q = DB_CACHE[topic][q_idx]
         except Exception:
             user_data['idx'] = idx + 1
+            user_data['sending_lock'] = False
             asyncio.create_task(send_next_quiz(context, chat_id, user_id))
             return
 
@@ -261,8 +271,8 @@ async def send_next_quiz(context: ContextTypes.DEFAULT_TYPE, chat_id: int, user_
             type=Poll.QUIZ,
             correct_option_id=correct_option_id,
             is_anonymous=False,
-            read_timeout=15,
-            write_timeout=15
+            read_timeout=10,
+            write_timeout=10
         )
 
         POLL_TRACKER[message.poll.id] = {
@@ -278,6 +288,7 @@ async def send_next_quiz(context: ContextTypes.DEFAULT_TYPE, chat_id: int, user_
         logger.error(f"Quiz Sending Error: {e}")
         if user_data:
             user_data['idx'] = user_data.get('idx', 0) + 1
+            user_data['sending_lock'] = False
             asyncio.create_task(send_next_quiz(context, chat_id, user_id))
     finally:
         if user_data:
@@ -314,19 +325,22 @@ async def handle_poll_answer(update: Update, context: ContextTypes.DEFAULT_TYPE)
 
 # --- Commands ---
 async def reset_bot(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    m = await update.message.reply_text("🌀 Rebooting & Flushing Webhook...")
+    user_id = update.effective_user.id
+    if user_id in context.application.user_data:
+        context.application.user_data[user_id].clear()
+
+    m = await update.message.reply_text("🌀 Re-linking Webhook connection...")
     try:
-        await context.bot.delete_webhook(drop_pending_updates=True)
-        await asyncio.sleep(1.0)
+        # सीधा सिंगल-कॉल set_webhook (यह कभी खाली नहीं छोड़ेगा)
+        target_url = f"{RENDER_URL}/{TOKEN}"
         await context.bot.set_webhook(
-            url=f"{RENDER_URL}/{TOKEN}",
+            url=target_url,
             allowed_updates=Update.ALL_TYPES,
             drop_pending_updates=True
         )
         await sync_db()
-        context.user_data.clear()
         POLL_TRACKER.clear()
-        res = "╔════════════════════╗\n  ⚡ BOT IS ALIVE NOW ⚡ \n╚════════════════════╝\n✅ सारे बटन और जाम साफ़ हो गए हैं!"
+        res = "╔════════════════════╗\n  ⚡ BOT IS ALIVE NOW ⚡ \n╚════════════════════╝\n✅ कनेक्शन पूरी तरह रीसेट हो गया है!\n\n/start पर क्लिक करें।"
         await m.edit_text(res)
     except Exception as e:
         await m.edit_text(f"❌ Failed: {e}")
@@ -345,25 +359,41 @@ async def refresh_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await msg.edit_text("❌ Sync Failed!")
 
 async def handle_input(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    json_text = ""
-    if update.message.document:
-        f = await context.bot.get_file(update.message.document.file_id)
-        c = await f.download_as_bytearray()
-        json_text = c.decode('utf-8')
-    elif update.message.text and ("options" in update.message.text or "question" in update.message.text):
-        json_text = update.message.text
-    else:
-        return
+    user_id = update.effective_user.id
+    # किसी भी अटके हुए क्विज़ सेशन को तुरंत रीसेट करें
+    if user_id in context.application.user_data:
+        context.application.user_data[user_id]['busy'] = False
 
-    m = await update.message.reply_text("🛡️ Safely Adding Data to GitHub...")
     try:
+        json_text = ""
+        if update.message.document:
+            m_down = await update.message.reply_text("📥 फ़ाइल प्राप्त हो रही है...")
+            try:
+                # 20 सेकंड का सुरक्षित टाइमआउट
+                f = await asyncio.wait_for(context.bot.get_file(update.message.document.file_id), timeout=20.0)
+                c = await asyncio.wait_for(f.download_as_bytearray(), timeout=30.0)
+                json_text = c.decode('utf-8', errors='ignore')
+            finally:
+                try:
+                    await m_down.delete()
+                except Exception:
+                    pass
+        elif update.message.text and ("options" in update.message.text or "question" in update.message.text):
+            json_text = update.message.text
+        else:
+            return
+
+        if not json_text.strip():
+            return
+
+        m = await update.message.reply_text("🛡️ Safely Adding Data to GitHub...")
         clean_text = json_text.replace('```json', '').replace('```', '').strip()
         new_data = json.loads(clean_text)
 
         global DB_CACHE, STYLED_NAMES_CACHE
         latest_db = await get_latest_github_db()
         if not latest_db:
-            latest_db = DB_CACHE
+            latest_db = DB_CACHE.copy() if DB_CACHE else {}
 
         for topic, questions in new_data.items():
             if topic in latest_db:
@@ -385,8 +415,13 @@ async def handle_input(update: Update, context: ContextTypes.DEFAULT_TYPE):
         else:
             await m.edit_text("❌ GitHub सेव करने में दिक्कत आई, कृपया दोबारा भेजें।")
 
+    except json.JSONDecodeError as je:
+        await update.message.reply_text(f"❌ JSON फ़ॉर्मेट सही नहीं है: {je}")
+    except asyncio.TimeoutError:
+        await update.message.reply_text("⚠️ डाउनलोड टाइमआउट! फ़ाइल दोबारा भेजें।")
     except Exception as e:
-        await m.edit_text(f"❌ Data Format Error: {e}")
+        logger.error(f"Handle Input Error: {e}")
+        await update.message.reply_text(f"❌ त्रुटि: {e}")
 
 async def delete_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     t = " ".join(context.args).strip()
@@ -413,19 +448,24 @@ async def delete_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     else:
         await m.edit_text(f"❌ विषय '{t}' डेटाबेस में नहीं मिला! कृपया सही नाम लिखें।")
 
+# FORCED AUTO-UNLOCKED START COMMAND
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = update.effective_user.id
+    if user_id in context.application.user_data:
+        context.application.user_data[user_id].clear()
+    
     if update.message:
-        await update.message.reply_chat_action("typing")
-    context.user_data.clear()
+        try:
+            await update.message.reply_chat_action("typing")
+        except Exception:
+            pass
 
     if not DB_CACHE:
         await sync_db()
-    if not DB_CACHE:
-        return await update.message.reply_text("❌ डेटाबेस खाली है!")
 
     welcome = (
         "╔════════════════════╗\n"
-        f"   👑 {style_txt('PANKAJ QUIZ BOT 2.0')} 👑\n"
+        f"    👑 {style_txt('PANKAJ QUIZ BOT 2.0')} 👑\n"
         "╚════════════════════╝\n\n"
         f"{random.choice(SHAYARIS)}\n\n"
         "🎯 अपनी पसंद का विषय चुनें: 👇"
@@ -446,8 +486,10 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     if data == "super_reset":
         class TU:
-            def __init__(self, m): self.message = m
-        await reset_bot(TU(query.message), context)
+            def __init__(self, m, u): 
+                self.message = m
+                self.effective_user = u
+        await reset_bot(TU(query.message, query.from_user), context)
         return
 
     if data.startswith("page_"):
@@ -461,8 +503,11 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     if data.startswith("tp_"):
         topic = data[3:]
+        if not DB_CACHE:
+            await sync_db()
+
         if topic not in DB_CACHE:
-            await query.message.reply_text("❌ यह विषय डिलीट हो चुका है! /start करें।")
+            await query.message.reply_text("❌ यह विषय उपलब्ध नहीं है! /start करें।")
             return
 
         total_questions = len(DB_CACHE[topic])
@@ -511,36 +556,56 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
 async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE):
-    logger.error(f"Update {update} caused error {context.error}")
+    logger.error(f"Update {update} caused error: {context.error}")
 
-# --- SELF-PING LOOP (Render को 24/7 बिना सोए एक्टिव रखेगा) ---
-async def self_ping():
-    try:
-        await asyncio.sleep(15)
-        async with httpx.AsyncClient() as client:
-            while True:
-                try:
-                    await client.get(RENDER_URL, timeout=10.0)
-                    logger.info("⚡ Heartbeat Sent: Server Kept Awake!")
-                except Exception as e:
-                    logger.error(f"Heartbeat Error: {e}")
-                await asyncio.sleep(240)  # हर 4 मिनट में पिंग करेगा
-    except asyncio.CancelledError:
-        logger.info("Self-ping task cancelled cleanly.")
+# --- 24/7 AUTO-HEALING & KEEP-ALIVE WATCHDOG ---
+async def self_keep_alive_watchdog(application: Application):
+    await asyncio.sleep(15)
+    logger.info("⚡ Auto-Healing Watchdog Online!")
+    target_url = f"{RENDER_URL}/{TOKEN}"
 
-# --- STARTUP INITIALIZATION ---
+    counter = 0
+    while True:
+        try:
+            client = get_http_client()
+            # 1. Render Root Ping (बिना 405 एरर के सर्वर जगाए रखेगा)
+            try:
+                await client.get(RENDER_URL, follow_redirects=True)
+            except Exception:
+                pass
+
+            # 2. ऑटो-हीलिंग: हर 2 मिनट में वेबहुक की जाँच करेगा
+            counter += 1
+            if counter >= 2:
+                counter = 0
+                wh_info = await application.bot.get_webhook_info()
+                if wh_info.url != target_url:
+                    logger.warning(f"⚠️ Webhook Disconnected! Current: '{wh_info.url}'. Auto-relinking now...")
+                    await application.bot.set_webhook(
+                        url=target_url,
+                        allowed_updates=Update.ALL_TYPES,
+                        drop_pending_updates=True
+                    )
+                    logger.info("✅ Webhook Auto-Healed Successfully!")
+        except asyncio.CancelledError:
+            break
+        except Exception as e:
+            logger.error(f"Watchdog Loop Error: {e}")
+
+        # हर 60 सेकंड में लूप चलेगा
+        await asyncio.sleep(60)
+
 async def post_init(application: Application):
-    global PING_TASK
-    # ध्यान दें: Webhook सेट करने का काम app.run_webhook खुद करता है, 
-    # यहाँ दुबारा कॉल करने से Telegram Flood Control एरर आता था।
-    await sync_db()
-    PING_TASK = asyncio.create_task(self_ping())
+    global WATCHDOG_TASK
+    asyncio.create_task(sync_db())
+    WATCHDOG_TASK = asyncio.create_task(self_keep_alive_watchdog(application))
 
-# --- CLEAN SHUTDOWN ---
 async def post_shutdown(application: Application):
-    global PING_TASK
-    if PING_TASK and not PING_TASK.done():
-        PING_TASK.cancel()
+    global WATCHDOG_TASK, HTTP_CLIENT
+    if WATCHDOG_TASK and not WATCHDOG_TASK.done():
+        WATCHDOG_TASK.cancel()
+    if HTTP_CLIENT and not HTTP_CLIENT.is_closed:
+        await HTTP_CLIENT.aclose()
 
 def main():
     app = (
