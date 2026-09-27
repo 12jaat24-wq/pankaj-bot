@@ -5,6 +5,7 @@ import logging
 import asyncio
 import httpx
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, Poll
+from telegram.request import HTTPXRequest
 from telegram.ext import (
     Application,
     CommandHandler,
@@ -36,7 +37,10 @@ HTTP_CLIENT = None
 def get_http_client():
     global HTTP_CLIENT
     if HTTP_CLIENT is None or HTTP_CLIENT.is_closed:
-        HTTP_CLIENT = httpx.AsyncClient(timeout=httpx.Timeout(10.0, connect=5.0))
+        HTTP_CLIENT = httpx.AsyncClient(
+            timeout=httpx.Timeout(30.0, connect=15.0),
+            limits=httpx.Limits(max_keepalive_connections=5, keepalive_expiry=15.0)
+        )
     return HTTP_CLIENT
 
 def style_txt(text):
@@ -271,8 +275,8 @@ async def send_next_quiz(context: ContextTypes.DEFAULT_TYPE, chat_id: int, user_
             type=Poll.QUIZ,
             correct_option_id=correct_option_id,
             is_anonymous=False,
-            read_timeout=10,
-            write_timeout=10
+            read_timeout=30,
+            write_timeout=30
         )
 
         POLL_TRACKER[message.poll.id] = {
@@ -331,12 +335,13 @@ async def reset_bot(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     m = await update.message.reply_text("🌀 Re-linking Webhook connection...")
     try:
-        # सीधा सिंगल-कॉल set_webhook (यह कभी खाली नहीं छोड़ेगा)
         target_url = f"{RENDER_URL}/{TOKEN}"
         await context.bot.set_webhook(
             url=target_url,
             allowed_updates=Update.ALL_TYPES,
-            drop_pending_updates=True
+            drop_pending_updates=True,
+            read_timeout=30,
+            write_timeout=30
         )
         await sync_db()
         POLL_TRACKER.clear()
@@ -360,7 +365,6 @@ async def refresh_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def handle_input(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
-    # किसी भी अटके हुए क्विज़ सेशन को तुरंत रीसेट करें
     if user_id in context.application.user_data:
         context.application.user_data[user_id]['busy'] = False
 
@@ -369,9 +373,9 @@ async def handle_input(update: Update, context: ContextTypes.DEFAULT_TYPE):
         if update.message.document:
             m_down = await update.message.reply_text("📥 फ़ाइल प्राप्त हो रही है...")
             try:
-                # 20 सेकंड का सुरक्षित टाइमआउट
-                f = await asyncio.wait_for(context.bot.get_file(update.message.document.file_id), timeout=20.0)
-                c = await asyncio.wait_for(f.download_as_bytearray(), timeout=30.0)
+                # 60 सेकंड का सुरक्षित टाइमआउट दिया गया है ताकि कभी Timed Out न हो
+                f = await context.bot.get_file(update.message.document.file_id, read_timeout=60.0, write_timeout=60.0)
+                c = await f.download_as_bytearray(read_timeout=60.0, write_timeout=60.0)
                 json_text = c.decode('utf-8', errors='ignore')
             finally:
                 try:
@@ -417,8 +421,6 @@ async def handle_input(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     except json.JSONDecodeError as je:
         await update.message.reply_text(f"❌ JSON फ़ॉर्मेट सही नहीं है: {je}")
-    except asyncio.TimeoutError:
-        await update.message.reply_text("⚠️ डाउनलोड टाइमआउट! फ़ाइल दोबारा भेजें।")
     except Exception as e:
         logger.error(f"Handle Input Error: {e}")
         await update.message.reply_text(f"❌ त्रुटि: {e}")
@@ -568,13 +570,11 @@ async def self_keep_alive_watchdog(application: Application):
     while True:
         try:
             client = get_http_client()
-            # 1. Render Root Ping (बिना 405 एरर के सर्वर जगाए रखेगा)
             try:
                 await client.get(RENDER_URL, follow_redirects=True)
             except Exception:
                 pass
 
-            # 2. ऑटो-हीलिंग: हर 2 मिनट में वेबहुक की जाँच करेगा
             counter += 1
             if counter >= 2:
                 counter = 0
@@ -584,7 +584,9 @@ async def self_keep_alive_watchdog(application: Application):
                     await application.bot.set_webhook(
                         url=target_url,
                         allowed_updates=Update.ALL_TYPES,
-                        drop_pending_updates=True
+                        drop_pending_updates=True,
+                        read_timeout=30,
+                        write_timeout=30
                     )
                     logger.info("✅ Webhook Auto-Healed Successfully!")
         except asyncio.CancelledError:
@@ -592,7 +594,6 @@ async def self_keep_alive_watchdog(application: Application):
         except Exception as e:
             logger.error(f"Watchdog Loop Error: {e}")
 
-        # हर 60 सेकंड में लूप चलेगा
         await asyncio.sleep(60)
 
 async def post_init(application: Application):
@@ -608,9 +609,19 @@ async def post_shutdown(application: Application):
         await HTTP_CLIENT.aclose()
 
 def main():
+    # Telegram API के नेटवर्क कनेक्शन को 60s टाइमआउट दिया गया है
+    request_config = HTTPXRequest(
+        connection_pool_size=10,
+        connect_timeout=30.0,
+        read_timeout=60.0,
+        write_timeout=60.0,
+        pool_timeout=30.0
+    )
+
     app = (
         Application.builder()
         .token(TOKEN)
+        .request(request_config)
         .concurrent_updates(True)
         .post_init(post_init)
         .post_shutdown(post_shutdown)
