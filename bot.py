@@ -3,8 +3,10 @@ import json
 import random
 import logging
 import asyncio
+import html
 import httpx
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, Poll
+from telegram.constants import ParseMode
 from telegram.request import HTTPXRequest
 from telegram.ext import (
     Application,
@@ -52,6 +54,74 @@ def style_txt(text):
     res = str(text).translate(trans)
     STYLED_NAMES_CACHE[text] = res
     return res
+
+# --- JSON एरर फॉर्मेट करने का फंक्शन (सटीक लाइन और प्रीव्यू दिखाता है) ---
+def format_json_syntax_error(e: json.JSONDecodeError, raw_text: str) -> str:
+    lines = raw_text.splitlines()
+    line_no = e.lineno
+    col_no = e.colno
+    msg = e.msg
+
+    # एरर वाली लाइन के ऊपर और नीचे की लाइनें निकालें (Context)
+    start_line = max(1, line_no - 2)
+    end_line = min(len(lines), line_no + 2)
+
+    snippet = []
+    for i in range(start_line, end_line + 1):
+        line_content = lines[i - 1] if i - 1 < len(lines) else ""
+        if i == line_no:
+            snippet.append(f"➡️ L{i}: {line_content}")
+            pointer_indent = " " * (len(f"➡️ L{i}: ") + max(0, col_no - 1))
+            snippet.append(f"{pointer_indent}🔺 [त्रुटि यहाँ है]")
+        else:
+            snippet.append(f"   L{i}: {line_content}")
+
+    snippet_str = html.escape("\n".join(snippet))
+
+    error_msg = (
+        "╔═════════════════════════╗\n"
+        "   ❌ <b>JSON सिंटेक्स त्रुटि (SYNTAX ERROR)</b>\n"
+        "╚═════════════════════════╝\n\n"
+        f"📍 <b>लाइन नंबर:</b> <code>{line_no}</code>\n"
+        f"📌 <b>कॉलम (अक्षर):</b> <code>{col_no}</code>\n"
+        f"⚠️ <b>समस्या:</b> <code>{html.escape(msg)}</code>\n\n"
+        f"🔍 <b>फाइल का वो हिस्सा जहाँ गलती है:</b>\n"
+        f"<pre>{snippet_str}</pre>\n\n"
+        "💡 <b>सुझाव:</b>\n"
+        "• चेक करें कि कहीं कॉमा (<code>,</code>) छूटा या फालतू तो नहीं लगा।\n"
+        "• सभी कोट्स डबल कोट्स (<code>\"</code>) होने चाहिए, सिंगल कोट्स (<code>'</code>) JSON में अमान्य हैं।\n"
+        "• ब्रैकेट्स <code>{ }</code> या <code>[ ]</code> सही बंद हुए हैं या नहीं।"
+    )
+    return error_msg
+
+# --- क्विज़ डेटा स्ट्रक्चर (Schema) जांचने का फंक्शन ---
+def validate_quiz_structure(data):
+    if not isinstance(data, dict):
+        return "JSON का मुख्य ढांचा एक Object/Dictionary होना चाहिए, जैसे: {\"TopicName\": [...] }"
+    
+    for topic, q_list in data.items():
+        if not isinstance(q_list, list):
+            return f"विषय <b>'{html.escape(str(topic))}'</b> के अंदर सवालों की लिस्ट [ ... ] होनी चाहिए।"
+        
+        for idx, q in enumerate(q_list, start=1):
+            if not isinstance(q, dict):
+                return f"विषय <b>'{html.escape(str(topic))}'</b> में सवाल <b>#{idx}</b> एक Object {{ }} होना चाहिए।"
+            
+            if "question" not in q or not str(q["question"]).strip():
+                return f"विषय <b>'{html.escape(str(topic))}'</b> में सवाल <b>#{idx}</b> में <code>question</code> गायब या खाली है।"
+            
+            if "options" not in q or not isinstance(q["options"], list) or len(q["options"]) < 2:
+                return f"सवाल <b>#{idx}</b> ({html.escape(str(q.get('question', ''))[:30])}...): <code>options</code> में कम से कम 2 विकल्प होने चाहिए।"
+            
+            if "answer" not in q or not isinstance(q["answer"], int):
+                return f"सवाल <b>#{idx}</b>: <code>answer</code> एक संख्या (Index: 0, 1, 2, 3...) होनी चाहिए।"
+            
+            if q["answer"] < 0 or q["answer"] >= len(q["options"]):
+                return (
+                    f"सवाल <b>#{idx}</b>: <code>answer</code> का मान <b>{q['answer']}</b> गलत है! "
+                    f"कुल विकल्प {len(q['options'])} हैं, इसलिए answer केवल 0 से {len(q['options'])-1} के बीच हो सकता है।"
+                )
+    return None
 
 async def get_latest_github_db():
     headers = {
@@ -143,7 +213,6 @@ async def save_to_github_safely(data_to_save, commit_msg):
 async def sync_db():
     global DB_CACHE, STYLED_NAMES_CACHE
     latest_db = await get_latest_github_db()
-    # यहाँ 'is not None' चेक किया गया है ताकि खाली {} भी सही से सिंक हो जाए
     if latest_db is not None:
         DB_CACHE = latest_db
         STYLED_NAMES_CACHE.clear()
@@ -373,7 +442,6 @@ async def refresh_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     else:
         await msg.edit_text("❌ Sync Failed! GitHub कनेक्शन में समस्या है।")
 
-# नया कमांड: पूरा डेटाबेस एक बार में साफ़ करने के लिए
 async def clear_all_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     m = await update.message.reply_text("🗑️ सभी प्रश्न और विषय हटाए जा रहे हैं...")
     global DB_CACHE, STYLED_NAMES_CACHE
@@ -385,35 +453,65 @@ async def clear_all_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     else:
         await m.edit_text("❌ GitHub से डेटा हटाने में समस्या आई।")
 
+# --- फ़ाइल / टेक्स्ट इनपुट हैंडलर (सटीक एरर ट्रैकिंग के साथ) ---
 async def handle_input(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     if user_id in context.application.user_data:
         context.application.user_data[user_id]['busy'] = False
 
     try:
-        json_text = ""
+        raw_json_text = ""
         if update.message.document:
             m_down = await update.message.reply_text("📥 फ़ाइल प्राप्त हो रही है...")
             try:
                 f = await context.bot.get_file(update.message.document.file_id, read_timeout=60.0, write_timeout=60.0)
                 c = await f.download_as_bytearray(read_timeout=60.0, write_timeout=60.0)
-                json_text = c.decode('utf-8', errors='ignore')
+                raw_json_text = c.decode('utf-8', errors='ignore')
             finally:
                 try:
                     await m_down.delete()
                 except Exception:
                     pass
         elif update.message.text and ("options" in update.message.text or "question" in update.message.text):
-            json_text = update.message.text
+            raw_json_text = update.message.text
         else:
             return
 
-        if not json_text.strip():
+        if not raw_json_text.strip():
             return
 
+        # क्लीनिंग (मार्कडाउन बैकवार्ड कंपैटिबिलिटी के लिए)
+        clean_text = raw_json_text.strip()
+        if clean_text.startswith("```json"):
+            clean_text = clean_text[7:]
+        elif clean_text.startswith("```"):
+            clean_text = clean_text[3:]
+        if clean_text.endswith("```"):
+            clean_text = clean_text[:-3]
+
+        # 1. JSON सिंटैक्स पार्सिंग और लाइन-बाय-लाइन एरर चेकिंग
+        try:
+            new_data = json.loads(clean_text)
+        except json.JSONDecodeError as je:
+            err_report = format_json_syntax_error(je, clean_text)
+            await update.message.reply_text(err_report, parse_mode=ParseMode.HTML)
+            return
+
+        # 2. JSON संरचना (Schema/Values) वैलिडेशन
+        schema_error = validate_quiz_structure(new_data)
+        if schema_error:
+            err_msg = (
+                "╔═════════════════════════╗\n"
+                "  ⚠️ <b>क्विज़ फॉर्मेट त्रुटि (DATA ERROR)</b>\n"
+                "╚═════════════════════════╝\n\n"
+                f"❌ <b>समस्या:</b> {schema_error}\n\n"
+                "💡 <i>कृपया सवाल और उसके ऑप्शन्स की संरचना ठीक करके दोबारा भेजें।</i>"
+            )
+            await update.message.reply_text(err_msg, parse_mode=ParseMode.HTML)
+            return
+
+        # 3. सब कुछ सही होने पर GitHub में सुरक्षित जोड़ना
         m = await update.message.reply_text("🛡️ Safely Adding Data to GitHub...")
-        clean_text = json_text.replace('```json', '').replace('```', '').strip()
-        new_data = json.loads(clean_text)
 
         global DB_CACHE, STYLED_NAMES_CACHE
         latest_db = await get_latest_github_db()
@@ -440,11 +538,9 @@ async def handle_input(update: Update, context: ContextTypes.DEFAULT_TYPE):
         else:
             await m.edit_text("❌ GitHub सेव करने में दिक्कत आई, कृपया दोबारा भेजें।")
 
-    except json.JSONDecodeError as je:
-        await update.message.reply_text(f"❌ JSON फ़ॉर्मेट सही नहीं है: {je}")
     except Exception as e:
         logger.error(f"Handle Input Error: {e}")
-        await update.message.reply_text(f"❌ त्रुटि: {e}")
+        await update.message.reply_text(f"❌ अप्रत्याशित त्रुटि: {html.escape(str(e))}")
 
 async def delete_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     t = " ".join(context.args).strip()
@@ -483,7 +579,6 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         except Exception:
             pass
 
-    # हमेशा GitHub से ताज़ा डेटा लोड करने का प्रयास करें
     await sync_db()
 
     welcome = (
@@ -651,7 +746,7 @@ def main():
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CommandHandler("refresh", refresh_cmd))
     app.add_handler(CommandHandler("reset", reset_bot))
-    app.add_handler(CommandHandler("clear_all", clear_all_cmd))  # नया कमांड
+    app.add_handler(CommandHandler("clear_all", clear_all_cmd))
     app.add_handler(CommandHandler("delete", delete_cmd))
     app.add_handler(CallbackQueryHandler(handle_callback))
     app.add_handler(PollAnswerHandler(handle_poll_answer))
