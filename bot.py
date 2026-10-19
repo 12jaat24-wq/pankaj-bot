@@ -80,9 +80,15 @@ async def get_latest_github_db():
                     headers=blob_headers
                 )
                 if blob_res.status_code == 200:
-                    return json.loads(blob_res.text)
+                    text_data = blob_res.text.strip()
+                    if not text_data:
+                        return {}
+                    return json.loads(text_data)
+            else:
+                return {}
     except Exception as e:
         logger.error(f"GitHub Direct Fetch Error: {e}")
+        return None
     return {}
 
 async def save_to_github_safely(data_to_save, commit_msg):
@@ -137,7 +143,8 @@ async def save_to_github_safely(data_to_save, commit_msg):
 async def sync_db():
     global DB_CACHE, STYLED_NAMES_CACHE
     latest_db = await get_latest_github_db()
-    if latest_db:
+    # यहाँ 'is not None' चेक किया गया है ताकि खाली {} भी सही से सिंक हो जाए
+    if latest_db is not None:
         DB_CACHE = latest_db
         STYLED_NAMES_CACHE.clear()
         return True
@@ -152,7 +159,10 @@ SHAYARIS = [
 def build_topics_keyboard(page: int = 0):
     topics = sorted(list(DB_CACHE.keys()))
     if not topics:
-        return InlineKeyboardMarkup([[InlineKeyboardButton("❌ कोई विषय नहीं मिला", callback_data="noop")]])
+        return InlineKeyboardMarkup([
+            [InlineKeyboardButton("❌ कोई विषय नहीं मिला (डेटाबेस खाली है)", callback_data="noop")],
+            [InlineKeyboardButton("⚡ SUPER RESET ⚡", callback_data="super_reset")]
+        ])
 
     total_topics = len(topics)
     total_pages = max(1, (total_topics + TOPICS_PER_PAGE - 1) // TOPICS_PER_PAGE)
@@ -333,7 +343,7 @@ async def reset_bot(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if user_id in context.application.user_data:
         context.application.user_data[user_id].clear()
 
-    m = await update.message.reply_text("🌀 Re-linking Webhook connection...")
+    m = await update.message.reply_text("🌀 Re-linking Webhook & Syncing...")
     try:
         target_url = f"{RENDER_URL}/{TOKEN}"
         await context.bot.set_webhook(
@@ -345,13 +355,13 @@ async def reset_bot(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         await sync_db()
         POLL_TRACKER.clear()
-        res = "╔════════════════════╗\n  ⚡ BOT IS ALIVE NOW ⚡ \n╚════════════════════╝\n✅ कनेक्शन पूरी तरह रीसेट हो गया है!\n\n/start पर क्लिक करें।"
+        res = "╔════════════════════╗\n  ⚡ BOT IS ALIVE NOW ⚡ \n╚════════════════════╝\n✅ कनेक्शन और मेमोरी पूरी तरह रीसेट हो गई है!\n\n/start पर क्लिक करें।"
         await m.edit_text(res)
     except Exception as e:
         await m.edit_text(f"❌ Failed: {e}")
 
 async def refresh_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    msg = await update.message.reply_text("📡 Syncing Database...")
+    msg = await update.message.reply_text("📡 Syncing Database from GitHub...")
     if await sync_db():
         total_topics = len(DB_CACHE.keys())
         total_qs = sum(len(v) for v in DB_CACHE.values())
@@ -361,7 +371,19 @@ async def refresh_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         await msg.edit_text(res)
     else:
-        await msg.edit_text("❌ Sync Failed!")
+        await msg.edit_text("❌ Sync Failed! GitHub कनेक्शन में समस्या है।")
+
+# नया कमांड: पूरा डेटाबेस एक बार में साफ़ करने के लिए
+async def clear_all_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    m = await update.message.reply_text("🗑️ सभी प्रश्न और विषय हटाए जा रहे हैं...")
+    global DB_CACHE, STYLED_NAMES_CACHE
+    saved = await save_to_github_safely({}, "Cleared entire database")
+    if saved:
+        DB_CACHE.clear()
+        STYLED_NAMES_CACHE.clear()
+        await m.edit_text("✅ सफलता! बॉट और GitHub दोनों से सारा डेटा डिलीट कर दिया गया है।\n\nअब नया JSON भेजें या /start करें।")
+    else:
+        await m.edit_text("❌ GitHub से डेटा हटाने में समस्या आई।")
 
 async def handle_input(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
@@ -373,7 +395,6 @@ async def handle_input(update: Update, context: ContextTypes.DEFAULT_TYPE):
         if update.message.document:
             m_down = await update.message.reply_text("📥 फ़ाइल प्राप्त हो रही है...")
             try:
-                # 60 सेकंड का सुरक्षित टाइमआउट दिया गया है ताकि कभी Timed Out न हो
                 f = await context.bot.get_file(update.message.document.file_id, read_timeout=60.0, write_timeout=60.0)
                 c = await f.download_as_bytearray(read_timeout=60.0, write_timeout=60.0)
                 json_text = c.decode('utf-8', errors='ignore')
@@ -396,7 +417,7 @@ async def handle_input(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         global DB_CACHE, STYLED_NAMES_CACHE
         latest_db = await get_latest_github_db()
-        if not latest_db:
+        if latest_db is None:
             latest_db = DB_CACHE.copy() if DB_CACHE else {}
 
         for topic, questions in new_data.items():
@@ -433,8 +454,8 @@ async def delete_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     m = await update.message.reply_text(f"🛡️ Deleting {t} safely...")
     global DB_CACHE, STYLED_NAMES_CACHE
     latest_db = await get_latest_github_db()
-    if not latest_db:
-        latest_db = DB_CACHE
+    if latest_db is None:
+        latest_db = DB_CACHE.copy()
 
     if t in latest_db:
         del latest_db[t]
@@ -462,8 +483,8 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         except Exception:
             pass
 
-    if not DB_CACHE:
-        await sync_db()
+    # हमेशा GitHub से ताज़ा डेटा लोड करने का प्रयास करें
+    await sync_db()
 
     welcome = (
         "╔════════════════════╗\n"
@@ -609,7 +630,6 @@ async def post_shutdown(application: Application):
         await HTTP_CLIENT.aclose()
 
 def main():
-    # Telegram API के नेटवर्क कनेक्शन को 60s टाइमआउट दिया गया है
     request_config = HTTPXRequest(
         connection_pool_size=10,
         connect_timeout=30.0,
@@ -631,6 +651,7 @@ def main():
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CommandHandler("refresh", refresh_cmd))
     app.add_handler(CommandHandler("reset", reset_bot))
+    app.add_handler(CommandHandler("clear_all", clear_all_cmd))  # नया कमांड
     app.add_handler(CommandHandler("delete", delete_cmd))
     app.add_handler(CallbackQueryHandler(handle_callback))
     app.add_handler(PollAnswerHandler(handle_poll_answer))
@@ -644,7 +665,7 @@ def main():
         listen="0.0.0.0",
         port=p,
         url_path=TOKEN,
-        webhook_url=f"{RENDER_URL}/{TOKEN}",
+        webhook_url=f"{RENDER_URL}/{TOKEN}", 
         allowed_updates=Update.ALL_TYPES,
         drop_pending_updates=True
     )
