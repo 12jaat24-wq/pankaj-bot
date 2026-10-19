@@ -19,12 +19,6 @@ from telegram.ext import (
     ContextTypes
 )
 
-# Optional json-repair library check
-try:
-    from json_repair import repair_json
-except ImportError:
-    repair_json = None
-
 # --- कॉन्फ़िगरेशन ---
 TOKEN = os.environ.get("BOT_TOKEN")
 GITHUB_TOKEN = os.environ.get("GITHUB_TOKEN")
@@ -63,21 +57,15 @@ def style_txt(text):
     return res
 
 # =====================================================================
-# 🛠️ ADVANCED AUTO-REPAIR (डबल ब्रैकेट और सिंटैक्स गलतियाँ ऑटो-ठीक करने वाला)
+# 🛠️ AUTO-REPAIR ENGINE (गलतियों को स्वतः ठीक करने वाला सिस्टम)
 # =====================================================================
 
 def advanced_auto_repair_json(text: str) -> str:
     t = text.strip()
 
-    # 1. डबल ब्रैकेट ऑटो-फिक्स (जैसे ": [\n  [" को ": [" बनाना)
+    # 1. डबल ब्रैकेट ऑटो-फिक्स: ': [\n [' को ': [' बनाना
     t = re.sub(r':\s*\[\s*\[', ': [', t)
     t = re.sub(r'\]\s*\]\s*\}', '] }', t)
-
-    if repair_json:
-        try:
-            return repair_json(t)
-        except Exception:
-            pass
 
     # 2. स्मार्ट कोट्स हटाना
     t = t.replace('“', '"').replace('”', '"').replace('‘', "'").replace('’', "'")
@@ -120,7 +108,6 @@ def auto_heal_quiz_structure(data):
         return None, "डेटा एक वैध सूची या डिक्शनरी नहीं है।"
 
     for topic, q_list in data.items():
-        # अगर अंदर भी डबल लिस्ट [[ ... ]] हो गई हो तो उसे चपटा (flatten) करें
         if isinstance(q_list, list) and len(q_list) > 0 and isinstance(q_list[0], list):
             q_list = [item for sublist in q_list if isinstance(sublist, list) for item in sublist]
 
@@ -169,75 +156,111 @@ def auto_heal_quiz_structure(data):
     return repaired_data, None
 
 # =====================================================================
-# 🎯 EXACT HINT ENGINE (सटीक सुझाव: क्या हटाना है और क्या जोड़ना है)
+# 🎯 IN-LINE EXACT ERROR HIGHLIGHTER (सीधे गलती वाली जगह को चमकाने वाला इंजन)
 # =====================================================================
 
-def get_actionable_hint(e: json.JSONDecodeError, lines: list) -> str:
-    line_no = e.lineno
-    current_line = lines[line_no - 1] if 0 <= line_no - 1 < len(lines) else ""
-    prev_line = lines[line_no - 2] if line_no - 2 >= 0 and line_no - 2 < len(lines) else ""
-    prev2_line = lines[line_no - 3] if line_no - 3 >= 0 and line_no - 3 < len(lines) else ""
-    msg = e.msg.lower()
-
-    # 1. डबल ब्रैकेट एरर (जैसा आपके स्क्रीनशॉट में हुआ)
-    if "[" in current_line and "[" in prev_line:
-        return f"👉 <b>क्या करना है:</b> लाइन <code>{line_no}</code> पर लगा फालतू ब्रैकेट <code>[</code> <b>हटा दें (Delete करें)</b>।"
-    if "{" in current_line and "[" in prev_line and "[" in prev2_line:
-        return f"👉 <b>क्या करना है:</b> लाइन <code>{line_no-1}</code> पर लगा फालतू ब्रैकेट <code>[</code> <b>हटा दें (Delete करें)</b>।"
-
-    # 2. कॉमा छूटने की गलती
-    if "expecting ',' delimiter" in msg:
-        return f"👉 <b>क्या करना है:</b> लाइन <code>{line_no-1}</code> के अंत में कॉमा (<code>,</code>) लगाना भूल गए हैं, वहाँ <b>कॉमा जोड़ें</b>।"
-
-    # 3. कोट्स की गलती
-    if "expecting property name" in msg:
-        if "'" in current_line:
-            return f"👉 <b>क्या करना है:</b> सिंगल कोट्स (<code>'</code>) हटाकर डबल कोट्स (<code>\"</code>) लगाएँ।"
-        return f"👉 <b>क्या करना है:</b> लाइन <code>{line_no}</code> पर नाम के आगे-पीछे डबल कोट्स (<code>\"</code>) जोड़ें।"
-
-    # 4. इनवर्टेड कोट्स बंद न होना
-    if "unterminated string" in msg:
-        return f"👉 <b>क्या करना है:</b> लाइन <code>{line_no}</code> पर इनवर्टेड कोट्स खुला रह गया है, वाक्य के अंत में <code>\"</code> जोड़कर बंद करें।"
-
-    # 5. फालतू कॉमा (Trailing Comma)
-    if "expecting value" in msg:
-        if prev_line.strip().endswith(","):
-            return f"👉 <b>क्या करना है:</b> लाइन <code>{line_no-1}</code> के अंत में लगा फालतू कॉमा (<code>,</code>) <b>हटा दें</b>।"
-        return f"👉 <b>क्या करना है:</b> लाइन <code>{line_no}</code> या <code>{line_no-1}</code> पर ब्रैकेट <code>[</code> या <code>{{</code> गलत लगा है, उसे चेक करें।"
-
-    return "👉 <b>क्या करना है:</b> इस लाइन के आसपास कॉमा (,) और कोट्स (\") चेक करें।"
-
-def format_json_syntax_error(e: json.JSONDecodeError, raw_text: str) -> str:
+def build_exact_highlight_report(raw_text: str, e: json.JSONDecodeError) -> str:
     lines = raw_text.splitlines()
     line_no = e.lineno
     col_no = e.colno
-    msg = e.msg
+    msg = e.msg.lower()
 
-    start_line = max(1, line_no - 2)
-    end_line = min(len(lines), line_no + 2)
+    err_line_idx = line_no - 1
+    curr = lines[err_line_idx] if 0 <= err_line_idx < len(lines) else ""
+    prev = lines[err_line_idx - 1] if err_line_idx - 1 >= 0 else ""
+    prev2 = lines[err_line_idx - 2] if err_line_idx - 2 >= 0 else ""
 
-    snippet = []
-    for i in range(start_line, end_line + 1):
-        line_content = lines[i - 1] if i - 1 < len(lines) else ""
-        if i == line_no:
-            snippet.append(f"➡️ L{i}: {line_content}")
-            pointer_indent = " " * (len(f"➡️ L{i}: ") + max(0, col_no - 1))
-            snippet.append(f"{pointer_indent}🔺 [त्रुटि यहाँ है]")
-        else:
-            snippet.append(f"   L{i}: {line_content}")
+    highlighted_lines = []
+    action_text = ""
 
-    snippet_str = html.escape("\n".join(snippet))
-    hint = get_actionable_hint(e, lines)
+    # केस 1: डबल ब्रैकेट एरर (जैसे लाइन 1 और 2 पर [[ लग जाना)
+    is_double_bracket = False
+    redundant_idx = -1
+
+    if "[" in prev and "[" in curr:
+        is_double_bracket = True
+        redundant_idx = err_line_idx
+    elif curr.strip().startswith("{") and "[" in prev and "[" in prev2:
+        is_double_bracket = True
+        redundant_idx = err_line_idx - 1
+
+    if is_double_bracket:
+        action_text = f"लाइन <b>{redundant_idx + 1}</b> पर फालतू <code>[</code> लगा है। इसे <b>पूरी तरह डिलीट (हटा) दें</b>।"
+        start_i = max(0, redundant_idx - 1)
+        end_i = min(len(lines), redundant_idx + 3)
+        for i in range(start_i, end_i):
+            l_num = i + 1
+            txt = lines[i]
+            if i == redundant_idx:
+                h_txt = txt.replace("[", "🚨 [ 🚨  <=== 【इस फालतू ब्रैकेट को हटाएँ】", 1)
+                highlighted_lines.append(f"➡️ L{l_num}: {h_txt}")
+            else:
+                highlighted_lines.append(f"   L{l_num}: {txt}")
+
+    # केस 2: कॉमा छूटने की गलती (Expecting ',' delimiter)
+    elif "expecting ',' delimiter" in msg:
+        target_idx = err_line_idx - 1 if (err_line_idx > 0 and not lines[err_line_idx - 1].strip().endswith(",")) else err_line_idx
+        action_text = f"लाइन <b>{target_idx + 1}</b> के अंत में कॉमा (<code>,</code>) छूटा है। वहाँ <b>कॉमा जोड़ें</b>।"
+        start_i = max(0, target_idx - 1)
+        end_i = min(len(lines), target_idx + 3)
+        for i in range(start_i, end_i):
+            l_num = i + 1
+            txt = lines[i]
+            if i == target_idx:
+                highlighted_lines.append(f"➡️ L{l_num}: {txt} 🚨 <=== 【यहाँ अंत में कॉमा (,) जोड़ें】")
+            else:
+                highlighted_lines.append(f"   L{l_num}: {txt}")
+
+    # केस 3: फालतू कॉमा (Trailing Comma)
+    elif "expecting value" in msg and prev.strip().endswith(","):
+        target_idx = err_line_idx - 1
+        action_text = f"लाइन <b>{target_idx + 1}</b> के अंत में फालतू कॉमा (<code>,</code>) लगा है। उसे <b>हटा दें</b>।"
+        start_i = max(0, target_idx - 1)
+        end_i = min(len(lines), target_idx + 2)
+        for i in range(start_i, end_i):
+            l_num = i + 1
+            txt = lines[i]
+            if i == target_idx:
+                r_txt = txt.rstrip()
+                if r_txt.endswith(","):
+                    h_txt = r_txt[:-1] + " 🚨 , 🚨 <=== 【इस फालतू कॉमा को हटाएँ】"
+                else:
+                    h_txt = txt + " 🚨 , 🚨"
+                highlighted_lines.append(f"➡️ L{l_num}: {h_txt}")
+            else:
+                highlighted_lines.append(f"   L{l_num}: {txt}")
+
+    # केस 4: अन्य सभी सिंटैक्स गलतियाँ (सीधे उस अक्षर को बॉक्स में बंद करके दिखाना)
+    else:
+        action_text = f"लाइन <b>{line_no}</b>, अक्षर <b>{col_no}</b> पर गलती है।"
+        start_i = max(0, err_line_idx - 2)
+        end_i = min(len(lines), err_line_idx + 3)
+        for i in range(start_i, end_i):
+            l_num = i + 1
+            txt = lines[i]
+            if i == err_line_idx:
+                c_idx = max(0, col_no - 1)
+                if c_idx < len(txt):
+                    bad_char = txt[c_idx] if txt[c_idx].strip() else "स्पेस"
+                    h_txt = txt[:c_idx] + f" 🚨[{bad_char}]🚨 " + txt[c_idx+1:]
+                else:
+                    h_txt = txt + " 🚨[यहाँ]🚨"
+                highlighted_lines.append(f"➡️ L{l_num}: {h_txt}  <=== 【यहाँ सुधार करें】")
+            else:
+                highlighted_lines.append(f"   L{l_num}: {txt}")
+
+    preview = html.escape("\n".join(highlighted_lines))
 
     return (
-        "╔═════════════════════════╗\n"
-        "   ❌ <b>JSON फ़ॉर्मेट त्रुटि</b>\n"
-        "╚═════════════════════════╝\n\n"
-        f"📍 <b>लाइन नंबर:</b> <code>{line_no}</code>\n"
-        f"⚠️ <b>समस्या:</b> <code>{html.escape(msg)}</code>\n\n"
-        f"💡 <b>सटीक समाधान:</b>\n{hint}\n\n"
-        f"🔍 <b>फ़ाइल का वो हिस्सा:</b>\n"
-        f"<pre>{snippet_str}</pre>"
+        "╔════════════════════════════════╗\n"
+        "   🎯 <b>सटीक एरर पहचान (EXACT ERROR)</b>\n"
+        "╚════════════════════════════════╝\n\n"
+        f"🛠️ <b>सटीक समाधान:</b> {action_text}\n\n"
+        "━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
+        "🔍 <b>फ़ाइल में गलती वाली जगह (Highlight):</b>\n"
+        "━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
+        f"<pre>{preview}</pre>\n\n"
+        "💡 <i>नोट: जहाँ 🚨 लगा है, सिर्फ उस अक्षर/चिन्ह को ठीक करें।</i>"
     )
 
 # =====================================================================
@@ -575,7 +598,7 @@ async def clear_all_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await m.edit_text("❌ GitHub से डेटा हटाने में समस्या आई।")
 
 # =====================================================================
-# स्मार्ट इनपुट हैंडलर (Auto-Repair + Exact Hint)
+# स्मार्ट इनपुट हैंडलर (Auto-Repair + In-Line Error Highlighter)
 # =====================================================================
 
 async def handle_input(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -617,31 +640,31 @@ async def handle_input(update: Update, context: ContextTypes.DEFAULT_TYPE):
         was_repaired = False
         original_syntax_error = None
 
-        # 1. साधारण पार्सिंग
+        # 1. पहले सीधे पार्स करने का प्रयास
         try:
             parsed_data = json.loads(clean_text)
         except json.JSONDecodeError as je:
             original_syntax_error = je
 
-        # 2. अगर साधारण में फेल हुआ, तो ऑटो-रिपेयर चलाएं
+        # 2. अगर सिंटैक्स एरर है, तो पहले ऑटो-रिपेयर इंजन चलाएँ
         if parsed_data is None:
             try:
                 repaired_text = advanced_auto_repair_json(clean_text)
                 parsed_data = json.loads(repaired_text)
                 was_repaired = True
             except Exception:
-                # यदि ऑटो-रिपेयर भी विफल हो, तो सटीक एक्शन हिंट भेजें
-                err_msg = format_json_syntax_error(original_syntax_error, clean_text)
-                await update.message.reply_text(err_msg, parse_mode=ParseMode.HTML)
+                # यदि ऑटो-रिपेयर भी विफल हो, तो सटीक इन-लाइन हाईलाइट रिपोर्ट भेजें
+                err_report = build_exact_highlight_report(clean_text, original_syntax_error)
+                await update.message.reply_text(err_report, parse_mode=ParseMode.HTML)
                 return
 
-        # 3. स्ट्रक्चर को ऑटो-हीलिंग दें
+        # 3. संरचना की ऑटो-हीलिंग (Auto-Heal)
         final_data, struct_err = auto_heal_quiz_structure(parsed_data)
         if struct_err:
             await update.message.reply_text(f"⚠️ {struct_err}")
             return
 
-        # 4. GitHub पर सेव करें
+        # 4. गिटहब में सुरक्षित सेव करें
         m = await update.message.reply_text("🛡️ Safely Adding Data to GitHub...")
 
         global DB_CACHE, STYLED_NAMES_CACHE
@@ -663,7 +686,7 @@ async def handle_input(update: Update, context: ContextTypes.DEFAULT_TYPE):
             STYLED_NAMES_CACHE.clear()
             total_topics = len(DB_CACHE.keys())
 
-            fix_note = "\n🛠️ <i>(JSON में सिंटैक्स त्रुटि थी, लेकिन बॉट ने उसे खुद ठीक करके स्वीकार कर लिया!)</i>" if was_repaired else ""
+            fix_note = "\n🛠️ <i>(JSON में सिंटैक्स गलतियाँ थीं, जिन्हें बॉट ने खुद ठीक करके स्वीकार कर लिया!)</i>" if was_repaired else ""
 
             await m.edit_text(
                 "╔════════════════════╗\n"
