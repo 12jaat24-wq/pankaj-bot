@@ -5,6 +5,7 @@ import logging
 import asyncio
 import httpx
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, Poll
+from telegram.request import HTTPXRequest
 from telegram.ext import (
     Application,
     CommandHandler,
@@ -31,14 +32,15 @@ POLL_TRACKER = {}
 TOPICS_PER_PAGE = 10 
 USER_LOCKS = {}
 WATCHDOG_TASK = None
-
-# ग्लोबल HTTP Client - सॉकेट लीक और इवेंट लूप हैंग होने से बचाने के लिए
 HTTP_CLIENT = None
 
 def get_http_client():
     global HTTP_CLIENT
     if HTTP_CLIENT is None or HTTP_CLIENT.is_closed:
-        HTTP_CLIENT = httpx.AsyncClient(timeout=httpx.Timeout(8.0, connect=5.0))
+        HTTP_CLIENT = httpx.AsyncClient(
+            timeout=httpx.Timeout(30.0, connect=15.0),
+            limits=httpx.Limits(max_keepalive_connections=5, keepalive_expiry=15.0)
+        )
     return HTTP_CLIENT
 
 def style_txt(text):
@@ -135,7 +137,7 @@ async def save_to_github_safely(data_to_save, commit_msg):
 async def sync_db():
     global DB_CACHE, STYLED_NAMES_CACHE
     latest_db = await get_latest_github_db()
-    if latest_db or latest_db == {}:
+    if latest_db:
         DB_CACHE = latest_db
         STYLED_NAMES_CACHE.clear()
         return True
@@ -241,6 +243,7 @@ async def send_next_quiz(context: ContextTypes.DEFAULT_TYPE, chat_id: int, user_
                 q = DB_CACHE[topic][q_idx]
         except Exception:
             user_data['idx'] = idx + 1
+            user_data['sending_lock'] = False
             asyncio.create_task(send_next_quiz(context, chat_id, user_id))
             return
 
@@ -272,8 +275,8 @@ async def send_next_quiz(context: ContextTypes.DEFAULT_TYPE, chat_id: int, user_
             type=Poll.QUIZ,
             correct_option_id=correct_option_id,
             is_anonymous=False,
-            read_timeout=10,
-            write_timeout=10
+            read_timeout=30,
+            write_timeout=30
         )
 
         POLL_TRACKER[message.poll.id] = {
@@ -289,6 +292,7 @@ async def send_next_quiz(context: ContextTypes.DEFAULT_TYPE, chat_id: int, user_
         logger.error(f"Quiz Sending Error: {e}")
         if user_data:
             user_data['idx'] = user_data.get('idx', 0) + 1
+            user_data['sending_lock'] = False
             asyncio.create_task(send_next_quiz(context, chat_id, user_id))
     finally:
         if user_data:
@@ -325,19 +329,23 @@ async def handle_poll_answer(update: Update, context: ContextTypes.DEFAULT_TYPE)
 
 # --- Commands ---
 async def reset_bot(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = update.effective_user.id
+    if user_id in context.application.user_data:
+        context.application.user_data[user_id].clear()
+
     m = await update.message.reply_text("🌀 Re-linking Webhook connection...")
     try:
-        await context.bot.delete_webhook(drop_pending_updates=True)
-        await asyncio.sleep(0.5)
+        target_url = f"{RENDER_URL}/{TOKEN}"
         await context.bot.set_webhook(
-            url=f"{RENDER_URL}/{TOKEN}",
+            url=target_url,
             allowed_updates=Update.ALL_TYPES,
-            drop_pending_updates=True
+            drop_pending_updates=True,
+            read_timeout=30,
+            write_timeout=30
         )
-        asyncio.create_task(sync_db())
-        context.user_data.clear()
+        await sync_db()
         POLL_TRACKER.clear()
-        res = "╔════════════════════╗\n  ⚡ BOT IS ALIVE NOW ⚡ \n╚════════════════════╝\n✅ कनेक्शन पूरी तरह रीसेट हो गया है!"
+        res = "╔════════════════════╗\n  ⚡ BOT IS ALIVE NOW ⚡ \n╚════════════════════╝\n✅ कनेक्शन पूरी तरह रीसेट हो गया है!\n\n/start पर क्लिक करें।"
         await m.edit_text(res)
     except Exception as e:
         await m.edit_text(f"❌ Failed: {e}")
@@ -356,25 +364,40 @@ async def refresh_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await msg.edit_text("❌ Sync Failed!")
 
 async def handle_input(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    json_text = ""
-    if update.message.document:
-        f = await context.bot.get_file(update.message.document.file_id)
-        c = await f.download_as_bytearray()
-        json_text = c.decode('utf-8')
-    elif update.message.text and ("options" in update.message.text or "question" in update.message.text):
-        json_text = update.message.text
-    else:
-        return
+    user_id = update.effective_user.id
+    if user_id in context.application.user_data:
+        context.application.user_data[user_id]['busy'] = False
 
-    m = await update.message.reply_text("🛡️ Safely Adding Data to GitHub...")
     try:
+        json_text = ""
+        if update.message.document:
+            m_down = await update.message.reply_text("📥 फ़ाइल प्राप्त हो रही है...")
+            try:
+                # 60 सेकंड का सुरक्षित टाइमआउट दिया गया है ताकि कभी Timed Out न हो
+                f = await context.bot.get_file(update.message.document.file_id, read_timeout=60.0, write_timeout=60.0)
+                c = await f.download_as_bytearray(read_timeout=60.0, write_timeout=60.0)
+                json_text = c.decode('utf-8', errors='ignore')
+            finally:
+                try:
+                    await m_down.delete()
+                except Exception:
+                    pass
+        elif update.message.text and ("options" in update.message.text or "question" in update.message.text):
+            json_text = update.message.text
+        else:
+            return
+
+        if not json_text.strip():
+            return
+
+        m = await update.message.reply_text("🛡️ Safely Adding Data to GitHub...")
         clean_text = json_text.replace('```json', '').replace('```', '').strip()
         new_data = json.loads(clean_text)
 
         global DB_CACHE, STYLED_NAMES_CACHE
         latest_db = await get_latest_github_db()
         if not latest_db:
-            latest_db = DB_CACHE
+            latest_db = DB_CACHE.copy() if DB_CACHE else {}
 
         for topic, questions in new_data.items():
             if topic in latest_db:
@@ -396,8 +419,11 @@ async def handle_input(update: Update, context: ContextTypes.DEFAULT_TYPE):
         else:
             await m.edit_text("❌ GitHub सेव करने में दिक्कत आई, कृपया दोबारा भेजें।")
 
+    except json.JSONDecodeError as je:
+        await update.message.reply_text(f"❌ JSON फ़ॉर्मेट सही नहीं है: {je}")
     except Exception as e:
-        await m.edit_text(f"❌ Data Format Error: {e}")
+        logger.error(f"Handle Input Error: {e}")
+        await update.message.reply_text(f"❌ त्रुटि: {e}")
 
 async def delete_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     t = " ".join(context.args).strip()
@@ -424,17 +450,20 @@ async def delete_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     else:
         await m.edit_text(f"❌ विषय '{t}' डेटाबेस में नहीं मिला! कृपया सही नाम लिखें।")
 
-# NON-BLOCKING START COMMAND
+# FORCED AUTO-UNLOCKED START COMMAND
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = update.effective_user.id
+    if user_id in context.application.user_data:
+        context.application.user_data[user_id].clear()
+    
     if update.message:
-        await update.message.reply_chat_action("typing")
-    context.user_data.clear()
+        try:
+            await update.message.reply_chat_action("typing")
+        except Exception:
+            pass
 
-    # अगर कैश खाली है तो बैकग्राउंड में लोड होने दो, यूजर को रोको मत!
     if not DB_CACHE:
-        asyncio.create_task(sync_db())
-        await update.message.reply_text("🔄 डेटाबेस सिंक हो रहा है... 2-3 सेकंड में दोबारा /start भेजें।")
-        return
+        await sync_db()
 
     welcome = (
         "╔════════════════════╗\n"
@@ -459,8 +488,10 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     if data == "super_reset":
         class TU:
-            def __init__(self, m): self.message = m
-        await reset_bot(TU(query.message), context)
+            def __init__(self, m, u): 
+                self.message = m
+                self.effective_user = u
+        await reset_bot(TU(query.message, query.from_user), context)
         return
 
     if data.startswith("page_"):
@@ -529,19 +560,39 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE):
     logger.error(f"Update {update} caused error: {context.error}")
 
-# CLEAN NON-BLOCKING WATCHDOG
+# --- 24/7 AUTO-HEALING & KEEP-ALIVE WATCHDOG ---
 async def self_keep_alive_watchdog(application: Application):
-    await asyncio.sleep(10)
-    logger.info("⚡ Internal Watchdog Online!")
+    await asyncio.sleep(15)
+    logger.info("⚡ Auto-Healing Watchdog Online!")
+    target_url = f"{RENDER_URL}/{TOKEN}"
 
+    counter = 0
     while True:
         try:
             client = get_http_client()
-            await client.get(f"{RENDER_URL}/{TOKEN}")
+            try:
+                await client.get(RENDER_URL, follow_redirects=True)
+            except Exception:
+                pass
+
+            counter += 1
+            if counter >= 2:
+                counter = 0
+                wh_info = await application.bot.get_webhook_info()
+                if wh_info.url != target_url:
+                    logger.warning(f"⚠️ Webhook Disconnected! Current: '{wh_info.url}'. Auto-relinking now...")
+                    await application.bot.set_webhook(
+                        url=target_url,
+                        allowed_updates=Update.ALL_TYPES,
+                        drop_pending_updates=True,
+                        read_timeout=30,
+                        write_timeout=30
+                    )
+                    logger.info("✅ Webhook Auto-Healed Successfully!")
         except asyncio.CancelledError:
             break
         except Exception as e:
-            logger.error(f"Watchdog ping error: {e}")
+            logger.error(f"Watchdog Loop Error: {e}")
 
         await asyncio.sleep(60)
 
@@ -558,9 +609,19 @@ async def post_shutdown(application: Application):
         await HTTP_CLIENT.aclose()
 
 def main():
+    # Telegram API के नेटवर्क कनेक्शन को 60s टाइमआउट दिया गया है
+    request_config = HTTPXRequest(
+        connection_pool_size=10,
+        connect_timeout=30.0,
+        read_timeout=60.0,
+        write_timeout=60.0,
+        pool_timeout=30.0
+    )
+
     app = (
         Application.builder()
         .token(TOKEN)
+        .request(request_config)
         .concurrent_updates(True)
         .post_init(post_init)
         .post_shutdown(post_shutdown)
@@ -585,7 +646,7 @@ def main():
         url_path=TOKEN,
         webhook_url=f"{RENDER_URL}/{TOKEN}",
         allowed_updates=Update.ALL_TYPES,
-        drop_pending_updates=True  # बैकग्राउंड में रुके हुए सारे पुराने/अटके हुए मैसेजेस को ड्रॉप कर देगा
+        drop_pending_updates=True
     )
 
 if __name__ == '__main__':
