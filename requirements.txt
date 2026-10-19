@@ -5,4 +5,3 @@ PyGithub
 google-generativeai
 httpx
 aiohttp
-jsonrepair
