@@ -19,9 +19,9 @@ from telegram.ext import (
     ContextTypes
 )
 
-# सुपर-फास्ट और पावरफुल JSON रिपेयर लाइब्रेरी (अगर इन्स्टॉल हो)
+# Optional json-repair library check
 try:
-    from jsonrepair import repair_json
+    from json_repair import repair_json
 except ImportError:
     repair_json = None
 
@@ -63,42 +63,43 @@ def style_txt(text):
     return res
 
 # =====================================================================
-# 🛠️ AUTO-REPAIR & HEALING ENGINE (गलत JSON को खुद सुधारने वाला इंजन)
+# 🛠️ ADVANCED AUTO-REPAIR (डबल ब्रैकेट और सिंटैक्स गलतियाँ ऑटो-ठीक करने वाला)
 # =====================================================================
 
 def advanced_auto_repair_json(text: str) -> str:
-    """JSON की सभी आम सिंटैक्स गलतियों को ऑटोमैटिक ठीक करता है।"""
-    # 1. यदि jsonrepair लाइब्रेरी उपलब्ध है
+    t = text.strip()
+
+    # 1. डबल ब्रैकेट ऑटो-फिक्स (जैसे ": [\n  [" को ": [" बनाना)
+    t = re.sub(r':\s*\[\s*\[', ': [', t)
+    t = re.sub(r'\]\s*\]\s*\}', '] }', t)
+
     if repair_json:
         try:
-            return repair_json(text)
+            return repair_json(t)
         except Exception:
             pass
 
-    t = text.strip()
-
-    # 2. स्मार्ट/कर्व्ड कोट्स को नॉर्मल कोट्स में बदलना
+    # 2. स्मार्ट कोट्स हटाना
     t = t.replace('“', '"').replace('”', '"').replace('‘', "'").replace('’', "'")
 
-    # 3. फालतू ट्रेलिंग कॉमा हटाना (उदा: [1, 2, ] या {"a": 1, })
+    # 3. फालतू कॉमा हटाना
     t = re.sub(r',\s*([\]}])', r'\1', t)
 
-    # 4. ऑब्जेक्ट्स और ऐरे के बीच छूटे हुए कॉमा जोड़ना (उदा: } { या ] [)
+    # 4. छूटे हुए कॉमा जोड़ना
     t = re.sub(r'}\s*{', '}, {', t)
     t = re.sub(r']\s*\[', '], [', t)
     t = re.sub(r'}\s*"', '}, "', t)
     t = re.sub(r'"\s*{', '", {', t)
 
     # 5. सिंगल कोट्स को डबल कोट्स में बदलना
-    t = re.sub(r"([{,]\s*)'([^']+)'\s*:", r'\1"\2":', t)  # Keys
-    t = re.sub(r":\s*'([^']*)'", r': "\1"', t)            # Values
-    t = re.sub(r"\[\s*'([^']*)'", r'["\1"', t)            # First array item
-    t = re.sub(r",\s*'([^']*)'", r', "\1"', t)             # Next array items
+    t = re.sub(r"([{,]\s*)'([^']+)'\s*:", r'\1"\2":', t)
+    t = re.sub(r":\s*'([^']*)'", r': "\1"', t)
+    t = re.sub(r"\[\s*'([^']*)'", r'["\1"', t)
+    t = re.sub(r",\s*'([^']*)'", r', "\1"', t)
 
-    # 6. अगर फ़ाइल अधूरी कट गई हो तो छूटे हुए ब्रैकेट्स खुद बंद करना
+    # 6. छूटे हुए ब्रैकेट्स बंद करना
     open_brackets = t.count('[') - t.count(']')
     open_braces = t.count('{') - t.count('}')
-
     if open_brackets > 0:
         t += ']' * open_brackets
     if open_braces > 0:
@@ -107,17 +108,11 @@ def advanced_auto_repair_json(text: str) -> str:
     return t
 
 def auto_heal_quiz_structure(data):
-    """
-    अगर यूज़र ने बिना विषय के सीधे सवालों की लिस्ट [...] भेज दी हो, 
-    या answer में 0/1 की जगह टेक्स्ट लिख दिया हो, तो उसे ऑटो-करेक्ट करता है।
-    """
     repaired_data = {}
 
-    # अगर यूज़र ने सिर्फ एक सवाल का डिक्शनरी भेजा है
     if isinstance(data, dict) and "question" in data:
         data = [data]
 
-    # अगर यूज़र ने बिना विषय के सीधे लिस्ट [...] भेजी है
     if isinstance(data, list):
         data = {"सामान्य ज्ञान (Auto-Import)": data}
 
@@ -125,6 +120,10 @@ def auto_heal_quiz_structure(data):
         return None, "डेटा एक वैध सूची या डिक्शनरी नहीं है।"
 
     for topic, q_list in data.items():
+        # अगर अंदर भी डबल लिस्ट [[ ... ]] हो गई हो तो उसे चपटा (flatten) करें
+        if isinstance(q_list, list) and len(q_list) > 0 and isinstance(q_list[0], list):
+            q_list = [item for sublist in q_list if isinstance(sublist, list) for item in sublist]
+
         if not isinstance(q_list, list):
             continue
 
@@ -136,7 +135,6 @@ def auto_heal_quiz_structure(data):
             q_clean = q.copy()
             options = q_clean.get("options", [])
 
-            # अगर ऑप्शन्स स्ट्रिंग में हों
             if isinstance(options, str):
                 options = [opt.strip() for opt in options.split(",") if opt.strip()]
                 q_clean["options"] = options
@@ -145,8 +143,6 @@ def auto_heal_quiz_structure(data):
                 continue
 
             ans = q_clean.get("answer", 0)
-
-            # अगर answer टेक्स्ट में लिख दिया हो (उदा: "answer": "दिल्ली")
             if isinstance(ans, str):
                 matched_idx = -1
                 for idx, opt in enumerate(options):
@@ -155,7 +151,6 @@ def auto_heal_quiz_structure(data):
                         break
                 ans = matched_idx if matched_idx != -1 else 0
 
-            # अगर answer 1-based हो (1, 2, 3, 4)
             if isinstance(ans, int):
                 if ans >= len(options):
                     ans = len(options) - 1
@@ -172,6 +167,45 @@ def auto_heal_quiz_structure(data):
         return None, "फ़ाइल में कोई भी वैध सवाल नहीं मिल सका।"
 
     return repaired_data, None
+
+# =====================================================================
+# 🎯 EXACT HINT ENGINE (सटीक सुझाव: क्या हटाना है और क्या जोड़ना है)
+# =====================================================================
+
+def get_actionable_hint(e: json.JSONDecodeError, lines: list) -> str:
+    line_no = e.lineno
+    current_line = lines[line_no - 1] if 0 <= line_no - 1 < len(lines) else ""
+    prev_line = lines[line_no - 2] if line_no - 2 >= 0 and line_no - 2 < len(lines) else ""
+    prev2_line = lines[line_no - 3] if line_no - 3 >= 0 and line_no - 3 < len(lines) else ""
+    msg = e.msg.lower()
+
+    # 1. डबल ब्रैकेट एरर (जैसा आपके स्क्रीनशॉट में हुआ)
+    if "[" in current_line and "[" in prev_line:
+        return f"👉 <b>क्या करना है:</b> लाइन <code>{line_no}</code> पर लगा फालतू ब्रैकेट <code>[</code> <b>हटा दें (Delete करें)</b>।"
+    if "{" in current_line and "[" in prev_line and "[" in prev2_line:
+        return f"👉 <b>क्या करना है:</b> लाइन <code>{line_no-1}</code> पर लगा फालतू ब्रैकेट <code>[</code> <b>हटा दें (Delete करें)</b>।"
+
+    # 2. कॉमा छूटने की गलती
+    if "expecting ',' delimiter" in msg:
+        return f"👉 <b>क्या करना है:</b> लाइन <code>{line_no-1}</code> के अंत में कॉमा (<code>,</code>) लगाना भूल गए हैं, वहाँ <b>कॉमा जोड़ें</b>।"
+
+    # 3. कोट्स की गलती
+    if "expecting property name" in msg:
+        if "'" in current_line:
+            return f"👉 <b>क्या करना है:</b> सिंगल कोट्स (<code>'</code>) हटाकर डबल कोट्स (<code>\"</code>) लगाएँ।"
+        return f"👉 <b>क्या करना है:</b> लाइन <code>{line_no}</code> पर नाम के आगे-पीछे डबल कोट्स (<code>\"</code>) जोड़ें।"
+
+    # 4. इनवर्टेड कोट्स बंद न होना
+    if "unterminated string" in msg:
+        return f"👉 <b>क्या करना है:</b> लाइन <code>{line_no}</code> पर इनवर्टेड कोट्स खुला रह गया है, वाक्य के अंत में <code>\"</code> जोड़कर बंद करें।"
+
+    # 5. फालतू कॉमा (Trailing Comma)
+    if "expecting value" in msg:
+        if prev_line.strip().endswith(","):
+            return f"👉 <b>क्या करना है:</b> लाइन <code>{line_no-1}</code> के अंत में लगा फालतू कॉमा (<code>,</code>) <b>हटा दें</b>।"
+        return f"👉 <b>क्या करना है:</b> लाइन <code>{line_no}</code> या <code>{line_no-1}</code> पर ब्रैकेट <code>[</code> या <code>{{</code> गलत लगा है, उसे चेक करें।"
+
+    return "👉 <b>क्या करना है:</b> इस लाइन के आसपास कॉमा (,) और कोट्स (\") चेक करें।"
 
 def format_json_syntax_error(e: json.JSONDecodeError, raw_text: str) -> str:
     lines = raw_text.splitlines()
@@ -193,16 +227,16 @@ def format_json_syntax_error(e: json.JSONDecodeError, raw_text: str) -> str:
             snippet.append(f"   L{i}: {line_content}")
 
     snippet_str = html.escape("\n".join(snippet))
+    hint = get_actionable_hint(e, lines)
 
     return (
         "╔═════════════════════════╗\n"
-        "   ❌ <b>JSON बहुत ज्यादा खराब है</b>\n"
+        "   ❌ <b>JSON फ़ॉर्मेट त्रुटि</b>\n"
         "╚═════════════════════════╝\n\n"
-        "<i>ऑटो-रिपेयर इंजन भी इसे ठीक नहीं कर सका। कृपया नीचे दी गई जगह को देखें:</i>\n\n"
         f"📍 <b>लाइन नंबर:</b> <code>{line_no}</code>\n"
-        f"📌 <b>अक्षर (कॉलम):</b> <code>{col_no}</code>\n"
         f"⚠️ <b>समस्या:</b> <code>{html.escape(msg)}</code>\n\n"
-        f"🔍 <b>गलती वाला हिस्सा:</b>\n"
+        f"💡 <b>सटीक समाधान:</b>\n{hint}\n\n"
+        f"🔍 <b>फ़ाइल का वो हिस्सा:</b>\n"
         f"<pre>{snippet_str}</pre>"
     )
 
@@ -541,7 +575,7 @@ async def clear_all_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await m.edit_text("❌ GitHub से डेटा हटाने में समस्या आई।")
 
 # =====================================================================
-# स्मार्ट इनपुट हैंडलर (AUTO-HEAL + FALLBACK ERROR POINTER)
+# स्मार्ट इनपुट हैंडलर (Auto-Repair + Exact Hint)
 # =====================================================================
 
 async def handle_input(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -583,31 +617,31 @@ async def handle_input(update: Update, context: ContextTypes.DEFAULT_TYPE):
         was_repaired = False
         original_syntax_error = None
 
-        # 1. पहले साधारण तरीके से parse करने की कोशिश करें
+        # 1. साधारण पार्सिंग
         try:
             parsed_data = json.loads(clean_text)
         except json.JSONDecodeError as je:
             original_syntax_error = je
 
-        # 2. अगर साधारण तरीके से फेल हुआ, तो AUTO-REPAIR चलाएं!
+        # 2. अगर साधारण में फेल हुआ, तो ऑटो-रिपेयर चलाएं
         if parsed_data is None:
             try:
                 repaired_text = advanced_auto_repair_json(clean_text)
                 parsed_data = json.loads(repaired_text)
                 was_repaired = True
             except Exception:
-                # यदि ऑटो-रिपेयर भी विफल हो जाए, तब यूज़र को सटीक लाइन दिखाएं
+                # यदि ऑटो-रिपेयर भी विफल हो, तो सटीक एक्शन हिंट भेजें
                 err_msg = format_json_syntax_error(original_syntax_error, clean_text)
                 await update.message.reply_text(err_msg, parse_mode=ParseMode.HTML)
                 return
 
-        # 3. संरचना को ऑटो-हीलिंग (Auto-Heal) दें (मिसिंग टॉपिक्स, आंसर स्ट्रिंग्स आदि)
+        # 3. स्ट्रक्चर को ऑटो-हीलिंग दें
         final_data, struct_err = auto_heal_quiz_structure(parsed_data)
         if struct_err:
             await update.message.reply_text(f"⚠️ {struct_err}")
             return
 
-        # 4. GitHub पर सुरक्षित सेव करें
+        # 4. GitHub पर सेव करें
         m = await update.message.reply_text("🛡️ Safely Adding Data to GitHub...")
 
         global DB_CACHE, STYLED_NAMES_CACHE
